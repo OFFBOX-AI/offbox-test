@@ -32,7 +32,6 @@
 </head>
 <body>
 <div class="colorbar"></div>
-<iframe name="hidden_iframe" style="display:none"></iframe>
 <div class="card">
   <div class="studio-label">OFF BOX Studios</div>
   <h1>Connection Test</h1>
@@ -56,11 +55,13 @@
   </div>
 </div>
 <script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6jgMZjVC4zS9pCX-cB2kSXtRJdhG0_wZYGlr2upUoUspqS6vqu5yFz4KaPfd0lmOZ/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxTb_hjuF4RjscPH00ICf5aU_LarC0jDJ04245F-KVMKyJ5ac5oTEVIJEB2vzkGbeq4/exec';
+
   window.onload = function() {
     var saved = localStorage.getItem('offbox_test_name');
     if (saved) document.getElementById('name').value = saved;
   };
+
   function handleSubmit() {
     var name = document.getElementById('name').value.trim();
     var message = document.getElementById('message').value.trim();
@@ -71,28 +72,22 @@
     localStorage.setItem('offbox_test_name', name);
     btn.disabled = true;
     btn.textContent = 'Submitting...';
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = SCRIPT_URL;
-    form.target = 'hidden_iframe';
-    var fields = { name: name, message: message, timestamp: new Date().toISOString() };
-    Object.keys(fields).forEach(function(key) {
-      var input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = fields[key];
-      form.appendChild(input);
-    });
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-    setTimeout(function() {
-      document.getElementById('form-section').style.display = 'none';
-      document.getElementById('success-section').style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Submit';
-    }, 1500);
+    var url = SCRIPT_URL + '?name=' + encodeURIComponent(name) + '&message=' + encodeURIComponent(message) + '&ts=' + Date.now();
+    fetch(url)
+      .then(function() {
+        document.getElementById('form-section').style.display = 'none';
+        document.getElementById('success-section').style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+      })
+      .catch(function() {
+        document.getElementById('form-section').style.display = 'none';
+        document.getElementById('success-section').style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+      });
   }
+
   function resetForm() {
     document.getElementById('message').value = '';
     document.getElementById('form-section').style.display = 'block';
