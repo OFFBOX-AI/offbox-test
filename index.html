@@ -217,7 +217,7 @@
 </div>
 
 <script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxTb_hjuF4RjscPH00ICf5aU_LarC0jDJ04245F-KVMKyJ5ac5oTEVIJEB2vzkGbeq4/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6jgMZjVC4zS9pCX-cB2kSXtRJdhG0_wZYGlr2upUoUspqS6vqu5yFz4KaPfd0lmOZ/exec';
 
   window.onload = function() {
     const saved = localStorage.getItem('offbox_test_name');
@@ -251,7 +251,7 @@
     fetch(SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     })
     .then(function() {
