@@ -62,6 +62,14 @@
     if (saved) document.getElementById('name').value = saved;
   };
 
+  function showSuccess() {
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('success-section').style.display = 'block';
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = false;
+    btn.textContent = 'Submit';
+  }
+
   function handleSubmit() {
     var name = document.getElementById('name').value.trim();
     var message = document.getElementById('message').value.trim();
@@ -72,20 +80,15 @@
     localStorage.setItem('offbox_test_name', name);
     btn.disabled = true;
     btn.textContent = 'Submitting...';
+
     var url = SCRIPT_URL + '?name=' + encodeURIComponent(name) + '&message=' + encodeURIComponent(message) + '&ts=' + Date.now();
-    fetch(url)
-      .then(function() {
-        document.getElementById('form-section').style.display = 'none';
-        document.getElementById('success-section').style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Submit';
-      })
-      .catch(function() {
-        document.getElementById('form-section').style.display = 'none';
-        document.getElementById('success-section').style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Submit';
-      });
+
+    var img = new Image();
+    img.onload = showSuccess;
+    img.onerror = showSuccess;
+    img.src = url;
+
+    setTimeout(showSuccess, 3000);
   }
 
   function resetForm() {
