@@ -168,7 +168,33 @@
     align-items: center;
     gap: 14px;
     animation: fadeInUp 0.4s ease both;
+    flex-wrap: wrap;
+    transition: border-color 0.2s;
   }
+
+  .name-strip.invalid {
+    border-color: #FF5572;
+  }
+
+  .name-warning {
+    width: 100%;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #FF5572;
+    font-weight: 600;
+    padding-top: 4px;
+    border-top: 1px solid rgba(255,85,114,0.2);
+    margin-top: 4px;
+  }
+
+  .name-warning.show { display: flex; animation: slideDown 0.25s ease; }
+
+  .name-warning i { font-size: 13px; }
 
   .name-strip-label {
     font-family: 'IBM Plex Mono', monospace;
@@ -225,7 +251,7 @@
     flex-direction: column;
     transition: border-color 0.3s, background 0.3s;
     animation: fadeInUp 0.4s ease both;
-    overflow: hidden;
+    position: relative;
   }
 
   .question-card.done {
@@ -289,10 +315,11 @@
     text-transform: none;
     font-family: 'Segoe UI', sans-serif;
     width: 240px;
-    z-index: 10;
+    z-index: 9999;
     border: 1px solid rgba(230,230,230,0.15);
     line-height: 1.5;
     text-align: left;
+    pointer-events: none;
   }
 
   .q-content {
@@ -935,10 +962,14 @@
     </button>
   </div>
 
-  <div class="name-strip">
+  <div class="name-strip" id="name-strip">
     <span class="name-strip-label">You</span>
-    <input type="text" id="name-input" placeholder="Type your name once, we remember it" autocomplete="off">
+    <input type="text" id="name-input" placeholder="e.g. Abdullah Yousef" autocomplete="off">
     <span class="name-saved-tag" id="name-saved-tag">Saved</span>
+    <div class="name-warning" id="name-warning">
+      <i class="ti ti-alert-circle"></i>
+      <span>Need your first AND last name</span>
+    </div>
   </div>
 
   <div class="questions-grid" id="questions-grid"></div>
@@ -1108,7 +1139,7 @@
           <div class="q-prompt">Are you blocked on anything right now?</div>
           <div class="yn-buttons">
             <button class="yn-btn${state.blocker.has === false ? ' no-active' : ''}" id="blocker-no" onclick="setBlocker(false)">
-              <i class="ti ti-check"></i> All Clear
+              <i class="ti ti-check"></i> All clear
             </button>
             <button class="yn-btn${state.blocker.has === true ? ' yes-active' : ''}" id="blocker-yes" onclick="setBlocker(true)">
               <i class="ti ti-alert-triangle"></i> Yes
@@ -1518,8 +1549,16 @@
 
   function submit() {
     if (getDoneCount() < 4) return;
-    const name = document.getElementById('name-input').value.trim();
-    if (!name) { alert('Type your name first'); return; }
+    const rawName = document.getElementById('name-input').value;
+    const name = formatName(rawName);
+    if (!name) {
+      document.getElementById('name-warning').classList.add('show');
+      document.getElementById('name-strip').classList.add('invalid');
+      document.getElementById('name-input').focus();
+      document.getElementById('name-strip').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    document.getElementById('name-input').value = name;
     localStorage.setItem('offbox_name', name);
 
     // Save log-in goal for log-out recall on same device
@@ -1558,6 +1597,12 @@
     s.src = url;
     document.head.appendChild(s);
     setTimeout(function(){ try { document.head.removeChild(s); } catch(e){} }, 5000);
+
+    // Clear morning goal after log-out submits so next day starts fresh
+    if (mode === 'out') {
+      const key = 'offbox_login_' + new Date().toISOString().split('T')[0] + '_' + name;
+      localStorage.removeItem(key);
+    }
 
     setTimeout(showSuccess, 2500);
   }
@@ -1627,6 +1672,31 @@
     updateSubmitState();
   }
 
+  function formatName(raw) {
+    const trimmed = (raw || '').trim().replace(/\s+/g, ' ');
+    const parts = trimmed.split(' ').filter(p => p.length > 0);
+    if (parts.length < 2) return null;
+    return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+  }
+
+  function checkNameValidity(showWarning) {
+    const value = document.getElementById('name-input').value.trim();
+    const formatted = formatName(value);
+    const warning = document.getElementById('name-warning');
+    const strip = document.getElementById('name-strip');
+    if (value && !formatted) {
+      if (showWarning) {
+        warning.classList.add('show');
+        strip.classList.add('invalid');
+      }
+      return false;
+    } else {
+      warning.classList.remove('show');
+      strip.classList.remove('invalid');
+      return true;
+    }
+  }
+
   window.onload = function() {
     const savedName = localStorage.getItem('offbox_name');
     const nameInput = document.getElementById('name-input');
@@ -1636,8 +1706,27 @@
     }
     nameInput.addEventListener('input', function() {
       document.getElementById('greeting-text').textContent = getGreeting();
-      localStorage.setItem('offbox_name', this.value.trim());
       document.getElementById('name-saved-tag').classList.toggle('show', !!this.value.trim());
+      // Clear warning as soon as they fix it
+      const formatted = formatName(this.value);
+      if (formatted) {
+        document.getElementById('name-warning').classList.remove('show');
+        document.getElementById('name-strip').classList.remove('invalid');
+      }
+    });
+    nameInput.addEventListener('blur', function() {
+      const formatted = formatName(this.value);
+      if (formatted) {
+        this.value = formatted;
+        localStorage.setItem('offbox_name', formatted);
+        document.getElementById('greeting-text').textContent = getGreeting();
+        document.getElementById('name-warning').classList.remove('show');
+        document.getElementById('name-strip').classList.remove('invalid');
+      } else if (this.value.trim()) {
+        // They typed something but it's not a full name - warn them
+        document.getElementById('name-warning').classList.add('show');
+        document.getElementById('name-strip').classList.add('invalid');
+      }
     });
     document.getElementById('greeting-text').textContent = getGreeting();
     autoDetectMode();
