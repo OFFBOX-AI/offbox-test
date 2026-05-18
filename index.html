@@ -999,7 +999,7 @@
         <div class="reward-desc" id="reward-desc">Three of these in two weeks unlocks recognition.</div>
       </div>
     </div>
-    <button class="reset-link" onclick="resetAll()">Reset</button>
+    <button class="reset-link" onclick="resetAll()">Back</button>
   </div>
 
   <div class="credits">
@@ -1147,7 +1147,7 @@
           </div>
           <div class="blocker-detail${state.blocker.has === true ? ' show' : ''}" id="blocker-detail">
             <div class="blocker-detail-label">What's blocking you?</div>
-            <input type="text" id="blocker-what" value="${escapeHtml(state.blocker.what || '')}" placeholder="One specific line" oninput="state.blocker.what=this.value">
+            <input type="text" id="blocker-what" value="${escapeHtml(state.blocker.what || '')}" placeholder="One specific line" oninput="updateBlockerWhat(this.value)">
           </div>
         </div>
       </div>
@@ -1218,7 +1218,7 @@
           </div>
           <div class="completion-reason${(state.completion && state.completion !== 'fully') ? ' show' : ''}" id="completion-reason">
             <div class="blocker-detail-label">What happened?</div>
-            <textarea id="reason-input" placeholder="Quick honest reason. Took longer, got pulled into something else, blocked, life happened, energy was off..." oninput="state.completionReason=this.value">${escapeHtml(state.completionReason || '')}</textarea>
+            <textarea id="reason-input" placeholder="Quick honest reason. Took longer, got pulled into something else, blocked, life happened, energy was off..." oninput="updateCompletionReason(this.value)">${escapeHtml(state.completionReason || '')}</textarea>
           </div>
         </div>
       </div>
@@ -1356,7 +1356,16 @@
     document.getElementById('blocker-yes').className = 'yn-btn' + (has ? ' yes-active' : '');
     document.getElementById('blocker-no').className = 'yn-btn' + (!has ? ' no-active' : '');
     document.getElementById('blocker-detail').classList.toggle('show', has);
-    updateCard('blocker', true);
+    // Done if: clear, OR yes-with-detail
+    const isDone = (has === false) || (has === true && (state.blocker.what || '').trim());
+    updateCard('blocker', isDone);
+    updateSubmitState();
+  }
+
+  function updateBlockerWhat(value) {
+    state.blocker.what = value;
+    const isDone = state.blocker.has === false || (state.blocker.has === true && value.trim());
+    updateCard('blocker', isDone);
     updateSubmitState();
   }
 
@@ -1391,7 +1400,16 @@
       }
     }
     if (level === 'fully') state.completionReason = '';
-    updateCard('completion', true);
+    // Done if: fully done, OR not fully but has reason
+    const isDone = (level === 'fully') || (state.completionReason || '').trim();
+    updateCard('completion', isDone);
+    updateSubmitState();
+  }
+
+  function updateCompletionReason(value) {
+    state.completionReason = value;
+    const isDone = state.completion === 'fully' || value.trim();
+    updateCard('completion', isDone);
     updateSubmitState();
   }
 
@@ -1518,13 +1536,15 @@
     if (mode === 'in') {
       let n = 0;
       if (state.goal.trim()) n++;
-      if (state.blocker.has !== null) n++;
+      if (state.blocker.has === false) n++;
+      else if (state.blocker.has === true && (state.blocker.what || '').trim()) n++;
       if (state.energyIn > 0) n++;
       if (state.expectedDiff) n++;
       return n;
     } else {
       let n = 0;
-      if (state.completion) n++;
+      if (state.completion === 'fully') n++;
+      else if (state.completion && (state.completionReason || '').trim()) n++;
       if (state.completed.length > 0) n++;
       if (state.actualDiff > 0) n++;
       if (state.energyOut > 0) n++;
