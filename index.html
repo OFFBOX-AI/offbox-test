@@ -3,102 +3,1646 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OFF BOX Studios — Test</title>
+<title>OFF BOX Studios — Daily Log</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #191919; color: #E6E6E6; font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .colorbar { height: 3px; background: linear-gradient(90deg, #FF6B9D 0%, #39D98A 25%, #FFB800 50%, #43D9FF 75%, #A78BFA 100%); position: fixed; top: 0; left: 0; right: 0; }
-  .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(230,230,230,0.1); border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 460px; }
-  .studio-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(230,230,230,0.35); margin-bottom: 10px; }
-  h1 { font-size: 22px; font-weight: 600; color: #E6E6E6; margin-bottom: 6px; }
-  .subtitle { font-size: 13px; color: rgba(230,230,230,0.4); margin-bottom: 32px; line-height: 1.5; }
-  label { display: block; font-size: 12px; font-weight: 500; letter-spacing: 0.5px; color: rgba(230,230,230,0.5); text-transform: uppercase; margin-bottom: 8px; }
-  input[type="text"], textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(230,230,230,0.12); border-radius: 10px; color: #E6E6E6; font-size: 15px; padding: 13px 16px; font-family: inherit; margin-bottom: 22px; transition: border-color 0.15s; outline: none; }
-  input[type="text"]:focus, textarea:focus { border-color: #43D9FF; }
-  input[type="text"]::placeholder, textarea::placeholder { color: rgba(230,230,230,0.25); }
-  textarea { min-height: 110px; resize: vertical; }
-  .btn { width: 100%; background: #43D9FF; border: none; border-radius: 10px; color: #191919; font-size: 15px; font-weight: 700; padding: 15px; cursor: pointer; font-family: inherit; transition: opacity 0.15s, transform 0.1s; }
-  .btn:hover { opacity: 0.88; }
-  .btn:active { transform: scale(0.98); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .success { display: none; text-align: center; padding: 16px 0; }
-  .success-check { width: 56px; height: 56px; background: rgba(57,217,138,0.12); border: 1px solid rgba(57,217,138,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; }
-  .success-check svg { width: 24px; height: 24px; stroke: #39D98A; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-  .success h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-  .success p { font-size: 14px; color: rgba(230,230,230,0.45); margin-bottom: 6px; line-height: 1.5; }
-  .again-link { display: inline-block; margin-top: 20px; font-size: 13px; color: #43D9FF; cursor: pointer; background: none; border: none; border-bottom: 1px solid rgba(67,217,255,0.3); padding-bottom: 1px; font-family: inherit; }
-  .error-msg { display: none; font-size: 12px; color: #FF6B9D; margin-top: -16px; margin-bottom: 16px; padding-left: 4px; }
+
+  body {
+    background: #0F0F0F;
+    color: #E6E6E6;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    line-height: 1.5;
+    transition: background 0.6s ease;
+    position: relative;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace !important; }
+
+  body.mode-in::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60vh;
+    background: linear-gradient(180deg, rgba(57,217,138,0.06) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body.mode-out::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60vh;
+    background: linear-gradient(180deg, rgba(255,107,157,0.06) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .colorbar {
+    height: 4px;
+    background: linear-gradient(90deg, #FF6B9D 0%, #39D98A 25%, #FFB800 50%, #43D9FF 75%, #A78BFA 100%);
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-top: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .logo-block { display: flex; align-items: center; gap: 10px; }
+
+  .logo-dot {
+    width: 28px;
+    height: 28px;
+    background: #43D9FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0F0F0F;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: -0.5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .logo-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(230,230,230,0.5);
+    font-weight: 500;
+  }
+
+  .streak-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 7px 13px;
+    background: rgba(255,184,0,0.1);
+    color: #FFB800;
+    border: 1px solid rgba(255,184,0,0.3);
+    font-weight: 600;
+  }
+
+  .welcome { margin-bottom: 24px; animation: fadeInUp 0.5s ease both; }
+
+  .greeting {
+    font-size: 28px;
+    font-weight: 600;
+    color: #E6E6E6;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  .greeting-sub {
+    font-size: 14px;
+    color: rgba(230,230,230,0.55);
+  }
+
+  .mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(230,230,230,0.08);
+    padding: 5px;
+    margin-bottom: 24px;
+  }
+
+  .mode-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 13px;
+    background: transparent;
+    border: none;
+    color: rgba(230,230,230,0.4);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .mode-btn i { font-size: 18px; }
+  .mode-btn.active-in { background: #39D98A; color: #0F0F0F; }
+  .mode-btn.active-out { background: #FF5572; color: #FFFFFF; }
+  .mode-btn:not(.active-in):not(.active-out):hover {
+    color: rgba(230,230,230,0.85);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .name-strip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(230,230,230,0.08);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    animation: fadeInUp 0.4s ease both;
+  }
+
+  .name-strip-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(230,230,230,0.45);
+    font-weight: 600;
+  }
+
+  .name-strip input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #E6E6E6;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 4px 0;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .name-strip input::placeholder { color: rgba(230,230,230,0.3); }
+
+  .name-saved-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #39D98A;
+    background: rgba(57,217,138,0.1);
+    padding: 4px 9px;
+    border: 1px solid rgba(57,217,138,0.3);
+    font-weight: 600;
+    display: none;
+  }
+  .name-saved-tag.show { display: inline-block; }
+
+  .questions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 640px) {
+    .questions-grid { grid-template-columns: 1fr; }
+  }
+
+  .question-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(230,230,230,0.08);
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.3s, background 0.3s;
+    animation: fadeInUp 0.4s ease both;
+    overflow: hidden;
+  }
+
+  .question-card.done {
+    border-color: rgba(57,217,138,0.25);
+    background: rgba(57,217,138,0.03);
+  }
+
+  .q-header-block {
+    background: var(--q-color, #43D9FF);
+    color: #0F0F0F;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-weight: 700;
+  }
+
+  .q-header-block .num {
+    background: rgba(0,0,0,0.18);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .q-header-block .title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    flex: 1;
+    font-weight: 700;
+  }
+
+  .q-header-block .info-icon {
+    color: rgba(15,15,15,0.55);
+    cursor: help;
+    position: relative;
+    font-size: 18px;
+    transition: color 0.15s;
+  }
+
+  .q-header-block .info-icon:hover { color: #0F0F0F; }
+
+  .info-icon[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 130%;
+    right: 0;
+    background: #1a1a1a;
+    color: #E6E6E6;
+    padding: 12px 14px;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    font-family: 'Segoe UI', sans-serif;
+    width: 240px;
+    z-index: 10;
+    border: 1px solid rgba(230,230,230,0.15);
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  .q-content {
+    padding: 20px;
+    flex: 1;
+    opacity: 0.35;
+    transition: opacity 0.3s;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .q-content.active { opacity: 1; }
+  .q-content.done { opacity: 1; }
+
+  .q-prompt {
+    font-size: 15px;
+    color: #E6E6E6;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  input[type="text"], textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(230,230,230,0.12);
+    color: #E6E6E6;
+    font-size: 14px;
+    padding: 12px 14px;
+    font-family: inherit;
+    transition: all 0.15s;
+    outline: none;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--q-color, #43D9FF);
+  }
+
+  input::placeholder, textarea::placeholder { color: rgba(230,230,230,0.25); }
+  textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+
+  .yn-buttons { display: flex; gap: 8px; }
+
+  .yn-btn {
+    flex: 1;
+    padding: 12px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(230,230,230,0.12);
+    color: rgba(230,230,230,0.7);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .yn-btn i { font-size: 16px; }
+  .yn-btn:hover { background: rgba(255,255,255,0.05); color: #E6E6E6; }
+
+  .yn-btn.no-active {
+    background: #39D98A;
+    border-color: #39D98A;
+    color: #0F0F0F;
+  }
+
+  .yn-btn.yes-active {
+    background: #FF5572;
+    border-color: #FF5572;
+    color: #FFFFFF;
+  }
+
+  .blocker-detail {
+    padding-top: 4px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .blocker-detail.show { display: flex; animation: slideDown 0.3s ease; }
+
+  .blocker-detail-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(230,230,230,0.5);
+    font-weight: 600;
+  }
+
+  /* Pixel slider */
+  .pixel-slider { display: flex; flex-direction: column; gap: 12px; }
+
+  .pixel-track {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+  }
+
+  .pixel-cell {
+    height: 32px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(230,230,230,0.1);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .pixel-cell:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(230,230,230,0.2);
+  }
+
+  .pixel-cell.filled {
+    background: var(--q-color);
+    border-color: var(--q-color);
+  }
+
+  .pixel-feedback {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .pixel-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--q-color);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .pixel-message {
+    font-size: 12px;
+    color: rgba(230,230,230,0.55);
+    font-style: italic;
+    text-align: right;
+  }
+
+  /* Linear buttons */
+  .linear-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+  }
+
+  .linear-btn {
+    padding: 14px 6px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(230,230,230,0.12);
+    color: rgba(230,230,230,0.65);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .linear-btn:hover { background: rgba(255,255,255,0.06); color: #E6E6E6; }
+
+  .linear-btn.active.fully { background: #39D98A; border-color: #39D98A; color: #0F0F0F; }
+  .linear-btn.active.mostly { background: #43D9FF; border-color: #43D9FF; color: #0F0F0F; }
+  .linear-btn.active.partially { background: #FFB800; border-color: #FFB800; color: #0F0F0F; }
+  .linear-btn.active.not { background: #FF5572; border-color: #FF5572; color: #FFFFFF; }
+
+  .linear-btn.active.easy { background: #888; border-color: #888; color: #0F0F0F; }
+  .linear-btn.active.medium { background: #43D9FF; border-color: #43D9FF; color: #0F0F0F; }
+  .linear-btn.active.hard { background: #A78BFA; border-color: #A78BFA; color: #0F0F0F; }
+  .linear-btn.active.expert { background: #FFB800; border-color: #FFB800; color: #0F0F0F; }
+
+  .goal-recall {
+    background: rgba(57,217,138,0.08);
+    border-left: 3px solid #39D98A;
+    padding: 12px 14px;
+  }
+
+  .goal-recall-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #39D98A;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+
+  .goal-recall-text {
+    font-size: 14px;
+    color: #E6E6E6;
+    line-height: 1.4;
+  }
+
+  .card-input-wrap { display: flex; gap: 6px; }
+  .card-input-wrap input { flex: 1; }
+
+  .card-add-btn {
+    width: 44px;
+    background: #43D9FF;
+    border: none;
+    color: #0F0F0F;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.08s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-add-btn i { font-size: 18px; }
+  .card-add-btn:hover { opacity: 0.85; }
+  .card-add-btn:active { transform: scale(0.95); }
+
+  .combo-message {
+    background: rgba(67,217,255,0.08);
+    border: 1px solid rgba(67,217,255,0.3);
+    border-left: 3px solid #43D9FF;
+    padding: 10px 14px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    animation: comboPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .combo-message.show { display: flex; }
+
+  .combo-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    background: #43D9FF;
+    color: #0F0F0F;
+    padding: 4px 9px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+
+  .combo-text {
+    font-size: 13px;
+    color: #E6E6E6;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .combo-message.epic {
+    background: rgba(255,184,0,0.1);
+    border-color: rgba(255,184,0,0.4);
+    border-left-color: #FFB800;
+  }
+  .combo-message.epic .combo-count { background: #FFB800; }
+
+  .combo-message.legendary {
+    background: rgba(167,139,250,0.1);
+    border-color: rgba(167,139,250,0.4);
+    border-left-color: #A78BFA;
+  }
+  .combo-message.legendary .combo-count { background: #A78BFA; }
+
+  .combo-message.easter {
+    background: rgba(255,107,157,0.1);
+    border-color: rgba(255,107,157,0.4);
+    border-left-color: #FF6B9D;
+  }
+  .combo-message.easter .combo-count { background: #FF6B9D; color: #FFFFFF; }
+
+  .completed-cards { display: flex; flex-direction: column; gap: 5px; }
+
+  .task-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 6px;
+    background: rgba(57,217,138,0.08);
+    border-left: 2px solid #39D98A;
+    font-size: 13px;
+    color: #E6E6E6;
+    animation: slideIn 0.3s ease;
+  }
+
+  .task-card.sortable-ghost {
+    opacity: 0.4;
+    background: rgba(67,217,255,0.15);
+  }
+
+  .task-card.sortable-chosen {
+    background: rgba(67,217,255,0.12);
+  }
+
+  .task-card .drag-handle {
+    color: rgba(230,230,230,0.3);
+    cursor: grab;
+    padding: 4px 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .task-card .drag-handle:hover { color: #43D9FF; }
+  .task-card .drag-handle:active { cursor: grabbing; }
+  .task-card .drag-handle i { font-size: 16px; }
+
+  .task-card .task-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #39D98A;
+    min-width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .task-card .task-edit {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #E6E6E6;
+    font-size: 13px;
+    font-family: inherit;
+    padding: 6px 0;
+    outline: none;
+    width: 100%;
+  }
+
+  .task-card .task-edit:focus {
+    color: #FFFFFF;
+  }
+
+  .task-card .remove {
+    background: none;
+    border: none;
+    color: rgba(230,230,230,0.4);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .task-card .remove:hover { color: #FF5572; }
+  .task-card .remove i { font-size: 15px; }
+
+  .completion-reason {
+    padding-top: 4px;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    animation: slideDown 0.3s ease;
+  }
+
+  .completion-reason.show { display: flex; }
+
+  .completion-reason textarea {
+    min-height: 60px;
+    font-size: 13px;
+  }
+
+  .notes-section {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(230,230,230,0.08);
+    padding: 20px;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.4s ease both;
+  }
+
+  .notes-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .notes-icon {
+    width: 28px;
+    height: 28px;
+    background: rgba(167,139,250,0.15);
+    border: 1px solid rgba(167,139,250,0.3);
+    color: #A78BFA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .notes-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #A78BFA;
+    font-weight: 700;
+  }
+
+  .notes-sub {
+    font-size: 12px;
+    color: rgba(230,230,230,0.45);
+    margin-left: auto;
+    font-style: italic;
+  }
+
+  .notes-section textarea {
+    background: rgba(0,0,0,0.3);
+    border-color: rgba(167,139,250,0.2);
+    min-height: 100px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .notes-section textarea:focus { border-color: #A78BFA; }
+
+  .submit-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(230,230,230,0.1);
+    color: rgba(230,230,230,0.35);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 18px;
+    cursor: not-allowed;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+  }
+
+  .submit-btn.ready {
+    cursor: pointer;
+    border-color: transparent;
+  }
+
+  .submit-btn.ready.mode-in-ready {
+    background: #39D98A;
+    color: #0F0F0F;
+  }
+
+  .submit-btn.ready.mode-out-ready {
+    background: #FF5572;
+    color: #FFFFFF;
+  }
+
+  .submit-btn.ready:hover { opacity: 0.92; }
+  .submit-btn.ready:active { transform: scale(0.99); }
+
+  .progress-hint {
+    text-align: center;
+    margin-top: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: rgba(230,230,230,0.35);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .progress-hint .done-count { color: #43D9FF; }
+
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 50px 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(230,230,230,0.1);
+    animation: fadeInUp 0.5s ease both;
+  }
+
+  .success-icon-big {
+    width: 80px;
+    height: 80px;
+    background: #39D98A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    color: #0F0F0F;
+  }
+
+  .success-icon-big i { font-size: 42px; }
+
+  .success-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+
+  .success-msg {
+    font-size: 14px;
+    color: rgba(230,230,230,0.6);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .reward-banner {
+    background: rgba(255,184,0,0.08);
+    border: 1px solid rgba(255,184,0,0.3);
+    border-left: 3px solid #FFB800;
+    padding: 16px 20px;
+    margin: 0 auto 24px;
+    max-width: 380px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+  }
+
+  .reward-banner.show { display: flex; animation: slideDown 0.5s ease; }
+
+  .reward-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,184,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFB800;
+    flex-shrink: 0;
+  }
+
+  .reward-icon i { font-size: 20px; }
+
+  .reward-title-txt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #FFB800;
+    margin-bottom: 3px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .reward-desc {
+    font-size: 12px;
+    color: rgba(230,230,230,0.65);
+    line-height: 1.4;
+  }
+
+  .reset-link {
+    background: transparent;
+    border: 1px solid rgba(230,230,230,0.15);
+    color: rgba(230,230,230,0.6);
+    padding: 10px 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .reset-link:hover { border-color: #43D9FF; color: #43D9FF; }
+
+  .credits {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(230,230,230,0.06);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(230,230,230,0.3);
+    font-weight: 500;
+    line-height: 2;
+  }
+
+  .credits .dum {
+    color: #FF6B9D;
+    font-weight: 700;
+  }
+
+  .credits .heart {
+    color: #FF6B9D;
+    font-size: 13px;
+    vertical-align: -2px;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); max-height: 0; }
+    to { opacity: 1; transform: translateY(0); max-height: 400px; }
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes comboPop {
+    0% { opacity: 0; transform: scale(0.85); }
+    70% { opacity: 1; transform: scale(1.04); }
+    100% { opacity: 1; transform: scale(1); }
+  }
 </style>
 </head>
-<body>
-<div class="colorbar"></div>
-<div class="card">
-  <div class="studio-label">OFF BOX Studios</div>
-  <h1>Connection Test</h1>
-  <p class="subtitle">Write your name and anything. Hit submit. If it shows up in the sheet, we are live.</p>
-  <div id="form-section">
-    <label>Your name</label>
-    <input type="text" id="name" placeholder="e.g. Abdullah" autocomplete="off">
-    <label>Your message</label>
-    <textarea id="message" placeholder="Write anything here..."></textarea>
-    <div class="error-msg" id="error-msg">Please fill in both fields before submitting.</div>
-    <button class="btn" id="submit-btn" onclick="handleSubmit()">Submit</button>
-  </div>
-  <div class="success" id="success-section">
-    <div class="success-check">
-      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    </div>
-    <h2>Submitted</h2>
-    <p>Your entry is in the sheet.</p>
-    <p>Ask your friend to do the same, then check Google Sheets.</p>
-    <button class="again-link" onclick="resetForm()">Submit another entry</button>
-  </div>
-</div>
-<script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6jgMZjVC4zS9pCX-cB2kSXtRJdhG0_wZYGlr2upUoUspqS6vqu5yFz4KaPfd0lmOZ/exec';
+<body class="mode-in">
 
-  window.onload = function() {
-    var saved = localStorage.getItem('offbox_test_name');
-    if (saved) document.getElementById('name').value = saved;
+<div class="colorbar"></div>
+
+<div class="container">
+
+  <div class="header-row">
+    <div class="logo-block">
+      <div class="logo-dot">OB</div>
+      <span class="logo-text">OFF BOX Studios</span>
+    </div>
+    <div class="streak-badge" id="streak-badge" style="display:none">
+      <i class="ti ti-flame" aria-hidden="true"></i>
+      <span id="streak-count">3 day streak</span>
+    </div>
+  </div>
+
+  <div class="welcome" id="welcome-block">
+    <div class="greeting" id="greeting-text">Good morning</div>
+    <div class="greeting-sub" id="greeting-sub">Quick check-in to set the day.</div>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active-in" id="btn-in" onclick="setMode('in')">
+      <i class="ti ti-login" aria-hidden="true"></i>
+      Log In
+    </button>
+    <button class="mode-btn" id="btn-out" onclick="setMode('out')">
+      <i class="ti ti-logout" aria-hidden="true"></i>
+      Log Out
+    </button>
+  </div>
+
+  <div class="name-strip">
+    <span class="name-strip-label">You</span>
+    <input type="text" id="name-input" placeholder="Type your name once, we remember it" autocomplete="off">
+    <span class="name-saved-tag" id="name-saved-tag">Saved</span>
+  </div>
+
+  <div class="questions-grid" id="questions-grid"></div>
+
+  <div class="notes-section">
+    <div class="notes-label">
+      <div class="notes-icon"><i class="ti ti-message" aria-hidden="true"></i></div>
+      <div class="notes-title">Optional Notes</div>
+      <div class="notes-sub">Literally anything</div>
+    </div>
+    <textarea id="notes-input" placeholder="Tell us anything. Wins, frustrations, what you ate for breakfast, your favorite game right now, what TV show you binged, whether cats are better than dogs (they are), or just rant. We read every single one." oninput="state.notes=this.value"></textarea>
+  </div>
+
+  <button class="submit-btn" id="submit-btn" onclick="submit()">Submit (answer 4 questions)</button>
+  <div class="progress-hint" id="progress-hint"><span class="done-count">0</span> of 4 done</div>
+
+  <div class="success-screen" id="success-screen">
+    <div class="success-icon-big">
+      <i class="ti ti-check" aria-hidden="true"></i>
+    </div>
+    <div class="success-title" id="success-title">Logged in</div>
+    <div class="success-msg" id="success-msg">Go crush today.</div>
+    <div class="reward-banner" id="reward-banner">
+      <div class="reward-icon"><i class="ti ti-trophy" aria-hidden="true"></i></div>
+      <div>
+        <div class="reward-title-txt" id="reward-title">Exceptional day flagged</div>
+        <div class="reward-desc" id="reward-desc">Three of these in two weeks unlocks recognition.</div>
+      </div>
+    </div>
+    <button class="reset-link" onclick="resetAll()">Reset</button>
+  </div>
+
+  <div class="credits">
+    Made by <span class="dum">DUMDUM</span> <i class="ti ti-heart heart" aria-hidden="true"></i> Say thank you <span class="dum">DUMDUM</span>
+  </div>
+
+</div>
+
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxTb_hjuF4RjscPH00ICf5aU_LarC0jDJ04245F-KVMKyJ5ac5oTEVIJEB2vzkGbeq4/exec';
+
+  let mode = 'in';
+  let state = {
+    goal: '', blocker: { has: null, what: '' },
+    energyIn: 0, expectedDiff: '',
+    completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
+    notes: ''
   };
 
-  function showSuccess() {
-    document.getElementById('form-section').style.display = 'none';
-    document.getElementById('success-section').style.display = 'block';
-    var btn = document.getElementById('submit-btn');
-    btn.disabled = false;
-    btn.textContent = 'Submit';
+  const ENERGY_IN_LABELS = {
+    1: { label: 'Rough', color: '#FF5572', msg: 'Take it slow today.' },
+    2: { label: 'Slow', color: '#FFB800', msg: 'Ease in. One thing first.' },
+    3: { label: 'Steady', color: '#43D9FF', msg: 'Solid baseline.' },
+    4: { label: 'Strong', color: '#39D98A', msg: 'Energy is up. Use it.' },
+    5: { label: 'Locked in', color: '#A78BFA', msg: 'Beast mode. Go.' }
+  };
+
+  const ENERGY_OUT_LABELS = {
+    1: { label: 'Drained', color: '#FF5572', msg: 'Heavy day. Rest tonight.' },
+    2: { label: 'Tired', color: '#FFB800', msg: 'Wind down properly.' },
+    3: { label: 'Okay', color: '#43D9FF', msg: 'A solid day done.' },
+    4: { label: 'Good', color: '#39D98A', msg: 'Strong finish.' },
+    5: { label: 'Crushed it', color: '#A78BFA', msg: 'Great day. You earned the rest.' }
+  };
+
+  const DIFF_LABELS = {
+    1: { label: 'Easy', color: '#888', msg: 'Auto-pilot kind of day.' },
+    2: { label: 'Medium', color: '#43D9FF', msg: 'Required some thinking.' },
+    3: { label: 'Solid', color: '#FFB800', msg: 'Real grind.' },
+    4: { label: 'Hard', color: '#A78BFA', msg: 'Tough problems solved.' },
+    5: { label: 'Barely Survived', color: '#FF5572', msg: 'You went beyond. We see you.' }
+  };
+
+  // Combo messages for "What got done" cards
+  const COMBO_MESSAGES = {
+    1: { text: "Nice, that's one!", tier: 'normal' },
+    2: { text: "Two down. Keep going!", tier: 'normal' },
+    3: { text: "Three! You're on a roll.", tier: 'normal' },
+    4: { text: "Real productivity here. 🔥", tier: 'normal' },
+    5: { text: "Five tasks. Solid day!", tier: 'normal' },
+    6: { text: "Six? You're a machine.", tier: 'normal' },
+    7: { text: "Legendary stuff!", tier: 'normal' },
+    8: { text: "Now you're just showing off.", tier: 'normal' },
+    9: { text: "Are you okay? Drink water please.", tier: 'normal' },
+    10: { text: "Beast mode! Take a real break.", tier: 'epic' },
+    11: { text: "Still typing? Respect.", tier: 'epic' },
+    12: { text: "12? Save some for tomorrow.", tier: 'epic' },
+    13: { text: "You are ruining the UI", tier: 'epic' },
+    14: { text: "Truly impressive.", tier: 'epic' },
+    15: { text: "FIFTEEN. Either crushed it or padded it. We love both.", tier: 'legendary' },
+    16: { text: "You are still going. Respect! (Or seek help)", tier: 'legendary' },
+    17: { text: "Did you even sleep?", tier: 'legendary' },
+    18: { text: "Employee of the month lookin' ahh", tier: 'legendary' },
+    19: { text: "😳", tier: 'legendary' },
+    20: { text: "I give up counting. just take a gold star, weirdo.. ⭐", tier: 'easter' }
+  };
+
+  function getTimeOfDay() {
+    const h = new Date().getHours();
+    if (h < 12) return 'morning';
+    if (h < 17) return 'afternoon';
+    return 'evening';
   }
 
-  function handleSubmit() {
-    var name = document.getElementById('name').value.trim();
-    var message = document.getElementById('message').value.trim();
-    var errorMsg = document.getElementById('error-msg');
-    var btn = document.getElementById('submit-btn');
-    errorMsg.style.display = 'none';
-    if (!name || !message) { errorMsg.style.display = 'block'; return; }
-    localStorage.setItem('offbox_test_name', name);
-    btn.disabled = true;
-    btn.textContent = 'Submitting...';
+  function getGreeting() {
+    const name = document.getElementById('name-input').value.trim();
+    const tod = getTimeOfDay();
+    const first = name ? ', ' + name.split(' ')[0] : '';
+    if (tod === 'morning') return 'Good morning' + first;
+    if (tod === 'afternoon') return 'Good afternoon' + first;
+    return 'Good evening' + first;
+  }
 
-    var url = SCRIPT_URL + '?name=' + encodeURIComponent(name) + '&message=' + encodeURIComponent(message) + '&ts=' + Date.now();
+  function setMode(m) {
+    mode = m;
+    document.body.className = m === 'in' ? 'mode-in' : 'mode-out';
+    document.getElementById('btn-in').className = 'mode-btn' + (m === 'in' ? ' active-in' : '');
+    document.getElementById('btn-out').className = 'mode-btn' + (m === 'out' ? ' active-out' : '');
+    document.getElementById('greeting-sub').textContent = m === 'in'
+      ? 'Quick check-in to set the day.'
+      : 'Wrap up. Honesty matters more than speed.';
+    renderForm();
+    updateSubmitState();
+  }
 
-    var img = new Image();
-    img.onload = showSuccess;
-    img.onerror = showSuccess;
+  function autoDetectMode() {
+    const h = new Date().getHours();
+    setMode(h >= 13 ? 'out' : 'in');
+  }
+
+  function renderForm() {
+    const grid = document.getElementById('questions-grid');
+    grid.innerHTML = mode === 'in' ? renderLogin() : renderLogout();
+    setTimeout(() => {
+      if (mode === 'in') {
+        renderPixelSlider('energy-in', state.energyIn, ENERGY_IN_LABELS, '#39D98A', 'energyIn');
+      } else {
+        renderPixelSlider('actual-diff', state.actualDiff, DIFF_LABELS, '#A78BFA', 'actualDiff');
+        renderPixelSlider('energy-out', state.energyOut, ENERGY_OUT_LABELS, '#FF6B9D', 'energyOut');
+        renderCompletedList();
+        attachCompletedHandlers();
+      }
+    }, 30);
+  }
+
+  function renderLogin() {
+    return `
+      <div class="question-card${state.goal.trim() ? ' done' : ''}" id="card-goal" style="--q-color:#43D9FF">
+        <div class="q-header-block" style="background:#43D9FF">
+          <div class="num">1</div>
+          <div class="title">Today's Goal</div>
+          <i class="ti ti-info-circle info-icon" data-tip="One sentence. Helps the founders see what you're focused on so they can clear blockers and support you fast."></i>
+        </div>
+        <div class="q-content active${state.goal.trim() ? ' done' : ''}" id="content-goal">
+          <div class="q-prompt">What is your ONE main goal today?</div>
+          <input type="text" id="goal-input" value="${escapeHtml(state.goal)}" placeholder="One clear sentence about what you're aiming for today" oninput="state.goal=this.value; updateCard('goal', !!this.value.trim()); updateSubmitState();">
+        </div>
+      </div>
+
+      <div class="question-card${state.blocker.has !== null ? ' done' : ''}" id="card-blocker" style="--q-color:#FF6B9D">
+        <div class="q-header-block" style="background:#FF6B9D">
+          <div class="num">2</div>
+          <div class="title">Blocker Check</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Flag it early, we move fast to unblock you. Sitting blocked is not a virtue. Tell us and we'll help."></i>
+        </div>
+        <div class="q-content${state.blocker.has !== null ? ' active done' : ''}" id="content-blocker">
+          <div class="q-prompt">Are you blocked on anything right now?</div>
+          <div class="yn-buttons">
+            <button class="yn-btn${state.blocker.has === false ? ' no-active' : ''}" id="blocker-no" onclick="setBlocker(false)">
+              <i class="ti ti-check"></i> Nope
+            </button>
+            <button class="yn-btn${state.blocker.has === true ? ' yes-active' : ''}" id="blocker-yes" onclick="setBlocker(true)">
+              <i class="ti ti-alert-triangle"></i> Yes
+            </button>
+          </div>
+          <div class="blocker-detail${state.blocker.has === true ? ' show' : ''}" id="blocker-detail">
+            <div class="blocker-detail-label">What's blocking you?</div>
+            <input type="text" id="blocker-what" value="${escapeHtml(state.blocker.what || '')}" placeholder="One specific line" oninput="state.blocker.what=this.value">
+          </div>
+        </div>
+      </div>
+
+      <div class="question-card${state.energyIn > 0 ? ' done' : ''}" id="card-energy-in" style="--q-color:#39D98A">
+        <div class="q-header-block" style="background:#39D98A">
+          <div class="num">3</div>
+          <div class="title">Morning Energy</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Helps us build a healthier studio. We watch patterns over time, never single days. Honest answers help us support you."></i>
+        </div>
+        <div class="q-content${state.energyIn > 0 ? ' active done' : ''}" id="content-energy-in">
+          <div class="q-prompt">How are you feeling right now?</div>
+          <div class="pixel-slider">
+            <div class="pixel-track" id="energy-in-track"></div>
+            <div class="pixel-feedback">
+              <div class="pixel-value" id="energy-in-value">Tap to set</div>
+              <div class="pixel-message" id="energy-in-msg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="question-card${state.expectedDiff ? ' done' : ''}" id="card-difficulty" style="--q-color:#FFB800">
+        <div class="q-header-block" style="background:#FFB800">
+          <div class="num">4</div>
+          <div class="title">Expected Difficulty</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Lets the founders check you're being given meaningful work. Not too easy, not too crushing. We want you doing work that matters."></i>
+        </div>
+        <div class="q-content${state.expectedDiff ? ' active done' : ''}" id="content-difficulty">
+          <div class="q-prompt">How difficult do you expect today to be?</div>
+          <div class="linear-row">
+            <button class="linear-btn easy${state.expectedDiff === 'easy' ? ' active' : ''}" onclick="setExpectedDiff(this,'easy')">Easy</button>
+            <button class="linear-btn medium${state.expectedDiff === 'medium' ? ' active' : ''}" onclick="setExpectedDiff(this,'medium')">Medium</button>
+            <button class="linear-btn hard${state.expectedDiff === 'hard' ? ' active' : ''}" onclick="setExpectedDiff(this,'hard')">Hard</button>
+            <button class="linear-btn expert${state.expectedDiff === 'expert' ? ' active' : ''}" onclick="setExpectedDiff(this,'expert')">Brutal</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderLogout() {
+    const name = document.getElementById('name-input').value.trim() || '_anon';
+    const todayKey = 'offbox_login_' + new Date().toISOString().split('T')[0] + '_' + name;
+    const morningData = JSON.parse(localStorage.getItem(todayKey) || '{}');
+    const morningGoal = morningData.goal || '';
+
+    return `
+      <div class="question-card${state.completion ? ' done' : ''}" id="card-completion" style="--q-color:#39D98A">
+        <div class="q-header-block" style="background:#39D98A">
+          <div class="num">1</div>
+          <div class="title">Goal Check</div>
+          <i class="ti ti-info-circle info-icon" data-tip="If goals keep slipping, that's a planning problem the founders need to fix, not blame the person. Be honest."></i>
+        </div>
+        <div class="q-content active${state.completion ? ' done' : ''}" id="content-completion">
+          ${morningGoal ? `
+            <div class="goal-recall">
+              <div class="goal-recall-label">This morning you said</div>
+              <div class="goal-recall-text">${escapeHtml(morningGoal)}</div>
+            </div>
+          ` : ''}
+          <div class="q-prompt">${morningGoal ? 'How did it go?' : 'Did you complete your main goal today?'}</div>
+          <div class="linear-row">
+            <button class="linear-btn fully${state.completion === 'fully' ? ' active' : ''}" onclick="setCompletion(this,'fully')">Fully done</button>
+            <button class="linear-btn mostly${state.completion === 'mostly' ? ' active' : ''}" onclick="setCompletion(this,'mostly')">Mostly</button>
+            <button class="linear-btn partially${state.completion === 'partially' ? ' active' : ''}" onclick="setCompletion(this,'partially')">Partially</button>
+            <button class="linear-btn not${state.completion === 'not' ? ' active' : ''}" onclick="setCompletion(this,'not')">Not done</button>
+          </div>
+          <div class="completion-reason${(state.completion && state.completion !== 'fully') ? ' show' : ''}" id="completion-reason">
+            <div class="blocker-detail-label">What happened?</div>
+            <textarea id="reason-input" placeholder="Quick honest reason. Took longer, got pulled into something else, blocked, life happened, energy was off..." oninput="state.completionReason=this.value">${escapeHtml(state.completionReason || '')}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="question-card${state.completed.length > 0 ? ' done' : ''}" id="card-completed" style="--q-color:#43D9FF">
+        <div class="q-header-block" style="background:#43D9FF">
+          <div class="num">2</div>
+          <div class="title">What Got Done</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Your daily wins matter. This keeps the founders close to what you're producing without anyone having to micromanage."></i>
+        </div>
+        <div class="q-content${state.completed.length > 0 ? ' active done' : ''}" id="content-completed">
+          <div class="q-prompt">What did you actually complete today?</div>
+          <div class="card-input-wrap">
+            <input type="text" id="completed-input" placeholder="Type a task and hit Enter or tab away to add">
+            <button class="card-add-btn" onclick="addCompleted()" aria-label="add">
+              <i class="ti ti-plus"></i>
+            </button>
+          </div>
+          <div class="combo-message" id="combo-msg">
+            <span class="combo-count" id="combo-count">x1</span>
+            <span class="combo-text" id="combo-text"></span>
+          </div>
+          <div class="completed-cards" id="completed-list"></div>
+        </div>
+      </div>
+
+      <div class="question-card${state.actualDiff > 0 ? ' done' : ''}" id="card-actual-diff" style="--q-color:#A78BFA">
+        <div class="q-header-block" style="background:#A78BFA">
+          <div class="num">3</div>
+          <div class="title">Difficulty Today</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Hard days deserve recognition. Easy days deserve a bump in challenge. This is how we make sure your time is being used well."></i>
+        </div>
+        <div class="q-content${state.actualDiff > 0 ? ' active done' : ''}" id="content-actual-diff">
+          <div class="q-prompt">How difficult was your work today?</div>
+          <div class="pixel-slider">
+            <div class="pixel-track" id="actual-diff-track"></div>
+            <div class="pixel-feedback">
+              <div class="pixel-value" id="actual-diff-value">Tap to set</div>
+              <div class="pixel-message" id="actual-diff-msg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="question-card${state.energyOut > 0 ? ' done' : ''}" id="card-energy-out" style="--q-color:#FF6B9D">
+        <div class="q-header-block" style="background:#FF6B9D">
+          <div class="num">4</div>
+          <div class="title">Day's End Energy</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Patterns tell us if work is fulfilling or draining you. We act before anyone burns out. This is how we protect you and the team."></i>
+        </div>
+        <div class="q-content${state.energyOut > 0 ? ' active done' : ''}" id="content-energy-out">
+          <div class="q-prompt">How are you leaving the day?</div>
+          <div class="pixel-slider">
+            <div class="pixel-track" id="energy-out-track"></div>
+            <div class="pixel-feedback">
+              <div class="pixel-value" id="energy-out-value">Tap to set</div>
+              <div class="pixel-message" id="energy-out-msg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function attachCompletedHandlers() {
+    const input = document.getElementById('completed-input');
+    if (!input) return;
+    input.addEventListener('input', function() {
+      // Visual feedback while typing
+      if (this.value.trim().length > 0) {
+        const content = document.getElementById('content-completed');
+        if (content) content.classList.add('active');
+      }
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCompleted();
+      }
+    });
+    input.addEventListener('blur', function() {
+      if (this.value.trim()) addCompleted();
+    });
+  }
+
+  function renderPixelSlider(id, currentVal, labels, defaultColor, stateKey) {
+    const track = document.getElementById(id + '-track');
+    if (!track) return;
+    track.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'pixel-cell' + (i <= currentVal ? ' filled' : '');
+      cell.style.setProperty('--q-color', currentVal > 0 ? labels[currentVal].color : defaultColor);
+      cell.onclick = () => setPixelValue(id, i, labels, stateKey);
+      track.appendChild(cell);
+    }
+    updatePixelDisplay(id, currentVal, labels);
+  }
+
+  function setPixelValue(id, val, labels, stateKey) {
+    state[stateKey] = val;
+    const track = document.getElementById(id + '-track');
+    const color = labels[val].color;
+    track.querySelectorAll('.pixel-cell').forEach((cell, i) => {
+      if (i < val) {
+        cell.classList.add('filled');
+        cell.style.setProperty('--q-color', color);
+      } else {
+        cell.classList.remove('filled');
+      }
+    });
+    updatePixelDisplay(id, val, labels);
+    let cardKey = id;
+    if (id === 'energy-in') cardKey = 'energy-in';
+    if (id === 'energy-out') cardKey = 'energy-out';
+    if (id === 'actual-diff') cardKey = 'actual-diff';
+    updateCard(cardKey, true);
+    updateSubmitState();
+  }
+
+  function updatePixelDisplay(id, val, labels) {
+    const valEl = document.getElementById(id + '-value');
+    const msgEl = document.getElementById(id + '-msg');
+    if (val === 0) {
+      if (valEl) { valEl.textContent = 'Tap to set'; valEl.style.color = 'rgba(230,230,230,0.4)'; }
+      if (msgEl) msgEl.textContent = '';
+    } else {
+      if (valEl) { valEl.textContent = labels[val].label; valEl.style.color = labels[val].color; }
+      if (msgEl) msgEl.textContent = labels[val].msg;
+    }
+  }
+
+  function setBlocker(has) {
+    state.blocker.has = has;
+    document.getElementById('blocker-yes').className = 'yn-btn' + (has ? ' yes-active' : '');
+    document.getElementById('blocker-no').className = 'yn-btn' + (!has ? ' no-active' : '');
+    document.getElementById('blocker-detail').classList.toggle('show', has);
+    updateCard('blocker', true);
+    updateSubmitState();
+  }
+
+  function setExpectedDiff(btn, level) {
+    btn.parentElement.querySelectorAll('.linear-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.expectedDiff = level;
+    updateCard('difficulty', true);
+    updateSubmitState();
+  }
+
+  function setCompletion(btn, level) {
+    btn.parentElement.querySelectorAll('.linear-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.completion = level;
+    const reasonField = document.getElementById('completion-reason');
+    const reasonInput = document.getElementById('reason-input');
+    const reasonLabel = reasonField ? reasonField.querySelector('.blocker-detail-label') : null;
+    if (reasonField) {
+      reasonField.classList.toggle('show', level !== 'fully');
+    }
+    if (reasonInput && reasonLabel) {
+      if (level === 'mostly') {
+        reasonLabel.textContent = "What's the last bit you didn't get to?";
+        reasonInput.placeholder = "So close. What got left behind, and was it small or actually annoying?";
+      } else if (level === 'partially') {
+        reasonLabel.textContent = "What got done, what didn't?";
+        reasonInput.placeholder = "Half wins still count. What did you actually finish, and what slipped?";
+      } else if (level === 'not') {
+        reasonLabel.textContent = "What got in the way?";
+        reasonInput.placeholder = "Happens. Be honest. Blocked, distracted, wrong priority, off day, life stuff. We're not judging.";
+      }
+    }
+    if (level === 'fully') state.completionReason = '';
+    updateCard('completion', true);
+    updateSubmitState();
+  }
+
+  function addCompleted() {
+    const input = document.getElementById('completed-input');
+    const val = input.value.trim();
+    if (!val) return;
+    state.completed.unshift(val);
+    renderCompletedList();
+    showCombo(state.completed.length);
+    input.value = '';
+    input.focus();
+    updateCard('completed', state.completed.length > 0);
+    updateSubmitState();
+  }
+
+  function showCombo(count) {
+    const msg = document.getElementById('combo-msg');
+    const countEl = document.getElementById('combo-count');
+    const textEl = document.getElementById('combo-text');
+    if (!msg) return;
+
+    let comboData = COMBO_MESSAGES[Math.min(count, 20)];
+
+    countEl.textContent = 'x' + count;
+    textEl.textContent = comboData.text;
+    msg.className = 'combo-message show ' + comboData.tier;
+
+    // Restart animation
+    msg.style.animation = 'none';
+    msg.offsetHeight; // trigger reflow
+    msg.style.animation = '';
+  }
+
+  function removeCompleted(i) {
+    state.completed.splice(i, 1);
+    renderCompletedList();
+    if (state.completed.length > 0) {
+      showCombo(state.completed.length);
+    } else {
+      const msg = document.getElementById('combo-msg');
+      if (msg) msg.classList.remove('show');
+    }
+    updateCard('completed', state.completed.length > 0);
+    updateSubmitState();
+  }
+
+  function renderCompletedList() {
+    const list = document.getElementById('completed-list');
+    if (!list) return;
+    const total = state.completed.length;
+    list.innerHTML = state.completed.map((t, i) => `
+      <div class="task-card">
+        <span class="drag-handle" aria-label="drag">
+          <i class="ti ti-grip-vertical"></i>
+        </span>
+        <span class="task-num">${total - i}</span>
+        <input type="text" class="task-edit" value="${escapeHtml(t)}" placeholder="Empty task">
+        <button class="remove" aria-label="remove">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
+    `).join('');
+
+    // Wire up edit handlers using current DOM position (works after drag reorder)
+    list.querySelectorAll('.task-edit').forEach((input) => {
+      input.addEventListener('input', function() {
+        const idx = Array.from(list.children).indexOf(this.parentElement);
+        if (idx >= 0) state.completed[idx] = this.value;
+      });
+    });
+
+    // Wire up remove handlers
+    list.querySelectorAll('.remove').forEach((btn) => {
+      btn.addEventListener('click', function() {
+        const idx = Array.from(list.children).indexOf(this.parentElement);
+        if (idx >= 0) removeCompleted(idx);
+      });
+    });
+
+    initSortable();
+  }
+
+  let sortableInstance = null;
+  function initSortable() {
+    const list = document.getElementById('completed-list');
+    if (!list) return;
+    if (sortableInstance) {
+      try { sortableInstance.destroy(); } catch(e) {}
+    }
+    if (typeof Sortable !== 'undefined') {
+      sortableInstance = new Sortable(list, {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: function(evt) {
+          if (evt.oldIndex === evt.newIndex) return;
+          const item = state.completed.splice(evt.oldIndex, 1)[0];
+          state.completed.splice(evt.newIndex, 0, item);
+          renderCompletedList();
+        }
+      });
+    }
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function updateCard(cardId, isDone) {
+    const card = document.getElementById('card-' + cardId);
+    const content = document.getElementById('content-' + cardId);
+    if (card) card.classList.toggle('done', isDone);
+    if (content) {
+      content.classList.toggle('done', isDone);
+      content.classList.add('active');
+    }
+  }
+
+  function getDoneCount() {
+    if (mode === 'in') {
+      let n = 0;
+      if (state.goal.trim()) n++;
+      if (state.blocker.has !== null) n++;
+      if (state.energyIn > 0) n++;
+      if (state.expectedDiff) n++;
+      return n;
+    } else {
+      let n = 0;
+      if (state.completion) n++;
+      if (state.completed.length > 0) n++;
+      if (state.actualDiff > 0) n++;
+      if (state.energyOut > 0) n++;
+      return n;
+    }
+  }
+
+  function updateSubmitState() {
+    const done = getDoneCount();
+    const btn = document.getElementById('submit-btn');
+    const hint = document.getElementById('progress-hint');
+    if (done >= 4) {
+      btn.className = 'submit-btn ready ' + (mode === 'in' ? 'mode-in-ready' : 'mode-out-ready');
+      btn.textContent = mode === 'in' ? 'Lock in my day' : 'Wrap my day';
+      hint.innerHTML = '<span class="done-count" style="color:#39D98A">All 4 done</span>';
+    } else {
+      btn.className = 'submit-btn';
+      btn.textContent = 'Submit (answer ' + (4 - done) + ' more)';
+      hint.innerHTML = '<span class="done-count">' + done + '</span> of 4 done';
+    }
+  }
+
+  function submit() {
+    if (getDoneCount() < 4) return;
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) { alert('Type your name first'); return; }
+    localStorage.setItem('offbox_name', name);
+
+    // Save log-in goal for log-out recall on same device
+    if (mode === 'in') {
+      const key = 'offbox_login_' + new Date().toISOString().split('T')[0] + '_' + name;
+      localStorage.setItem(key, JSON.stringify({ goal: state.goal, energyIn: state.energyIn }));
+    }
+
+    // Build URL params
+    let params = 'mode=' + mode;
+    params += '&name=' + encodeURIComponent(name);
+    params += '&notes=' + encodeURIComponent(state.notes || '');
+
+    if (mode === 'in') {
+      params += '&goal=' + encodeURIComponent(state.goal);
+      params += '&blocker_has=' + (state.blocker.has === true ? 'yes' : 'no');
+      params += '&blocker_what=' + encodeURIComponent(state.blocker.what || '');
+      params += '&energy_in=' + state.energyIn;
+      params += '&expected_diff=' + encodeURIComponent(state.expectedDiff);
+    } else {
+      params += '&completion=' + encodeURIComponent(state.completion);
+      params += '&completion_reason=' + encodeURIComponent(state.completionReason || '');
+      params += '&completed=' + encodeURIComponent(state.completed.join(' | '));
+      params += '&actual_diff=' + state.actualDiff;
+      params += '&energy_out=' + state.energyOut;
+    }
+
+    params += '&ts=' + Date.now();
+    const url = SCRIPT_URL + '?' + params;
+
+    // Dual-method submit for reliability (image + script tag)
+    const img = new Image();
     img.src = url;
 
-    setTimeout(showSuccess, 3000);
+    const s = document.createElement('script');
+    s.src = url;
+    document.head.appendChild(s);
+    setTimeout(function(){ try { document.head.removeChild(s); } catch(e){} }, 5000);
+
+    setTimeout(showSuccess, 2500);
   }
 
-  function resetForm() {
-    document.getElementById('message').value = '';
-    document.getElementById('form-section').style.display = 'block';
-    document.getElementById('success-section').style.display = 'none';
-    document.getElementById('submit-btn').disabled = false;
-    document.getElementById('submit-btn').textContent = 'Submit';
-    document.getElementById('error-msg').style.display = 'none';
+  function showSuccess() {
+    document.getElementById('questions-grid').style.display = 'none';
+    document.querySelector('.notes-section').style.display = 'none';
+    document.getElementById('submit-btn').style.display = 'none';
+    document.getElementById('progress-hint').style.display = 'none';
+    document.querySelector('.welcome').style.display = 'none';
+    document.querySelector('.mode-toggle').style.display = 'none';
+    document.querySelector('.name-strip').style.display = 'none';
+
+    const screen = document.getElementById('success-screen');
+    const name = (document.getElementById('name-input').value.trim().split(' ')[0]) || '';
+
+    if (mode === 'in') {
+      document.getElementById('success-title').textContent = 'Locked in' + (name ? ', ' + name : '');
+      document.getElementById('success-msg').textContent = getInMsg();
+    } else {
+      document.getElementById('success-title').textContent = 'Day wrapped';
+      document.getElementById('success-msg').textContent = getOutMsg();
+      if (state.actualDiff >= 4 && (state.completion === 'fully' || state.completion === 'mostly')) {
+        document.getElementById('reward-title').textContent = 'Exceptional day flagged';
+        document.getElementById('reward-desc').textContent = 'You delivered on hard work. Three of these in two weeks unlocks team-wide recognition.';
+        document.getElementById('reward-banner').classList.add('show');
+      }
+    }
+    screen.style.display = 'block';
   }
+
+  function getInMsg() {
+    if (state.blocker.has) return 'Blocker flagged. The founders will see this within the hour.';
+    if (state.energyIn >= 4) return 'Strong energy. Hit the hard stuff first.';
+    if (state.energyIn <= 2) return 'Lower energy today. Pick one win and protect your day.';
+    if (state.expectedDiff === 'expert') return 'Brutal day ahead. Focus mode.';
+    return 'Goal logged. Go make it real.';
+  }
+
+  function getOutMsg() {
+    if (state.completion === 'fully' && state.actualDiff >= 4) return 'Hard day, full delivery. That is what this studio runs on.';
+    if (state.completion === 'fully') return 'Goal hit. Clean close.';
+    if (state.completion === 'not') return 'Missed today. The why matters more than the miss. Tomorrow is a new commit.';
+    if (state.energyOut <= 2) return 'Heavy day. Rest properly tonight.';
+    if (state.completed.length >= 10) return 'Ten plus tasks shipped. Absolute machine.';
+    return 'Day logged. See you tomorrow.';
+  }
+
+  function resetAll() {
+    state = {
+      goal: '', blocker: { has: null, what: '' },
+      energyIn: 0, expectedDiff: '',
+      completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
+      notes: ''
+    };
+    document.getElementById('success-screen').style.display = 'none';
+    document.getElementById('reward-banner').classList.remove('show');
+    document.getElementById('questions-grid').style.display = 'grid';
+    document.querySelector('.notes-section').style.display = 'block';
+    document.getElementById('submit-btn').style.display = 'block';
+    document.getElementById('progress-hint').style.display = 'block';
+    document.querySelector('.welcome').style.display = 'block';
+    document.querySelector('.mode-toggle').style.display = 'grid';
+    document.querySelector('.name-strip').style.display = 'flex';
+    document.getElementById('notes-input').value = '';
+    renderForm();
+    updateSubmitState();
+  }
+
+  window.onload = function() {
+    const savedName = localStorage.getItem('offbox_name');
+    const nameInput = document.getElementById('name-input');
+    if (savedName) {
+      nameInput.value = savedName;
+      document.getElementById('name-saved-tag').classList.add('show');
+    }
+    nameInput.addEventListener('input', function() {
+      document.getElementById('greeting-text').textContent = getGreeting();
+      localStorage.setItem('offbox_name', this.value.trim());
+      document.getElementById('name-saved-tag').classList.toggle('show', !!this.value.trim());
+    });
+    document.getElementById('greeting-text').textContent = getGreeting();
+    autoDetectMode();
+  };
 </script>
+
 </body>
 </html>
