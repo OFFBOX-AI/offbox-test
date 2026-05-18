@@ -259,6 +259,23 @@
     background: rgba(57,217,138,0.03);
   }
 
+  .question-card.missing {
+    border-color: #FF5572;
+    background: rgba(255,85,114,0.04);
+    animation: pulseMissing 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulseMissing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,85,114,0); }
+    50% { box-shadow: 0 0 0 4px rgba(255,85,114,0.18); }
+  }
+
+  .q-header-block .q-icon {
+    font-size: 19px;
+    color: rgba(15,15,15,0.7);
+    flex-shrink: 0;
+  }
+
   .q-header-block {
     background: var(--q-color, #43D9FF);
     color: #0F0F0F;
@@ -749,7 +766,7 @@
     font-size: 13px;
     font-weight: 700;
     padding: 18px;
-    cursor: not-allowed;
+    cursor: pointer;
     letter-spacing: 2px;
     text-transform: uppercase;
     transition: all 0.3s;
@@ -1009,7 +1026,7 @@
 </div>
 
 <script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxTb_hjuF4RjscPH00ICf5aU_LarC0jDJ04245F-KVMKyJ5ac5oTEVIJEB2vzkGbeq4/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6jgMZjVC4zS9pCX-cB2kSXtRJdhG0_wZYGlr2upUoUspqS6vqu5yFz4KaPfd0lmOZ/exec';
 
   let mode = 'in';
   let state = {
@@ -1120,6 +1137,7 @@
       <div class="question-card${state.goal.trim() ? ' done' : ''}" id="card-goal" style="--q-color:#43D9FF">
         <div class="q-header-block" style="background:#43D9FF">
           <div class="num">1</div>
+          <i class="ti ti-target q-icon" aria-hidden="true"></i>
           <div class="title">Today's Goal</div>
           <i class="ti ti-info-circle info-icon" data-tip="One sentence. Helps the founders see what you're focused on so they can clear blockers and support you fast."></i>
         </div>
@@ -1132,6 +1150,7 @@
       <div class="question-card${state.blocker.has !== null ? ' done' : ''}" id="card-blocker" style="--q-color:#FF6B9D">
         <div class="q-header-block" style="background:#FF6B9D">
           <div class="num">2</div>
+          <i class="ti ti-hand-stop q-icon" aria-hidden="true"></i>
           <div class="title">Blocker Check</div>
           <i class="ti ti-info-circle info-icon" data-tip="Flag it early, we move fast to unblock you. Sitting blocked is not a virtue. Tell us and we'll help."></i>
         </div>
@@ -1155,6 +1174,7 @@
       <div class="question-card${state.energyIn > 0 ? ' done' : ''}" id="card-energy-in" style="--q-color:#39D98A">
         <div class="q-header-block" style="background:#39D98A">
           <div class="num">3</div>
+          <i class="ti ti-sun q-icon" aria-hidden="true"></i>
           <div class="title">Morning Energy</div>
           <i class="ti ti-info-circle info-icon" data-tip="Helps us build a healthier studio. We watch patterns over time, never single days. Honest answers help us support you."></i>
         </div>
@@ -1173,6 +1193,7 @@
       <div class="question-card${state.expectedDiff ? ' done' : ''}" id="card-difficulty" style="--q-color:#FFB800">
         <div class="q-header-block" style="background:#FFB800">
           <div class="num">4</div>
+          <i class="ti ti-mountain q-icon" aria-hidden="true"></i>
           <div class="title">Expected Difficulty</div>
           <i class="ti ti-info-circle info-icon" data-tip="Lets the founders check you're being given meaningful work. Not too easy, not too crushing. We want you doing work that matters."></i>
         </div>
@@ -1199,6 +1220,7 @@
       <div class="question-card${state.completion ? ' done' : ''}" id="card-completion" style="--q-color:#39D98A">
         <div class="q-header-block" style="background:#39D98A">
           <div class="num">1</div>
+          <i class="ti ti-checks q-icon" aria-hidden="true"></i>
           <div class="title">Goal Check</div>
           <i class="ti ti-info-circle info-icon" data-tip="If goals keep slipping, that's a planning problem the founders need to fix, not blame the person. Be honest."></i>
         </div>
@@ -1226,6 +1248,7 @@
       <div class="question-card${state.completed.length > 0 ? ' done' : ''}" id="card-completed" style="--q-color:#43D9FF">
         <div class="q-header-block" style="background:#43D9FF">
           <div class="num">2</div>
+          <i class="ti ti-list-check q-icon" aria-hidden="true"></i>
           <div class="title">What Got Done</div>
           <i class="ti ti-info-circle info-icon" data-tip="Your daily wins matter. This keeps the founders close to what you're producing without anyone having to micromanage."></i>
         </div>
@@ -1248,6 +1271,7 @@
       <div class="question-card${state.actualDiff > 0 ? ' done' : ''}" id="card-actual-diff" style="--q-color:#A78BFA">
         <div class="q-header-block" style="background:#A78BFA">
           <div class="num">3</div>
+          <i class="ti ti-flame q-icon" aria-hidden="true"></i>
           <div class="title">Difficulty Today</div>
           <i class="ti ti-info-circle info-icon" data-tip="Hard days deserve recognition. Easy days deserve a bump in challenge. This is how we make sure your time is being used well."></i>
         </div>
@@ -1266,6 +1290,7 @@
       <div class="question-card${state.energyOut > 0 ? ' done' : ''}" id="card-energy-out" style="--q-color:#FF6B9D">
         <div class="q-header-block" style="background:#FF6B9D">
           <div class="num">4</div>
+          <i class="ti ti-moon q-icon" aria-hidden="true"></i>
           <div class="title">Day's End Energy</div>
           <i class="ti ti-info-circle info-icon" data-tip="Patterns tell us if work is fulfilling or draining you. We act before anyone burns out. This is how we protect you and the team."></i>
         </div>
@@ -1525,7 +1550,10 @@
   function updateCard(cardId, isDone) {
     const card = document.getElementById('card-' + cardId);
     const content = document.getElementById('content-' + cardId);
-    if (card) card.classList.toggle('done', isDone);
+    if (card) {
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
     if (content) {
       content.classList.toggle('done', isDone);
       content.classList.add('active');
@@ -1567,8 +1595,39 @@
     }
   }
 
+  function highlightMissing() {
+    document.querySelectorAll('.question-card').forEach(c => c.classList.remove('missing'));
+    let firstMissing = null;
+    const markMissing = (cardId) => {
+      const card = document.getElementById('card-' + cardId);
+      if (card) {
+        card.classList.add('missing');
+        if (!firstMissing) firstMissing = card;
+      }
+    };
+
+    if (mode === 'in') {
+      if (!state.goal.trim()) markMissing('goal');
+      if (state.blocker.has === null || (state.blocker.has === true && !(state.blocker.what || '').trim())) markMissing('blocker');
+      if (state.energyIn === 0) markMissing('energy-in');
+      if (!state.expectedDiff) markMissing('difficulty');
+    } else {
+      if (!state.completion || (state.completion !== 'fully' && !(state.completionReason || '').trim())) markMissing('completion');
+      if (state.completed.length === 0) markMissing('completed');
+      if (state.actualDiff === 0) markMissing('actual-diff');
+      if (state.energyOut === 0) markMissing('energy-out');
+    }
+
+    if (firstMissing) {
+      firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
   function submit() {
-    if (getDoneCount() < 4) return;
+    if (getDoneCount() < 4) {
+      highlightMissing();
+      return;
+    }
     const rawName = document.getElementById('name-input').value;
     const name = formatName(rawName);
     if (!name) {
