@@ -950,6 +950,8 @@
 
 <div class="colorbar"></div>
 
+<iframe name="offbox-submit-iframe" id="offbox-submit-iframe" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;border:0" aria-hidden="true"></iframe>
+
 <div class="container">
 
   <div class="header-row">
@@ -1646,36 +1648,30 @@
       localStorage.setItem(key, JSON.stringify({ goal: state.goal, energyIn: state.energyIn }));
     }
 
-    // Build URL params
-    let params = 'mode=' + mode;
-    params += '&name=' + encodeURIComponent(name);
-    params += '&notes=' + encodeURIComponent(state.notes || '');
+    // Build params object
+    const submissionTs = Date.now();
+    const params = {
+      mode: mode,
+      name: name,
+      notes: state.notes || '',
+      ts: String(submissionTs)
+    };
 
     if (mode === 'in') {
-      params += '&goal=' + encodeURIComponent(state.goal);
-      params += '&blocker_has=' + (state.blocker.has === true ? 'yes' : 'no');
-      params += '&blocker_what=' + encodeURIComponent(state.blocker.what || '');
-      params += '&energy_in=' + state.energyIn;
-      params += '&expected_diff=' + encodeURIComponent(state.expectedDiff);
+      params.goal = state.goal;
+      params.blocker_has = state.blocker.has === true ? 'yes' : 'no';
+      params.blocker_what = state.blocker.what || '';
+      params.energy_in = String(state.energyIn);
+      params.expected_diff = state.expectedDiff;
     } else {
-      params += '&completion=' + encodeURIComponent(state.completion);
-      params += '&completion_reason=' + encodeURIComponent(state.completionReason || '');
-      params += '&completed=' + encodeURIComponent(state.completed.join(' | '));
-      params += '&actual_diff=' + state.actualDiff;
-      params += '&energy_out=' + state.energyOut;
+      params.completion = state.completion;
+      params.completion_reason = state.completionReason || '';
+      params.completed = state.completed.join(' | ');
+      params.actual_diff = String(state.actualDiff);
+      params.energy_out = String(state.energyOut);
     }
 
-    params += '&ts=' + Date.now();
-    const url = SCRIPT_URL + '?' + params;
-
-    // Dual-method submit for reliability (image + script tag)
-    const img = new Image();
-    img.src = url;
-
-    const s = document.createElement('script');
-    s.src = url;
-    document.head.appendChild(s);
-    setTimeout(function(){ try { document.head.removeChild(s); } catch(e){} }, 5000);
+    fireAllMethods(params);
 
     // Clear morning goal after log-out submits so next day starts fresh
     if (mode === 'out') {
@@ -1684,6 +1680,67 @@
     }
 
     setTimeout(showSuccess, 2500);
+  }
+
+  // Fires submission via 5 parallel methods. Dedupe in Apps Script ensures one row.
+  function fireAllMethods(params) {
+    const urlParams = Object.keys(params).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    }).join('&');
+    const fullUrl = SCRIPT_URL + '?' + urlParams;
+
+    // METHOD 1: Hidden iframe form POST - bulletproof, native browser form submit
+    // Works on Opera, iOS Safari, every mobile browser, every privacy setting
+    try {
+      const form = document.createElement('form');
+      form.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;visibility:hidden';
+      form.action = SCRIPT_URL;
+      form.method = 'POST';
+      form.target = 'offbox-submit-iframe';
+      form.enctype = 'application/x-www-form-urlencoded';
+      Object.keys(params).forEach(function(key) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = params[key];
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(function(){ try { document.body.removeChild(form); } catch(e){} }, 8000);
+      console.log('[OFFBOX] iframe form fired');
+    } catch (e) { console.error('[OFFBOX] iframe failed:', e); }
+
+    // METHOD 2: fetch POST with FormData (no-cors)
+    try {
+      const fd = new FormData();
+      Object.keys(params).forEach(function(k){ fd.append(k, params[k]); });
+      fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: fd, cache: 'no-cache' }).catch(function(){});
+      console.log('[OFFBOX] fetch POST fired');
+    } catch(e) { console.error('[OFFBOX] fetch POST failed:', e); }
+
+    // METHOD 3: navigator.sendBeacon (best for mobile, fire-and-forget POST)
+    try {
+      if (navigator.sendBeacon) {
+        const fd = new FormData();
+        Object.keys(params).forEach(function(k){ fd.append(k, params[k]); });
+        navigator.sendBeacon(SCRIPT_URL, fd);
+        console.log('[OFFBOX] sendBeacon fired');
+      }
+    } catch(e) { console.error('[OFFBOX] sendBeacon failed:', e); }
+
+    // METHOD 4: fetch GET no-cors (fallback)
+    try {
+      fetch(fullUrl, { method: 'GET', mode: 'no-cors', cache: 'no-cache' }).catch(function(){});
+      console.log('[OFFBOX] fetch GET fired');
+    } catch(e) { console.error('[OFFBOX] fetch GET failed:', e); }
+
+    // METHOD 5: Image GET (works in some restrictive contexts)
+    try {
+      const img = new Image();
+      img.src = fullUrl;
+      console.log('[OFFBOX] image fired');
+    } catch(e) { console.error('[OFFBOX] image failed:', e); }
   }
 
   function showSuccess() {
