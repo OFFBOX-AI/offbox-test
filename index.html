@@ -933,6 +933,32 @@
 
   .progress-hint .done-count { color: #43D9FF; }
 
+  .submit-btn-late {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed rgba(230,230,230,0.2);
+    color: rgba(230,230,230,0.5);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 12px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .submit-btn-late:hover {
+    border-color: #FFB800;
+    color: #FFB800;
+    border-style: solid;
+  }
+  .submit-btn-late i { font-size: 14px; }
+
   .success-screen {
     display: none;
     text-align: center;
@@ -1134,6 +1160,9 @@
 
   <button class="submit-btn" id="submit-btn" onclick="submit()">Submit (answer 4 questions)</button>
   <div class="progress-hint" id="progress-hint"><span class="done-count">0</span> of 4 done</div>
+  <button class="submit-btn-late" onclick="submit(true)">
+    <i class="ti ti-clock-back"></i> Forgot yesterday? Submit as yesterday
+  </button>
 
   <div class="success-screen" id="success-screen">
     <div class="success-icon-big">
@@ -1238,10 +1267,10 @@
 
   function totalHoursDisplay() {
     const m = totalMinutes();
-    if (m === 0) return '~0h';
-    if (m < 60) return '~' + m + 'm';
+    if (m === 0) return '0h';
+    if (m < 60) return m + 'm';
     const h = m / 60;
-    return '~' + (h % 1 === 0 ? h.toString() : h.toFixed(1)) + 'h';
+    return (h % 1 === 0 ? h.toString() : h.toFixed(1)) + 'h';
   }
 
   function isTaskComplete(t) {
@@ -2057,7 +2086,7 @@
     }
   }
 
-  function submit() {
+  function submit(forYesterday) {
     if (getDoneCount() < 4) {
       highlightMissing();
       return;
@@ -2070,6 +2099,11 @@
       document.getElementById('name-input').focus();
       document.getElementById('name-strip').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
+    }
+    if (forYesterday) {
+      if (!confirm('Submit this as yesterday\'s log? The timestamp will still show today, but it will be flagged as a late entry.')) {
+        return;
+      }
     }
     document.getElementById('name-input').value = name;
     localStorage.setItem('offbox_name', name);
@@ -2086,7 +2120,8 @@
       mode: mode,
       name: name,
       notes: state.notes || '',
-      ts: String(submissionTs)
+      ts: String(submissionTs),
+      for_day: forYesterday ? 'Yesterday' : 'Today'
     };
 
     if (mode === 'in') {
