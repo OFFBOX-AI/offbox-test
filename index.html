@@ -957,6 +957,23 @@
     color: #FFB800;
     border-style: solid;
   }
+  .submit-btn-late.ready {
+    border-style: solid;
+  }
+  .submit-btn-late.ready.mode-in-ready {
+    border-color: #39D98A;
+    color: #39D98A;
+  }
+  .submit-btn-late.ready.mode-out-ready {
+    border-color: #FF6B9D;
+    color: #FF6B9D;
+  }
+  .submit-btn-late.ready:hover {
+    background: rgba(57,217,138,0.08);
+  }
+  .submit-btn-late.ready.mode-out-ready:hover {
+    background: rgba(255,107,157,0.08);
+  }
   .submit-btn-late i { font-size: 14px; }
 
   .success-screen {
@@ -1160,7 +1177,7 @@
 
   <button class="submit-btn" id="submit-btn" onclick="submit()">Submit (answer 4 questions)</button>
   <div class="progress-hint" id="progress-hint"><span class="done-count">0</span> of 4 done</div>
-  <button class="submit-btn-late" onclick="submit(true)">
+  <button class="submit-btn-late" id="submit-btn-late" onclick="submit(true)">
     <i class="ti ti-clock-back"></i> Forgot yesterday? Submit as yesterday
   </button>
 
@@ -2027,15 +2044,18 @@
   function updateSubmitState() {
     const done = getDoneCount();
     const btn = document.getElementById('submit-btn');
+    const lateBtn = document.getElementById('submit-btn-late');
     const hint = document.getElementById('progress-hint');
     if (done >= 4) {
       btn.className = 'submit-btn ready ' + (mode === 'in' ? 'mode-in-ready' : 'mode-out-ready');
       btn.textContent = mode === 'in' ? 'Lock in my day' : 'Wrap my day';
       hint.innerHTML = '<span class="done-count" style="color:#39D98A">All 4 done</span>';
+      if (lateBtn) lateBtn.className = 'submit-btn-late ready ' + (mode === 'in' ? 'mode-in-ready' : 'mode-out-ready');
     } else {
       btn.className = 'submit-btn';
       btn.textContent = 'Submit (answer ' + (4 - done) + ' more)';
       hint.innerHTML = '<span class="done-count">' + done + '</span> of 4 done';
+      if (lateBtn) lateBtn.className = 'submit-btn-late';
     }
   }
 
@@ -2101,9 +2121,7 @@
       return;
     }
     if (forYesterday) {
-      if (!confirm('Submit this as yesterday\'s log? The timestamp will still show today, but it will be flagged as a late entry.')) {
-        return;
-      }
+      // submit silently as yesterday
     }
     document.getElementById('name-input').value = name;
     localStorage.setItem('offbox_name', name);
