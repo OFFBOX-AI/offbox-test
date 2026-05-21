@@ -110,6 +110,84 @@
 
   .welcome { margin-bottom: 24px; animation: fadeInUp 0.5s ease both; }
 
+  .welcome-inner {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .welcome-left { flex: 1; min-width: 260px; display: flex; flex-direction: column; justify-content: center; }
+
+  .day-display {
+    --theme-color: rgba(230,230,230,0.4);
+    background: rgba(255,255,255,0.03);
+    border: 1.5px solid var(--theme-color);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 280px;
+    flex-shrink: 0;
+    transition: border-color 0.3s ease;
+  }
+  .day-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .day-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--theme-color);
+    color: #0F0F0F;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.3s ease;
+  }
+  .day-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--theme-color);
+    letter-spacing: 2px;
+    flex: 1;
+    text-align: right;
+    transition: color 0.3s ease;
+  }
+  .day-blocks {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    height: 18px;
+  }
+  .day-block {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid transparent;
+    transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  .day-block.filled {
+    background: var(--theme-color);
+  }
+  .day-display.weekend .day-number {
+    background: #FFFFFF;
+    color: #0F0F0F;
+  }
+  .day-display.weekend .day-block {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.7);
+  }
+  @media (max-width: 600px) {
+    .welcome-inner { flex-direction: column; }
+    .day-display { min-width: 0; width: 100%; }
+    .day-name { font-size: 18px; }
+  }
+
   .greeting {
     font-size: 28px;
     font-weight: 600;
@@ -513,7 +591,7 @@
   .linear-btn.active.partially { background: #FFB800; border-color: #FFB800; color: #0F0F0F; }
   .linear-btn.active.not { background: #FF5572; border-color: #FF5572; color: #FFFFFF; }
 
-  .linear-btn.active.easy { background: #888; border-color: #888; color: #0F0F0F; }
+  .linear-btn.active.easy { background: #39D98A; border-color: #39D98A; color: #0F0F0F; }
   .linear-btn.active.medium { background: #43D9FF; border-color: #43D9FF; color: #0F0F0F; }
   .linear-btn.active.hard { background: #A78BFA; border-color: #A78BFA; color: #0F0F0F; }
   .linear-btn.active.expert { background: #FFB800; border-color: #FFB800; color: #0F0F0F; }
@@ -1139,8 +1217,25 @@
   </div>
 
   <div class="welcome" id="welcome-block">
-    <div class="greeting" id="greeting-text">Good morning</div>
-    <div class="greeting-sub" id="greeting-sub">Quick check-in to set the day.</div>
+    <div class="welcome-inner">
+      <div class="welcome-left">
+        <div class="greeting" id="greeting-text">Good morning</div>
+        <div class="greeting-sub" id="greeting-sub">Quick check-in to set the day.</div>
+      </div>
+      <div class="day-display" id="day-display">
+        <div class="day-row">
+          <div class="day-number" id="day-number">1</div>
+          <div class="day-name" id="day-name">SUNDAY</div>
+        </div>
+        <div class="day-blocks" id="day-blocks">
+          <div class="day-block"></div>
+          <div class="day-block"></div>
+          <div class="day-block"></div>
+          <div class="day-block"></div>
+          <div class="day-block"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="mode-toggle">
@@ -1556,7 +1651,7 @@
           <div class="num">3</div>
           <i class="ti ti-flame q-icon" aria-hidden="true"></i>
           <div class="title">Difficulty Today</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Hard days deserve recognition. Easy days deserve a bump in challenge. This is how we make sure your time is being used well."></i>
+          <i class="ti ti-info-circle info-icon" data-tip="Be honest with yourself. Easy days are normal. Inflating difficulty helps no one and makes your own pattern unreadable."></i>
         </div>
         <div class="q-content${state.actualDiff > 0 ? ' active done' : ''}" id="content-actual-diff">
           <div class="q-prompt">How difficult was your work today?</div>
@@ -2143,12 +2238,24 @@
 
     // Build params object
     const submissionTs = Date.now();
+    // For_Day = actual date (today's date, or yesterday's if late submit)
+    const targetDate = new Date();
+    if (forYesterday) targetDate.setDate(targetDate.getDate() - 1);
+    const fy = targetDate.getFullYear();
+    const fm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const fd = String(targetDate.getDate()).padStart(2, '0');
+    const forDayValue = fy + '-' + fm + '-' + fd;
+
+    // Numeric maps for clean chartable data
+    const COMPLETION_MAP = { 'not': 0, 'partially': 1, 'mostly': 2, 'fully': 3 };
+    const DIFF_MAP = { 'easy': 1, 'medium': 2, 'hard': 3, 'expert': 4 };
+
     const params = {
       mode: mode,
       name: name,
       notes: state.notes || '',
       ts: String(submissionTs),
-      for_day: forYesterday ? 'Yesterday' : 'Today'
+      for_day: forDayValue
     };
 
     if (mode === 'in') {
@@ -2156,9 +2263,9 @@
       params.blocker_has = state.blocker.has === true ? 'yes' : 'no';
       params.blocker_what = state.blocker.what || '';
       params.energy_in = String(state.energyIn);
-      params.expected_diff = state.expectedDiff;
+      params.expected_diff = String(DIFF_MAP[state.expectedDiff] || 0);
     } else {
-      params.completion = state.completion;
+      params.completion = String(COMPLETION_MAP[state.completion] !== undefined ? COMPLETION_MAP[state.completion] : '');
       params.completion_reason = state.completionReason || '';
       // Numbered task list (oldest = #1, newest = last)
       const tasksInOrder = state.completed.slice().reverse();
@@ -2346,7 +2453,47 @@
     }
   }
 
+  function updateDayDisplay() {
+    const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+    const DAY_COLORS = {
+      0: '#43D9FF',  // Sunday   cyan
+      1: '#FFBF25',  // Monday   amber
+      2: '#00FF9E',  // Tuesday  green
+      3: '#FF518F',  // Wednesday pink
+      4: '#9B5DE5',  // Thursday purple
+      5: '#FFFFFF',  // Friday   weekend
+      6: '#FFFFFF'   // Saturday weekend
+    };
+    const today = new Date();
+    const dayIdx = today.getDay();
+    const isWorkDay = dayIdx <= 4;
+    const themeColor = DAY_COLORS[dayIdx];
+
+    const display = document.getElementById('day-display');
+    const numEl = document.getElementById('day-number');
+    const nameEl = document.getElementById('day-name');
+    const blocks = document.querySelectorAll('.day-block');
+
+    display.style.setProperty('--theme-color', themeColor);
+    numEl.textContent = dayIdx + 1;
+    nameEl.textContent = days[dayIdx];
+
+    if (isWorkDay) {
+      display.classList.remove('weekend');
+      // Fill blocks 0 to dayIdx with theme color (passed + current days)
+      blocks.forEach(function(b, i) {
+        if (i <= dayIdx) b.classList.add('filled');
+        else b.classList.remove('filled');
+      });
+    } else {
+      display.classList.add('weekend');
+      // Weekend: no blocks filled, all white-outlined via CSS
+      blocks.forEach(function(b) { b.classList.remove('filled'); });
+    }
+  }
+
   window.onload = function() {
+    updateDayDisplay();
     // Migrate any existing task data to new structure
     if (Array.isArray(state.completed)) {
       state.completed = state.completed.map(migrateTask);
