@@ -2270,7 +2270,18 @@
       // Numbered task list (oldest = #1, newest = last)
       const tasksInOrder = state.completed.slice().reverse();
       params.tasks_list = tasksInOrder.map(function(t, i) {
-        return (i + 1) + '. ' + (t.text || '');
+        var num = i + 1;
+        var text = t.text || '';
+        var timeStr = '';
+        if (t.hoursSpentMinutes) {
+          if (t.hoursSpentMinutes < 60) {
+            timeStr = ' [' + t.hoursSpentMinutes + 'm]';
+          } else {
+            timeStr = ' [' + (t.hoursSpentMinutes / 60).toFixed(1) + 'h]';
+          }
+        }
+        var projStr = t.projectCostCenter ? ' [' + whereLabel(t.projectCostCenter) + ']' : '';
+        return num + '. ' + text + timeStr + projStr;
       }).join('\n');
       // Per-project hours
       function projHours(p) {
