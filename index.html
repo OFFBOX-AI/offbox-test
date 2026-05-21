@@ -615,14 +615,17 @@
 
   .task-card {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px 6px 6px;
-    background: rgba(57,217,138,0.08);
-    border-left: 2px solid #39D98A;
-    font-size: 13px;
+    align-items: stretch;
+    background: transparent;
+    border: none;
+    padding: 0;
+    height: 50px;
+    min-height: 50px;
+    max-height: 50px;
     color: #E6E6E6;
+    font-size: 13px;
     animation: slideIn 0.3s ease;
+    overflow: hidden;
   }
 
   .task-card.sortable-ghost {
@@ -635,29 +638,37 @@
   }
 
   .task-card .drag-handle {
-    color: rgba(230,230,230,0.3);
-    cursor: grab;
-    padding: 4px 2px;
+    width: 16px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(230,230,230,0.4);
     display: flex;
     align-items: center;
-    transition: color 0.15s;
+    justify-content: center;
+    cursor: grab;
+    transition: color 0.15s, background 0.15s;
     flex-shrink: 0;
   }
-
-  .task-card .drag-handle:hover { color: #43D9FF; }
+  .task-card .drag-handle:hover { color: #43D9FF; background: rgba(255,255,255,0.1); }
   .task-card .drag-handle:active { cursor: grabbing; }
   .task-card .drag-handle i { font-size: 16px; }
-
+  .task-text-cell {
+    background: rgba(57,217,138,0.18);
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    min-width: 0;
+  }
   .task-card .task-num {
+    background: rgba(57,217,138,0.4);
+    color: #0F0F0F;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
     font-weight: 700;
-    color: #39D98A;
-    min-width: 18px;
-    text-align: center;
+    font-size: 11px;
+    padding: 4px 9px;
     flex-shrink: 0;
   }
-
   .task-card .task-edit {
     flex: 1;
     background: transparent;
@@ -665,29 +676,148 @@
     color: #E6E6E6;
     font-size: 13px;
     font-family: inherit;
-    padding: 6px 0;
+    padding: 0;
+    margin: 0;
     outline: none;
+    min-width: 0;
     width: 100%;
+    overflow: hidden;
+    line-height: 1.3;
+    word-wrap: break-word;
+    word-break: break-word;
+    box-sizing: border-box;
+    max-height: 34px;
+    cursor: text;
   }
-
-  .task-card .task-edit:focus {
-    color: #FFFFFF;
+  .task-card .task-edit:focus { color: #FFFFFF; }
+  .task-card .task-edit:empty::before {
+    content: attr(data-placeholder);
+    color: rgba(230,230,230,0.3);
+    pointer-events: none;
   }
-
-  .task-card .remove {
+  /* Vertical wheel selectors */
+  .wheel-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    cursor: ns-resize;
+    user-select: none;
+    flex-shrink: 0;
+    transition: background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1), color 0.22s ease-out;
+  }
+  .wheel-selector .wheel-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    padding: 2px 0;
+    line-height: 1.1;
+    transition: color 0.18s ease-out;
+  }
+  @keyframes wheelTickDown {
+    0% { transform: translateY(6px); opacity: 0.3; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes wheelTickUp {
+    0% { transform: translateY(-6px); opacity: 0.3; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .wheel-value.tick-next { animation: wheelTickDown 0.16s ease-out; }
+  .wheel-value.tick-prev { animation: wheelTickUp 0.16s ease-out; }
+  .wheel-selector.wheel-where {
+    color: #0F0F0F;
+    width: 50px;
+  }
+  .wheel-selector.wheel-where.empty {
+    background: rgba(255,255,255,0.05);
+    color: rgba(230,230,230,0.4);
+  }
+  .wheel-selector.wheel-where.empty:hover { background: rgba(255,255,255,0.09); }
+  .wheel-selector.wheel-time {
+    color: #0F0F0F;
+    width: 40px;
+  }
+  .wheel-selector.wheel-time.empty {
+    background: rgba(255,255,255,0.05);
+    color: rgba(230,230,230,0.4);
+  }
+  .wheel-selector.wheel-time.empty:hover { background: rgba(255,255,255,0.09); }
+  .wheel-selector.missing {
+    box-shadow: inset 0 0 0 2px #FF5572;
+    animation: pulseMissingMeta 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseMissingMeta {
+    0%, 100% { box-shadow: inset 0 0 0 2px #FF5572, 0 0 0 0 rgba(255,85,114,0); }
+    50% { box-shadow: inset 0 0 0 2px #FF5572, 0 0 0 3px rgba(255,85,114,0.3); }
+  }
+  .wheel-arrow {
     background: none;
     border: none;
-    color: rgba(230,230,230,0.4);
+    color: inherit;
     cursor: pointer;
-    padding: 4px;
+    padding: 0;
     display: flex;
     align-items: center;
-    transition: color 0.15s;
+    justify-content: center;
+    opacity: 0.75;
+    transition: opacity 0.15s;
+    height: 14px;
+    width: 100%;
+  }
+  .wheel-arrow:hover { opacity: 1; }
+  .wheel-arrow:active { opacity: 0.5; }
+  .wheel-arrow i { font-size: 14px; line-height: 1; }
+  .task-card .remove {
+    background: rgba(255,85,114,0.4);
+    color: #FFFFFF;
+    border: none;
+    width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
     flex-shrink: 0;
   }
-
-  .task-card .remove:hover { color: #FF5572; }
+  .task-card .remove:hover { background: rgba(255,85,114,0.75); }
   .task-card .remove i { font-size: 15px; }
+  @media (max-width: 480px) {
+    .wheel-selector.wheel-where { width: 40px; }
+    .wheel-selector.wheel-time { width: 25px; }
+    .task-card .drag-handle { width: 16px; }
+    .task-card .remove { width: 25px; }
+    .task-text-cell { padding: 0 8px; gap: 6px; }
+  }
+
+  .total-hours-display {
+    background: rgba(67,217,255,0.05);
+    border: 1px solid rgba(67,217,255,0.2);
+    border-left: 3px solid #43D9FF;
+    padding: 9px 13px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(230,230,230,0.55);
+    font-weight: 600;
+    margin-top: 8px;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .total-hours-display.show { display: flex; }
+
+  .total-hours-value {
+    color: #43D9FF;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: none;
+  }
 
   .completion-reason {
     padding-top: 4px;
@@ -1030,6 +1160,98 @@
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6jgMZjVC4zS9pCX-cB2kSXtRJdhG0_wZYGlr2upUoUspqS6vqu5yFz4KaPfd0lmOZ/exec';
 
+  const HOURS_OPTIONS = [
+    {v:480,l:'8h'},{v:420,l:'7h'},{v:360,l:'6h'},{v:300,l:'5h'},
+    {v:240,l:'4h'},{v:180,l:'3h'},
+    {v:150,l:'2.5h'},{v:120,l:'2h'},{v:90,l:'1.5h'},{v:60,l:'1h'},
+    {v:45,l:'45m'},{v:30,l:'30m'},{v:15,l:'15m'},{v:5,l:'5m'}
+  ];
+
+  const PROJECT_OPTIONS = ['STUDIO', 'PROJECT B', 'PROJECT A'];
+
+  function whereColor(project) {
+    if (project === 'PROJECT A') return '#FFB800';
+    if (project === 'PROJECT B') return '#FF6B9D';
+    if (project === 'STUDIO') return '#BCC4D0';
+    return null;
+  }
+
+  function whereLabel(project) {
+    if (project === 'PROJECT A') return 'PROJ A';
+    if (project === 'PROJECT B') return 'PROJ B';
+    if (project === 'STUDIO') return 'STUDIO';
+    return null;
+  }
+
+  // 4-tier color system communicates task weight
+  // Quick (≤45m) = mint green - low effort, momentum tasks
+  // Standard (≤2h) = cyan - normal focused work
+  // Major (≤4h) = amber - significant time investment
+  // Heavy (4.5h+) = rose/red - day-eating commitment
+  const TIME_COLORS = {
+    5:   '#5EE0B4',
+    15:  '#52DCA8',
+    30:  '#46D89D',
+    45:  '#3AD391',
+    60:  '#5DD5E8',
+    90:  '#43D9FF',
+    120: '#2EC8F5',
+    150: '#FFB854',
+    180: '#F8A839',
+    240: '#E68A18',
+    300: '#FF6B7C',
+    360: '#FF5572',
+    420: '#F04060',
+    480: '#DC2A50'
+  };
+
+  function timeColor(minutes) {
+    if (!minutes) return null;
+    return TIME_COLORS[minutes] || null;
+  }
+
+  function migrateTask(item) {
+    if (typeof item === 'string') {
+      return { text: item, projectCostCenter: null, hoursSpentMinutes: null };
+    }
+    if (item && typeof item === 'object') {
+      return {
+        text: item.text || '',
+        projectCostCenter: item.projectCostCenter || null,
+        hoursSpentMinutes: item.hoursSpentMinutes || null
+      };
+    }
+    return { text: '', projectCostCenter: null, hoursSpentMinutes: null };
+  }
+
+  function hoursLabel(minutes) {
+    if (!minutes) return null;
+    const found = HOURS_OPTIONS.find(function(o){ return o.v === minutes; });
+    return found ? found.l : (minutes + 'm');
+  }
+
+  function totalMinutes() {
+    return state.completed.reduce(function(sum, t){
+      return sum + (t && t.hoursSpentMinutes ? t.hoursSpentMinutes : 0);
+    }, 0);
+  }
+
+  function totalHoursDisplay() {
+    const m = totalMinutes();
+    if (m === 0) return '0h';
+    if (m < 60) return m + 'm';
+    const h = m / 60;
+    return (h % 1 === 0 ? h.toString() : h.toFixed(1)) + 'h';
+  }
+
+  function isTaskComplete(t) {
+    return t && t.text && t.text.trim() && t.projectCostCenter && t.hoursSpentMinutes;
+  }
+
+  function allTasksComplete() {
+    return state.completed.length > 0 && state.completed.every(isTaskComplete);
+  }
+
   let mode = 'in';
   let state = {
     goal: '', blocker: { has: null, what: '' },
@@ -1267,6 +1489,10 @@
             <span class="combo-text" id="combo-text"></span>
           </div>
           <div class="completed-cards" id="completed-list"></div>
+          <div class="total-hours-display" id="total-hours-display">
+            <span>Total today</span>
+            <span class="total-hours-value" id="total-hours-value">0h</span>
+          </div>
         </div>
       </div>
 
@@ -1444,12 +1670,12 @@
     const input = document.getElementById('completed-input');
     const val = input.value.trim();
     if (!val) return;
-    state.completed.unshift(val);
+    state.completed.unshift({ text: val, projectCostCenter: null, hoursSpentMinutes: null });
     renderCompletedList();
     showCombo(state.completed.length);
     input.value = '';
     input.focus();
-    updateCard('completed', state.completed.length > 0);
+    updateCard('completed', allTasksComplete());
     updateSubmitState();
   }
 
@@ -1480,43 +1706,105 @@
       const msg = document.getElementById('combo-msg');
       if (msg) msg.classList.remove('show');
     }
-    updateCard('completed', state.completed.length > 0);
+    updateCard('completed', allTasksComplete());
     updateSubmitState();
   }
 
   function renderCompletedList() {
     const list = document.getElementById('completed-list');
     if (!list) return;
+    state.completed = state.completed.map(migrateTask);
     const total = state.completed.length;
-    list.innerHTML = state.completed.map((t, i) => `
-      <div class="task-card">
-        <span class="drag-handle" aria-label="drag">
-          <i class="ti ti-grip-vertical"></i>
-        </span>
-        <span class="task-num">${total - i}</span>
-        <input type="text" class="task-edit" value="${escapeHtml(t)}" placeholder="Empty task">
-        <button class="remove" aria-label="remove">
-          <i class="ti ti-x"></i>
-        </button>
-      </div>
-    `).join('');
 
-    // Wire up edit handlers using current DOM position (works after drag reorder)
-    list.querySelectorAll('.task-edit').forEach((input) => {
+    list.innerHTML = state.completed.map(function(t, i) {
+      const num = total - i;
+      const whereEmpty = !t.projectCostCenter;
+      const timeEmpty = !t.hoursSpentMinutes;
+      const whereVal = whereLabel(t.projectCostCenter) || 'WHERE';
+      const timeVal = hoursLabel(t.hoursSpentMinutes) || 'TIME';
+      const whereBg = whereColor(t.projectCostCenter);
+      const timeBg = timeColor(t.hoursSpentMinutes);
+      const whereStyle = whereBg ? ' style="background:' + whereBg + '"' : '';
+      const timeStyle = timeBg ? ' style="background:' + timeBg + '"' : '';
+
+      return '<div class="task-card">' +
+        '<span class="drag-handle" aria-label="drag"><i class="ti ti-grip-vertical"></i></span>' +
+        '<div class="task-text-cell">' +
+          '<span class="task-num">' + num + '</span>' +
+          '<div class="task-edit" contenteditable="true" data-placeholder="Empty task" spellcheck="false">' + escapeHtml(t.text) + '</div>' +
+        '</div>' +
+        '<div class="wheel-selector wheel-where' + (whereEmpty ? ' empty' : '') + '" data-type="where"' + whereStyle + '>' +
+          '<button class="wheel-arrow" data-dir="prev" aria-label="up"><i class="ti ti-chevron-up"></i></button>' +
+          '<div class="wheel-value">' + whereVal + '</div>' +
+          '<button class="wheel-arrow" data-dir="next" aria-label="down"><i class="ti ti-chevron-down"></i></button>' +
+        '</div>' +
+        '<div class="wheel-selector wheel-time' + (timeEmpty ? ' empty' : '') + '" data-type="hours"' + timeStyle + '>' +
+          '<button class="wheel-arrow" data-dir="prev" aria-label="up"><i class="ti ti-chevron-up"></i></button>' +
+          '<div class="wheel-value">' + timeVal + '</div>' +
+          '<button class="wheel-arrow" data-dir="next" aria-label="down"><i class="ti ti-chevron-down"></i></button>' +
+        '</div>' +
+        '<button class="remove" aria-label="remove"><i class="ti ti-x"></i></button>' +
+      '</div>';
+    }).join('');
+
+    // Text edit handlers using current DOM position
+    list.querySelectorAll('.task-edit').forEach(function(input) {
       input.addEventListener('input', function() {
-        const idx = Array.from(list.children).indexOf(this.parentElement);
-        if (idx >= 0) state.completed[idx] = this.value;
+        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        if (idx >= 0) {
+          state.completed[idx].text = this.textContent;
+          adjustTaskText(this);
+          updateCard('completed', allTasksComplete());
+          updateSubmitState();
+        }
       });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') e.preventDefault();
+      });
+      input.addEventListener('paste', function(e) {
+        // Force plain text paste so no rich formatting sneaks in
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' ');
+        document.execCommand('insertText', false, text);
+      });
+      // Initial sizing
+      adjustTaskText(input);
     });
 
-    // Wire up remove handlers
-    list.querySelectorAll('.remove').forEach((btn) => {
-      btn.addEventListener('click', function() {
-        const idx = Array.from(list.children).indexOf(this.parentElement);
+    // Remove handlers
+    list.querySelectorAll('.remove').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
         if (idx >= 0) removeCompleted(idx);
       });
     });
 
+    // Wheel selector interactions: mouse wheel + arrow clicks
+    list.querySelectorAll('.wheel-selector').forEach(function(sel) {
+      const type = sel.dataset.type;
+
+      sel.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - wheelLockTime < WHEEL_LOCK_MS) return;
+        wheelLockTime = now;
+        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        if (idx < 0) return;
+        cycleMeta(idx, type, e.deltaY > 0 ? 'next' : 'prev');
+      }, { passive: false });
+
+      sel.querySelectorAll('.wheel-arrow').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+          if (idx < 0) return;
+          cycleMeta(idx, type, this.dataset.dir);
+        });
+      });
+    });
+
+    updateTotalHoursDisplay();
     initSortable();
   }
 
@@ -1549,6 +1837,131 @@
     return d.innerHTML;
   }
 
+  // Auto-shrink task text font when it overflows 2 lines. Never touches height.
+  function adjustTaskText(textarea) {
+    if (!textarea) return;
+    const maxSize = 13;
+    const minSize = 9;
+    const lineHeight = 1.3;
+    const maxLines = 2;
+
+    for (let size = maxSize; size >= minSize; size -= 0.5) {
+      textarea.style.fontSize = size + 'px';
+      textarea.style.maxHeight = (size * lineHeight * maxLines) + 'px';
+      if (textarea.scrollHeight <= textarea.clientHeight + 1) {
+        return;
+      }
+    }
+    // Already at min size; content gets clipped by max-height + overflow:hidden
+  }
+
+  // Wheel selector cycle logic
+  let wheelLockTime = 0;
+  const WHEEL_LOCK_MS = 40;
+  let lastCycleDirection = null;
+
+  function cycleMeta(idx, type, direction) {
+    const task = state.completed[idx];
+    if (!task) return;
+
+    if (type === 'where') {
+      const options = PROJECT_OPTIONS;
+      const current = task.projectCostCenter;
+      let newIdx;
+      if (current === null) {
+        // Default starting point is PROJ A
+        newIdx = options.findIndex(function(p){ return p === 'PROJECT A'; });
+        if (newIdx < 0) newIdx = options.length - 1;
+      } else {
+        const currentIdx = options.indexOf(current);
+        newIdx = direction === 'next'
+          ? Math.min(currentIdx + 1, options.length - 1)
+          : Math.max(currentIdx - 1, 0);
+      }
+      task.projectCostCenter = options[newIdx];
+    } else {
+      const options = HOURS_OPTIONS;
+      const current = task.hoursSpentMinutes;
+      let newIdx;
+      if (current === null) {
+        // Default landing point when coming from empty is 1H (60min, index 4)
+        newIdx = options.findIndex(function(o){ return o.v === 60; });
+        if (newIdx < 0) newIdx = 0;
+      } else {
+        const currentIdx = options.findIndex(function(o){ return o.v === current; });
+        newIdx = direction === 'next'
+          ? Math.min(currentIdx + 1, options.length - 1)
+          : Math.max(currentIdx - 1, 0);
+      }
+      task.hoursSpentMinutes = options[newIdx].v;
+    }
+
+    lastCycleDirection = direction;
+    updateWheelValue(idx, type);
+    updateTotalHoursDisplay();
+    updateCard('completed', allTasksComplete());
+    updateSubmitState();
+  }
+
+  function updateWheelValue(idx, type) {
+    const list = document.getElementById('completed-list');
+    if (!list) return;
+    const card = list.children[idx];
+    if (!card) return;
+    const task = state.completed[idx];
+    if (!task) return;
+
+    const sel = type === 'where' ? card.querySelector('.wheel-where') : card.querySelector('.wheel-time');
+    if (!sel) return;
+    const valEl = sel.querySelector('.wheel-value');
+    if (!valEl) return;
+
+    if (type === 'where') {
+      if (task.projectCostCenter) {
+        valEl.textContent = whereLabel(task.projectCostCenter);
+        sel.style.background = whereColor(task.projectCostCenter);
+        sel.classList.remove('empty');
+        sel.classList.remove('missing');
+      } else {
+        valEl.textContent = 'WHERE';
+        sel.style.background = '';
+        sel.classList.add('empty');
+      }
+    } else {
+      if (task.hoursSpentMinutes) {
+        valEl.textContent = hoursLabel(task.hoursSpentMinutes);
+        sel.style.background = timeColor(task.hoursSpentMinutes);
+        sel.classList.remove('empty');
+        sel.classList.remove('missing');
+      } else {
+        valEl.textContent = 'TIME';
+        sel.style.background = '';
+        sel.classList.add('empty');
+      }
+    }
+
+    // Tick animation
+    valEl.classList.remove('tick-next', 'tick-prev');
+    void valEl.offsetWidth;
+    if (lastCycleDirection === 'next') {
+      valEl.classList.add('tick-next');
+    } else if (lastCycleDirection === 'prev') {
+      valEl.classList.add('tick-prev');
+    }
+  }
+
+  function updateTotalHoursDisplay() {
+    const totalEl = document.getElementById('total-hours-display');
+    if (!totalEl) return;
+    if (state.completed.length === 0) {
+      totalEl.classList.remove('show');
+    } else {
+      totalEl.classList.add('show');
+      const valEl = document.getElementById('total-hours-value');
+      if (valEl) valEl.textContent = totalHoursDisplay();
+    }
+  }
+
   function updateCard(cardId, isDone) {
     const card = document.getElementById('card-' + cardId);
     const content = document.getElementById('content-' + cardId);
@@ -1575,7 +1988,7 @@
       let n = 0;
       if (state.completion === 'fully') n++;
       else if (state.completion && (state.completionReason || '').trim()) n++;
-      if (state.completed.length > 0) n++;
+      if (allTasksComplete()) n++;
       if (state.actualDiff > 0) n++;
       if (state.energyOut > 0) n++;
       return n;
@@ -1599,6 +2012,7 @@
 
   function highlightMissing() {
     document.querySelectorAll('.question-card').forEach(c => c.classList.remove('missing'));
+    document.querySelectorAll('.wheel-selector.missing').forEach(b => b.classList.remove('missing'));
     let firstMissing = null;
     const markMissing = (cardId) => {
       const card = document.getElementById('card-' + cardId);
@@ -1615,7 +2029,25 @@
       if (!state.expectedDiff) markMissing('difficulty');
     } else {
       if (!state.completion || (state.completion !== 'fully' && !(state.completionReason || '').trim())) markMissing('completion');
-      if (state.completed.length === 0) markMissing('completed');
+      if (state.completed.length === 0 || !allTasksComplete()) {
+        markMissing('completed');
+        // Red-pulse the specific missing wheel selectors
+        const list = document.getElementById('completed-list');
+        if (list) {
+          state.completed.forEach(function(t, i) {
+            const card = list.children[i];
+            if (!card) return;
+            if (!t.projectCostCenter) {
+              const sel = card.querySelector('.wheel-where');
+              if (sel) sel.classList.add('missing');
+            }
+            if (!t.hoursSpentMinutes) {
+              const sel = card.querySelector('.wheel-time');
+              if (sel) sel.classList.add('missing');
+            }
+          });
+        }
+      }
       if (state.actualDiff === 0) markMissing('actual-diff');
       if (state.energyOut === 0) markMissing('energy-out');
     }
@@ -1666,7 +2098,21 @@
     } else {
       params.completion = state.completion;
       params.completion_reason = state.completionReason || '';
-      params.completed = state.completed.join(' | ');
+      // Numbered task list (oldest = #1, newest = last)
+      const tasksInOrder = state.completed.slice().reverse();
+      params.tasks_list = tasksInOrder.map(function(t, i) {
+        return (i + 1) + '. ' + (t.text || '');
+      }).join('\n');
+      // Per-project hours
+      function projHours(p) {
+        return state.completed
+          .filter(function(t){ return t.projectCostCenter === p; })
+          .reduce(function(sum, t){ return sum + (t.hoursSpentMinutes || 0); }, 0) / 60;
+      }
+      params.project_a_hours = projHours('PROJECT A').toString();
+      params.project_b_hours = projHours('PROJECT B').toString();
+      params.studio_hours = projHours('STUDIO').toString();
+      params.total_hours = (totalMinutes() / 60).toString();
       params.actual_diff = String(state.actualDiff);
       params.energy_out = String(state.energyOut);
     }
@@ -1834,6 +2280,11 @@
   }
 
   window.onload = function() {
+    // Migrate any existing task data to new structure
+    if (Array.isArray(state.completed)) {
+      state.completed = state.completed.map(migrateTask);
+    }
+
     const savedName = localStorage.getItem('offbox_name');
     const nameInput = document.getElementById('name-input');
     if (savedName) {
