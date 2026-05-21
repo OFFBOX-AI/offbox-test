@@ -2180,6 +2180,7 @@
     }
 
     fireAllMethods(params);
+    console.log('[OFFBOX] SENT PARAMS:', JSON.stringify(params, null, 2));
 
     // Clear morning goal after log-out submits so next day starts fresh
     if (mode === 'out') {
