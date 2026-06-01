@@ -45,12 +45,77 @@
     z-index: 0;
   }
 
+  body.mode-off::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60vh;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
   .colorbar {
     height: 4px;
     background: linear-gradient(90deg, #FF6B9D 0%, #39D98A 25%, #FFB800 50%, #43D9FF 75%, #A78BFA 100%);
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: 100;
+  }
+
+  /* Page-wide hour-pass flash overlay */
+  .hour-flash {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0;
+  }
+  @keyframes hourFlashFadeAM {
+    0%   { opacity: 0; }
+    2%   { opacity: 1; }
+    14%  { opacity: 0.45; }
+    24%  { opacity: 0.95; }
+    36%  { opacity: 0.3; }
+    48%  { opacity: 0.85; }
+    62%  { opacity: 0.2; }
+    76%  { opacity: 0.55; }
+    88%  { opacity: 0.15; }
+    100% { opacity: 0; }
+  }
+  @keyframes hourFlashFadePM {
+    0%   { opacity: 0; }
+    2%   { opacity: 1; }
+    14%  { opacity: 0.45; }
+    24%  { opacity: 0.95; }
+    36%  { opacity: 0.3; }
+    48%  { opacity: 0.85; }
+    62%  { opacity: 0.2; }
+    76%  { opacity: 0.55; }
+    88%  { opacity: 0.15; }
+    100% { opacity: 0; }
+  }
+  .hour-flash.am-active {
+    background:
+      radial-gradient(ellipse at top right, rgba(67,217,255,0.55) 0%, rgba(67,217,255,0.22) 25%, rgba(67,217,255,0.06) 55%, transparent 80%),
+      linear-gradient(180deg, rgba(67,217,255,0.12) 0%, transparent 35%),
+      linear-gradient(0deg, rgba(67,217,255,0.08) 0%, transparent 25%);
+    box-shadow:
+      inset 0 0 0 5px rgba(67,217,255,0.7),
+      inset 0 0 50px rgba(67,217,255,0.25),
+      inset 0 0 120px rgba(67,217,255,0.08);
+    animation: hourFlashFadeAM 6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hour-flash.pm-active {
+    background:
+      radial-gradient(ellipse at top right, rgba(255,184,0,0.55) 0%, rgba(255,184,0,0.22) 25%, rgba(255,184,0,0.06) 55%, transparent 80%),
+      linear-gradient(180deg, rgba(255,184,0,0.12) 0%, transparent 35%),
+      linear-gradient(0deg, rgba(255,184,0,0.08) 0%, transparent 25%);
+    box-shadow:
+      inset 0 0 0 5px rgba(255,184,0,0.7),
+      inset 0 0 50px rgba(255,184,0,0.25),
+      inset 0 0 120px rgba(255,184,0,0.08);
+    animation: hourFlashFadePM 6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .container {
@@ -63,34 +128,16 @@
 
   .header-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
+    justify-content: stretch;
+    gap: 10px;
     margin-bottom: 24px;
   }
 
-  .logo-block { display: flex; align-items: center; gap: 10px; }
-
-  .logo-dot {
-    width: 28px;
-    height: 28px;
-    background: #43D9FF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #0F0F0F;
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: -0.5px;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-
-  .logo-text {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: rgba(230,230,230,0.5);
-    font-weight: 500;
+  .day-display,
+  .clock-block {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .streak-badge {
@@ -108,28 +155,617 @@
     font-weight: 600;
   }
 
-  .welcome { margin-bottom: 24px; animation: fadeInUp 0.5s ease both; }
-
-  .welcome-inner {
+  .clock-block {
+    position: relative;
     display: flex;
-    align-items: stretch;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    border: 1px solid rgba(230,230,230,0.08);
+    background: rgba(255,255,255,0.02);
+    font-family: 'IBM Plex Mono', monospace;
+    transition: border-color 0.3s ease;
   }
-  .welcome-left { flex: 1; min-width: 260px; display: flex; flex-direction: column; justify-content: center; }
 
-  .day-display {
-    --theme-color: rgba(230,230,230,0.4);
-    background: rgba(255,255,255,0.03);
-    border: 1.5px solid var(--theme-color);
-    padding: 10px 14px;
+  .clock-text-stack {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 280px;
+    align-items: stretch;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .clock-percent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding-left: 10px;
+    border-left: 1px solid rgba(230,230,230,0.1);
+    color: #43D9FF;
+    transition: color 0.4s ease;
+    line-height: 1;
+    min-width: 84px;
     flex-shrink: 0;
+    gap: 3px;
+  }
+  .clock-percent-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    /* no color set = inherits the cyan/amber highlight from .clock-percent */
+  }
+  .clock-percent-row {
+    display: flex;
+    align-items: baseline;
+    white-space: nowrap;
+    color: rgba(230,230,230,0.45);
+    gap: 5px;
+  }
+  .clock-percent-chip {
+    display: inline-flex;
+    align-items: baseline;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 3px 6px;
+  }
+  .clock-percent-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .clock-percent-dot {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.85;
+    margin: 0 1px;
+  }
+  .clock-percent-decimal {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 600;
+    opacity: 0.85;
+    letter-spacing: 0.3px;
+  }
+  .clock-percent-sign {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-left: 2px;
+  }
+  .clock-percent-suffix {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    opacity: 0.8;
+  }
+  .clock-percent-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    gap: 4px;
+  }
+  .clock-percent-label .left-till {
+    color: rgba(230,230,230,0.4);
+  }
+  .clock-percent-label .next-target {
+    color: #43D9FF;
+  }
+  .clock-block.is-am .clock-percent { color: #43D9FF; }
+  .clock-block.is-pm .clock-percent { color: #FFB800; }
+  .clock-block.is-am .clock-percent-label .next-target { color: #43D9FF; }
+  .clock-block.is-pm .clock-percent-label .next-target { color: #FFB800; }
+
+  .clock-12 {
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    font-size: 18px;
+    color: #E6E6E6;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    justify-content: flex-start;
+  }
+
+  .clock-hours {
+    font-size: 46px;
+    color: #43D9FF;
+    font-weight: 800;
+    line-height: 1;
+    display: inline-block;
+    padding: 2px 10px;
+    background: rgba(67,217,255,0.08);
+    border: 1px solid rgba(67,217,255,0.3);
+    transition: color 0.4s ease, background 0.4s ease, border-color 0.4s ease;
+  }
+
+  .clock-sep {
+    color: rgba(230,230,230,0.6);
+    margin: 0 1px;
+  }
+
+  .clock-minutes {
+    color: #7FFFCE;
+    transition: color 0.4s ease;
+    display: inline-block;
+  }
+
+  .clock-block.mins-half2 .clock-minutes {
+    color: #FFB5CE;
+  }
+
+  .clock-ms-sep {
+    color: rgba(230,230,230,0.3);
+    font-size: 11px;
+    margin-left: 1px;
+  }
+
+  .clock-ms {
+    font-size: 11px;
+    color: rgba(230,230,230,0.3);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  .clock-ampm {
+    font-size: 16px;
+    color: #0F0F0F;
+    background: #43D9FF;
+    padding: 5px 9px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-left: 8px;
+    align-self: flex-end;
+    margin-bottom: 8px;
+    transition: background 0.4s ease;
+    line-height: 1;
+  }
+
+  .clock-block.is-pm .clock-hours {
+    color: #FFB800;
+    background: rgba(255,184,0,0.08);
+    border-color: rgba(255,184,0,0.3);
+  }
+
+  .clock-block.is-am .clock-hours {
+    color: #43D9FF;
+    background: rgba(67,217,255,0.08);
+    border-color: rgba(67,217,255,0.3);
+  }
+  .clock-block.is-pm .clock-ampm {
+    color: #0F0F0F;
+    background: #FFB800;
+  }
+  .clock-block.is-am .clock-ampm {
+    color: #0F0F0F;
+    background: #43D9FF;
+  }
+
+  .clock-24 {
+    font-size: 9px;
+    color: rgba(230,230,230,0.3);
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: left;
+  }
+
+  /* Hour pass animations - color depends on AM/PM */
+  @keyframes hourPulseAM {
+    0%   { box-shadow: 0 0 0 0 rgba(67,217,255,0.85); border-color: rgba(67,217,255,1); }
+    15%  { box-shadow: 0 0 0 14px rgba(67,217,255,0); border-color: rgba(67,217,255,0.6); }
+    25%  { box-shadow: 0 0 0 0 rgba(67,217,255,0.7); border-color: rgba(67,217,255,0.95); }
+    45%  { box-shadow: 0 0 0 18px rgba(67,217,255,0); border-color: rgba(67,217,255,0.5); }
+    55%  { box-shadow: 0 0 0 0 rgba(67,217,255,0.55); border-color: rgba(67,217,255,0.85); }
+    80%  { box-shadow: 0 0 0 22px rgba(67,217,255,0); border-color: rgba(67,217,255,0.3); }
+    100% { box-shadow: 0 0 0 0 rgba(67,217,255,0); border-color: rgba(230,230,230,0.08); }
+  }
+  @keyframes hourPulsePM {
+    0%   { box-shadow: 0 0 0 0 rgba(255,184,0,0.85); border-color: rgba(255,184,0,1); }
+    15%  { box-shadow: 0 0 0 14px rgba(255,184,0,0); border-color: rgba(255,184,0,0.6); }
+    25%  { box-shadow: 0 0 0 0 rgba(255,184,0,0.7); border-color: rgba(255,184,0,0.95); }
+    45%  { box-shadow: 0 0 0 18px rgba(255,184,0,0); border-color: rgba(255,184,0,0.5); }
+    55%  { box-shadow: 0 0 0 0 rgba(255,184,0,0.55); border-color: rgba(255,184,0,0.85); }
+    80%  { box-shadow: 0 0 0 22px rgba(255,184,0,0); border-color: rgba(255,184,0,0.3); }
+    100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); border-color: rgba(230,230,230,0.08); }
+  }
+  @keyframes hourGlowAM {
+    0%, 100% { text-shadow: 0 0 0 rgba(67,217,255,0); }
+    50%      { text-shadow: 0 0 18px rgba(67,217,255,0.9); }
+  }
+  @keyframes hourGlowPM {
+    0%, 100% { text-shadow: 0 0 0 rgba(255,184,0,0); }
+    50%      { text-shadow: 0 0 18px rgba(255,184,0,0.9); }
+  }
+  .clock-block.hour-passed.is-am { animation: hourPulseAM 6s ease-out; }
+  .clock-block.hour-passed.is-pm { animation: hourPulsePM 6s ease-out; }
+  .clock-block.hour-passed.is-am .clock-hours { animation: hourGlowAM 0.8s ease-in-out 7; }
+  .clock-block.hour-passed.is-pm .clock-hours { animation: hourGlowPM 0.8s ease-in-out 7; }
+
+  /* 30-minute mark - half intensity of hour effect, pink */
+  @keyframes halfPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,107,157,0.4); border-color: rgba(255,107,157,0.55); }
+    40%  { box-shadow: 0 0 0 5px rgba(255,107,157,0); border-color: rgba(255,107,157,0.25); }
+    100% { box-shadow: 0 0 0 0 rgba(255,107,157,0); border-color: rgba(230,230,230,0.08); }
+  }
+  @keyframes minuteGlow {
+    0%, 100% { text-shadow: 0 0 0 rgba(255,107,157,0); }
+    50%      { text-shadow: 0 0 6px rgba(255,107,157,0.5); }
+  }
+  .clock-block.half-passed { animation: halfPulse 5s ease-out; }
+  .clock-block.half-passed .clock-minutes { animation: minuteGlow 1s ease-in-out 5; }
+
+  /* Subtle scroll-down tick for each digit change */
+  #clock-hours, #clock-minutes, #clock-seconds {
+    display: inline-block;
+  }
+  #clock-seconds {
+    transition: color 0.5s ease;
+  }
+  @keyframes tickFast {
+    0%   { transform: translateY(-3px); opacity: 0.55; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes tickMinute {
+    0%   { transform: translateY(-3px); opacity: 0.55; text-shadow: 0 0 10px currentColor; }
+    10%  { transform: translateY(0); opacity: 1; }
+    100% { text-shadow: 0 0 0 currentColor; }
+  }
+  .tick-fast { animation: tickFast 0.18s ease-out; }
+  .tick-minute { animation: tickMinute 2s ease-out; }
+
+  /* Three stacked progress bars at the bottom of the clock box.
+     Each bar = track (always-visible dim background showing the path) + fill (the bright progressing portion clip-pathed).
+     Top-down visual order: minutes bar (thickest 3px), seconds bar (1.5px), ms bar (thinnest 1px). */
+  .clock-progress-min,
+  .clock-progress-sec,
+  .clock-progress-ms {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .clock-progress-min-fill,
+  .clock-progress-sec-fill,
+  .clock-progress-ms-fill {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(0 100% 0 0);
+    pointer-events: none;
+  }
+
+  /* TOP: minute progress over 60 minutes (an hour). Track is dim, fill is solid color that interpolates green→pink over the hour. */
+  .clock-progress-min {
+    bottom: 2.5px;
+    height: 3px;
+    background-color: rgba(255,255,255,0.06);
+    background-image: linear-gradient(90deg, transparent calc(100% - 1px), rgba(0,0,0,0.35) calc(100% - 1px));
+    background-size: calc(100% / 60) 100%;
+    background-repeat: repeat-x;
+  }
+  .clock-progress-min-fill {
+    background-color: rgba(0,255,158,0.6);
+    background-image: linear-gradient(90deg, transparent calc(100% - 1px), rgba(0,0,0,0.5) calc(100% - 1px));
+    background-size: calc(100% / 60) 100%;
+    background-repeat: repeat-x;
+    transition: background-color 0.6s ease, clip-path 0.3s ease-out;
+  }
+
+  /* MIDDLE: second progress over 60 seconds. Track dim, fill = white→pink gradient with subtle dividers per second. */
+  .clock-progress-sec {
+    bottom: 1px;
+    height: 1.5px;
+    background-color: rgba(255,255,255,0.05);
+    background-image: linear-gradient(90deg, transparent calc(100% - 1px), rgba(0,0,0,0.3) calc(100% - 1px));
+    background-size: calc(100% / 60) 100%;
+    background-repeat: repeat-x;
+  }
+  .clock-progress-sec-fill {
+    background-image:
+      linear-gradient(90deg, transparent calc(100% - 1px), rgba(0,0,0,0.5) calc(100% - 1px)),
+      linear-gradient(90deg,
+        rgba(255,255,255,0.55) 0%,
+        rgba(255,255,255,0.55) 50%,
+        rgba(255,181,206,0.8) 95%,
+        rgba(255,181,206,0.85) 100%);
+    background-size: calc(100% / 60) 100%, 100% 100%;
+    background-repeat: repeat-x, no-repeat;
+    transition: clip-path 0.25s ease-out;
+  }
+
+  /* BOTTOM: ms progress driven by requestAnimationFrame. Track dim. On each second-completion (ms wrap),
+     the track briefly lights up via .pulse class for a polished "the bar didn't really disappear" feel. */
+  .clock-progress-ms {
+    bottom: 0;
+    height: 1px;
+    background-color: rgba(255,255,255,0.06);
+  }
+  .clock-progress-ms-fill {
+    background: rgba(255,255,255,0.65);
+  }
+  @keyframes msTrackPulse {
+    0%   { background-color: rgba(255,255,255,0.32); }
+    100% { background-color: rgba(255,255,255,0.06); }
+  }
+  .clock-progress-ms.pulse {
+    animation: msTrackPulse 0.5s ease-out;
+  }
+
+  .welcome {
+    margin-bottom: 24px;
+    animation: fadeInUp 0.5s ease both;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .welcome-text { flex: 1; min-width: 0; }
+
+  /* Simple/Advanced display-mode segmented toggle (top-right of welcome block).
+     Controls how much of the time and day blocks show — Simple = just HH:MM PM and the day chips;
+     Advanced = the full live clock + percentages + progress bars + shift labels. */
+  .display-mode-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(230,230,230,0.08);
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .dm-btn {
+    background: transparent;
+    border: none;
+    color: rgba(230,230,230,0.45);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 7px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+  }
+  .dm-btn i { font-size: 13px; }
+  .dm-btn:hover:not(.active) {
+    color: rgba(230,230,230,0.85);
+    background: rgba(255,255,255,0.04);
+  }
+  .dm-btn.active {
+    background: rgba(230,230,230,0.92);
+    color: #0F0F0F;
+  }
+  @media (max-width: 480px) {
+    .dm-btn span { display: none; } /* icons only on tight screens */
+    .dm-btn { padding: 8px 9px; }
+    .dm-btn i { font-size: 14px; }
+  }
+
+  /* ---- SIMPLE display mode: strip the time and day blocks down to bare essentials ---- */
+  /* Time block: hide the whole seconds/ms group, the 24h row, the percent panel, and the three progress bars. */
+  body.display-simple .clock-secs-group,
+  body.display-simple .clock-24,
+  body.display-simple .clock-percent,
+  body.display-simple .clock-progress-min,
+  body.display-simple .clock-progress-sec,
+  body.display-simple .clock-progress-ms { display: none !important; }
+  body.display-simple .clock-block { padding-bottom: 14px; justify-content: center; }
+  body.display-simple .clock-12 { gap: 4px; align-items: baseline; }
+
+  /* Big plain "HH : MM" text — no block frame, no padding, just colored text per AM/PM rules.
+     All three pieces (hours, colon, minutes) share the same AM/PM-driven color so the time reads
+     as one solid number. AM/PM box stays as the small accent pill on the right. */
+  body.display-simple .clock-hours {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 56px;
+    font-weight: 800;
+  }
+  body.display-simple .clock-minutes,
+  body.display-simple .clock-12 .clock-sep {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  body.display-simple .clock-block.is-am .clock-hours,
+  body.display-simple .clock-block.is-am .clock-minutes,
+  body.display-simple .clock-block.is-am .clock-12 .clock-sep { color: #43D9FF; }
+  body.display-simple .clock-block.is-pm .clock-hours,
+  body.display-simple .clock-block.is-pm .clock-minutes,
+  body.display-simple .clock-block.is-pm .clock-12 .clock-sep { color: #FFB800; }
+  body.display-simple .clock-ampm {
+    font-size: 18px;
+    padding: 5px 9px;
+    margin-bottom: 10px;
+    margin-left: 10px;
+  }
+  @media (max-width: 640px) {
+    body.display-simple .clock-hours,
+    body.display-simple .clock-minutes,
+    body.display-simple .clock-12 .clock-sep { font-size: 40px; }
+    body.display-simple .clock-ampm { font-size: 14px; margin-bottom: 6px; padding: 3px 7px; }
+  }
+  @media (max-width: 480px) {
+    body.display-simple .clock-hours,
+    body.display-simple .clock-minutes,
+    body.display-simple .clock-12 .clock-sep { font-size: 32px; }
+    body.display-simple .clock-ampm { font-size: 12px; margin-bottom: 4px; padding: 2px 5px; }
+  }
+
+  /* Day block: keep the day number + day name + day-blocks visualization, hide the rest. */
+  body.display-simple .day-shift-label,
+  body.display-simple .day-percent,
+  body.display-simple .day-progress-day { display: none !important; }
+  body.display-simple .day-display { padding-bottom: 14px; }
+  body.display-simple .day-name { font-size: 18px; }
+  body.display-simple .day-row { justify-content: center; }
+
+  /* Sleep warning banner — shows 12am-4am on nights before a work day */
+  .sleep-warning {
+    display: none;
+    background: rgba(167,139,250,0.08);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-left: 3px solid #A78BFA;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    gap: 14px;
+    animation: fadeInUp 0.5s ease both, sleepPulse 4s ease-in-out infinite;
+  }
+  .sleep-warning.show {
+    display: flex;
+  }
+  @keyframes sleepPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0); }
+    50% { box-shadow: 0 0 24px -4px rgba(167,139,250,0.35); }
+  }
+  .sleep-warning-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(167,139,250,0.2);
+    color: #A78BFA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+  }
+  .sleep-warning-content {
+    flex: 1;
+    font-size: 13px;
+    color: rgba(230,230,230,0.8);
+    line-height: 1.55;
+  }
+  .sleep-warning-content strong {
+    display: block;
+    color: #A78BFA;
+    font-size: 14px;
+    margin-bottom: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+
+  /* Weekend banner — shows Thursday 5pm onwards through Saturday */
+  .weekend-banner {
+    display: none;
+    background: linear-gradient(120deg, rgba(255,107,157,0.14) 0%, rgba(255,184,0,0.14) 35%, rgba(67,217,255,0.14) 70%, rgba(167,139,250,0.14) 100%);
+    background-size: 250% 250%;
+    border: 1px solid rgba(255,107,157,0.35);
+    padding: 18px 22px;
+    margin-bottom: 20px;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+    animation: weekendGradient 9s ease infinite, fadeInUp 0.6s ease both;
+  }
+  .weekend-banner.show {
+    display: flex;
+  }
+  @keyframes weekendGradient {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .weekend-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(255,107,157,0.18) 0%, transparent 40%),
+                radial-gradient(circle at 80% 50%, rgba(67,217,255,0.18) 0%, transparent 40%);
+    pointer-events: none;
+    animation: weekendGlow 5s ease-in-out infinite alternate;
+  }
+  @keyframes weekendGlow {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+  .weekend-banner-emoji {
+    font-size: 34px;
+    animation: weekendBounce 1.8s ease-in-out infinite;
+    z-index: 1;
+  }
+  .weekend-banner-emoji-right {
+    animation-delay: 0.6s;
+  }
+  @keyframes weekendBounce {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25%      { transform: scale(1.15) rotate(-10deg); }
+    50%      { transform: scale(1.05) rotate(0deg); }
+    75%      { transform: scale(1.15) rotate(10deg); }
+  }
+  .weekend-banner-content {
+    flex: 1;
+    z-index: 1;
+    text-align: center;
+  }
+  .weekend-banner-content strong {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, #FF6B9D 0%, #FFB800 35%, #43D9FF 70%, #A78BFA 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    margin-bottom: 4px;
+    animation: weekendTextShimmer 4s linear infinite;
+  }
+  @keyframes weekendTextShimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  .weekend-banner-content span {
+    font-size: 13px;
+    color: rgba(230,230,230,0.85);
+    line-height: 1.5;
+  }
+  @media (max-width: 480px) {
+    .weekend-banner { padding: 14px 16px; gap: 10px; }
+    .weekend-banner-emoji { font-size: 26px; }
+    .weekend-banner-content strong { font-size: 13px; letter-spacing: 2px; }
+    .weekend-banner-content span { font-size: 12px; }
+  }
+
+  .day-display {
+    position: relative;
+    --theme-color: rgba(230,230,230,0.4);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(230,230,230,0.08);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+    flex-shrink: 1;
     transition: border-color 0.3s ease;
+    overflow: hidden;
+  }
+  .day-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
   }
   .day-row {
     display: flex;
@@ -164,15 +800,24 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 5px;
-    height: 18px;
+    height: 7px;
   }
   .day-block {
     background: rgba(255,255,255,0.08);
     border: 1px solid transparent;
-    transition: background 0.3s ease, border-color 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
   }
   .day-block.filled {
     background: var(--theme-color);
+  }
+  /* Subtle pulse on the current day's block so it feels "alive" */
+  @keyframes currentDayPulse {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50%      { box-shadow: 0 0 8px 0 var(--theme-color); }
+  }
+  .day-block.current {
+    animation: currentDayPulse 2.4s ease-in-out infinite;
   }
   .day-display.weekend .day-number {
     background: #FFFFFF;
@@ -182,10 +827,184 @@
     background: transparent;
     border: 1px solid rgba(255,255,255,0.7);
   }
-  @media (max-width: 600px) {
-    .welcome-inner { flex-direction: column; }
-    .day-display { min-width: 0; width: 100%; }
-    .day-name { font-size: 18px; }
+
+  /* Right-side percent block, mirroring the clock's */
+  .day-percent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding-left: 10px;
+    border-left: 1px solid rgba(230,230,230,0.1);
+    color: var(--theme-color);
+    transition: color 0.4s ease;
+    line-height: 1;
+    min-width: 110px;
+    flex-shrink: 0;
+    gap: 3px;
+  }
+  .day-percent-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    /* no color set = inherits the theme color highlight from .day-percent */
+  }
+  .day-percent-row {
+    display: flex;
+    align-items: baseline;
+    white-space: nowrap;
+    color: rgba(230,230,230,0.45);
+    gap: 5px;
+  }
+  .day-percent-chip {
+    display: inline-flex;
+    align-items: baseline;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 3px 6px;
+  }
+  .day-percent-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .day-percent-dot {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    opacity: 0.85;
+    margin: 0 1px;
+  }
+  .day-percent-decimal {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 600;
+    opacity: 0.85;
+    letter-spacing: 0.3px;
+  }
+  .day-percent-sign {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    opacity: 0.8;
+    margin-left: 2px;
+  }
+  .day-percent-suffix {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    opacity: 0.8;
+  }
+  .day-percent-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    display: flex;
+    gap: 4px;
+  }
+  .day-percent-label .left-till {
+    color: rgba(230,230,230,0.4);
+  }
+  .day-percent-label .next-target {
+    /* color set inline by JS based on next segment color */
+    color: var(--theme-color);
+  }
+
+  /* Current shift label (1ST SHIFT, BREAK, 2ND SHIFT) - prominently colored */
+  .day-shift-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 2.2px;
+    color: rgba(230,230,230,0.45);
+    margin-top: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+    transition: color 0.5s ease, text-shadow 0.5s ease;
+    text-align: left;
+  }
+  .day-shift-label.is-active {
+    text-shadow: 0 0 12px currentColor;
+  }
+
+  /* Single shift-based progress bar at the bottom of the day display.
+     Two layers:
+       - .day-progress-day: dim full-path backdrop (always visible) so you can SEE shift1 / break / shift2 ahead of time
+       - .day-progress-fill: bright overlay that grows left-to-right via clip-path as the workday advances */
+  .day-progress-day {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: rgba(255,255,255,0.04);
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .day-progress-fill {
+    position: absolute;
+    inset: 0;
+    clip-path: inset(0 100% 0 0);
+    pointer-events: none;
+    transition: clip-path 0.1s linear;
+  }
+
+  /* Day-pass attention effect (parallels hour-pass on clock) */
+  @keyframes dayPulse {
+    0%   { box-shadow: 0 0 0 0 var(--theme-color); }
+    20%  { box-shadow: 0 0 0 14px transparent; }
+    35%  { box-shadow: 0 0 0 0 var(--theme-color); }
+    55%  { box-shadow: 0 0 0 18px transparent; }
+    70%  { box-shadow: 0 0 0 0 var(--theme-color); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  @keyframes dayNameGlow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50%      { text-shadow: 0 0 14px var(--theme-color); }
+  }
+  .day-display.day-passed {
+    animation: dayPulse 6s ease-out;
+  }
+  .day-display.day-passed .day-name {
+    animation: dayNameGlow 1s ease-in-out 5;
+  }
+
+  @media (max-width: 640px) {
+    .header-row { gap: 6px; }
+    .day-display, .clock-block { padding: 8px 8px; gap: 6px; }
+    .day-name { font-size: 14px; letter-spacing: 1px; }
+    .day-number { width: 22px; height: 22px; font-size: 12px; }
+    .day-shift-label { font-size: 10px; letter-spacing: 1.5px; margin-top: 4px; }
+    .day-percent, .clock-percent { padding-left: 6px; min-width: 0; gap: 2px; }
+    .day-percent-num, .clock-percent-num { font-size: 16px; }
+    .day-percent-decimal, .clock-percent-decimal { font-size: 8px; }
+    .day-percent-label, .clock-percent-label { font-size: 9px; letter-spacing: 0.8px; gap: 3px; }
+    .day-percent-time, .clock-percent-time { font-size: 19px; }
+    .clock-hours { font-size: 30px; }
+    .clock-12 { font-size: 14px; gap: 0; }
+    .clock-24 { font-size: 7px; letter-spacing: 1px; }
+    .clock-ms-sep, .clock-ms { font-size: 8px; }
+    .clock-ampm { font-size: 11px; margin-left: 5px; padding: 3px 5px; margin-bottom: 6px; letter-spacing: 1px; }
+  }
+  @media (max-width: 480px) {
+    /* Very narrow phones: hide milliseconds to free up horizontal space */
+    .clock-ms-sep, .clock-ms { display: none; }
+    .clock-hours { font-size: 24px; }
+    .clock-12 { font-size: 12px; }
+    .clock-ampm { font-size: 9px; padding: 2px 4px; margin-bottom: 4px; margin-left: 4px; letter-spacing: 0.8px; }
+    .day-name { font-size: 12px; letter-spacing: 0.6px; }
+    .day-shift-label { font-size: 9px; letter-spacing: 1.2px; }
+    .day-percent-num, .clock-percent-num { font-size: 14px; }
+    .day-percent-label, .clock-percent-label { font-size: 8px; letter-spacing: 0.5px; }
+    .day-percent-time, .clock-percent-time { font-size: 16px; }
   }
 
   .greeting {
@@ -203,7 +1022,7 @@
 
   .mode-toggle {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 0.6fr 1fr;
     gap: 6px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(230,230,230,0.08);
@@ -230,12 +1049,26 @@
   }
 
   .mode-btn i { font-size: 18px; }
+
+  /* The LOG OFF button: smaller because it's used less often than the daily in/out. */
+  .mode-btn-small { font-size: 10px; letter-spacing: 1px; padding: 13px 4px; gap: 5px; }
+  .mode-btn-small i { font-size: 14px; }
+
   .mode-btn.active-in { background: #39D98A; color: #0F0F0F; }
   .mode-btn.active-out { background: #FF5572; color: #FFFFFF; }
-  .mode-btn:not(.active-in):not(.active-out):hover {
-    color: rgba(230,230,230,0.85);
-    background: rgba(255,255,255,0.03);
-  }
+  .mode-btn.active-off { background: #FFFFFF; color: #0F0F0F; }
+
+  /* Rest-state tints so the three buttons read as distinct even before hover/active.
+     Each carries its own dim color. Specificity is (0,1,0); the active rules above are
+     (0,2,0) so the full active colors always win when a button is selected. */
+  .mode-btn-in  { background: rgba(57,217,138,0.10);  color: rgba(57,217,138,0.75); }
+  .mode-btn-off { background: rgba(255,255,255,0.06); color: rgba(230,230,230,0.6); }
+  .mode-btn-out { background: rgba(255,85,114,0.10);  color: rgba(255,138,153,0.85); }
+
+  /* Per-color hover, only when the button isn't already active. */
+  .mode-btn-in:not(.active-in):hover   { background: rgba(57,217,138,0.20);  color: #39D98A; }
+  .mode-btn-off:not(.active-off):hover { background: rgba(255,255,255,0.14); color: #FFFFFF; }
+  .mode-btn-out:not(.active-out):hover { background: rgba(255,85,114,0.20);  color: #FF8A99; }
 
   .name-strip {
     background: rgba(255,255,255,0.04);
@@ -965,6 +1798,519 @@
 
   .notes-section textarea:focus { border-color: #A78BFA; }
 
+  /* LOG OFF mode override: only the notes section turns white. LOG IN and LOG OUT keep purple notes. */
+  .notes-section.notes-mode-off .notes-icon {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+    color: #FFFFFF;
+  }
+  .notes-section.notes-mode-off .notes-title {
+    color: #FFFFFF;
+  }
+  .notes-section.notes-mode-off textarea {
+    border-color: rgba(255,255,255,0.18);
+  }
+  .notes-section.notes-mode-off textarea:focus { border-color: #FFFFFF; }
+
+  /* =========================================================================
+     LOG OFF mode components.
+     Q1 Time Off: day chips colored per DAY_CHIP_COLORS (matches the day display
+       block in the header), with the calendar date appearing under each chip
+       once selected. Time range is gated by an "Add Time Range" button and uses
+       wheel-style hour/minute spinners with mouse-wheel and arrow controls.
+     Q2 Reason: tap-to-add list with selected chips above, up/down scroll arrows.
+     ========================================================================= */
+
+  /* --- Time-off day chips: per-day color rule (Sun cyan, Mon amber, Tue green, Wed pink, Thu purple) --- */
+  .timeoff-days {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+  .timeoff-day {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(230,230,230,0.55);
+    padding: 12px 4px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 56px;
+  }
+  .timeoff-day:hover:not(.active) {
+    background: rgba(255,255,255,0.08);
+    color: rgba(230,230,230,0.95);
+    border-color: rgba(255,255,255,0.22);
+  }
+  .timeoff-day.active {
+    background: var(--day-color);
+    border-color: var(--day-color);
+    color: #0F0F0F;
+    box-shadow: 0 0 18px rgba(255,255,255,0.04), 0 0 0 1px var(--day-color) inset;
+  }
+  .timeoff-day-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    line-height: 1;
+  }
+  .timeoff-day-date {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    opacity: 0.85;
+    line-height: 1;
+    text-transform: uppercase;
+    min-height: 9px;
+  }
+
+  /* --- Time-range block: ADD button collapses to wheel panel on click --- */
+  .timeoff-range-block { margin-top: 4px; }
+  .timeoff-range-add {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px dashed rgba(255,255,255,0.18);
+    color: rgba(230,230,230,0.65);
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+  }
+  .timeoff-range-add:hover:not(:disabled) {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.32);
+    color: #FFFFFF;
+  }
+  .timeoff-range-add:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .timeoff-range-add i { font-size: 16px; }
+  .timeoff-range-add-hint {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: none;
+    color: rgba(230,230,230,0.4);
+    font-style: italic;
+  }
+
+  /* "Other" specify input — appears under the reason picker when "Other" is selected. */
+  .reason-other-wrap {
+    margin-top: 10px;
+  }
+  .reason-other-input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,184,0,0.35);
+    color: #FFFFFF;
+    padding: 11px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    transition: border-color 0.2s, background 0.2s;
+    outline: none;
+  }
+  .reason-other-input::placeholder { color: rgba(230,230,230,0.35); font-style: italic; }
+  .reason-other-input:focus { border-color: #FFB800; background: rgba(0,0,0,0.45); }
+
+  .timeoff-range-panel {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 14px 16px;
+    animation: fadeInUp 0.25s ease;
+  }
+  .timeoff-range-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .timeoff-range-panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(230,230,230,0.5);
+    text-transform: uppercase;
+  }
+  .timeoff-range-clear {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(230,230,230,0.5);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .timeoff-range-clear:hover {
+    background: rgba(255,85,114,0.15);
+    border-color: #FF5572;
+    color: #FF5572;
+  }
+  .timeoff-range-clear i { font-size: 12px; }
+
+  .time-wheel-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  .time-wheel-group-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(230,230,230,0.4);
+    text-transform: uppercase;
+  }
+  .time-wheel-pair {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .time-wheel-colon {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(230,230,230,0.4);
+    line-height: 1;
+    padding-bottom: 2px;
+  }
+  .time-wheel-arrow {
+    background: transparent;
+    border: none;
+    color: rgba(230,230,230,0.4);
+    width: 100%;
+    padding: 3px 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: color 0.15s, background 0.15s;
+    border-radius: 0;
+  }
+  .time-wheel-arrow:hover {
+    color: #FFFFFF;
+    background: rgba(255,255,255,0.06);
+  }
+  .time-wheel-arrow i { font-size: 14px; }
+  .time-wheel {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 54px;
+    user-select: none;
+    cursor: ns-resize;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .time-wheel:hover {
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.07);
+  }
+  .time-wheel-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--group-color, #FFFFFF);
+    text-align: center;
+    padding: 4px 0;
+    line-height: 1;
+    letter-spacing: 1px;
+    transition: color 0.25s ease;
+  }
+  /* AM/PM wheel is the same widget but a touch narrower; the value is the indicator */
+  .time-wheel-ampm { min-width: 44px; margin-left: 4px; }
+  .time-wheel-ampm .time-wheel-value { font-size: 14px; padding: 6px 0; }
+  /* The group's hour-derived color drives the value + a soft inset glow on each wheel */
+  .time-wheel-group {
+    --group-color: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .time-wheel-group .time-wheel {
+    border-color: color-mix(in srgb, var(--group-color) 25%, rgba(255,255,255,0.12));
+    background: color-mix(in srgb, var(--group-color) 6%, rgba(255,255,255,0.04));
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+  .time-wheel-arrow-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Confirmation summary block. Full-width, lives BELOW the questions-grid and ABOVE the notes
+     section. Always visible in LOG OFF mode (toggled via body.mode-off below); content fills in
+     progressively as the user picks days, time range, and reasons. Styled like a question card
+     with a lavender header (matches the Time Off question color). Color-coded inner text:
+     day labels use DAY_CHIP_COLORS, times use AM/PM colors, reasons use the amber Q2 color. */
+  .timeoff-section {
+    display: none;
+    margin-bottom: 24px;
+    background: rgba(15,15,15,0.55);
+    border: 1px solid rgba(167,139,250,0.22);
+    overflow: hidden;
+  }
+  body.mode-off .timeoff-section { display: block; animation: fadeInUp 0.3s ease; }
+
+  .timeoff-section-header {
+    background: #A78BFA;
+    color: #0F0F0F;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .timeoff-section-num {
+    width: 28px;
+    height: 28px;
+    background: rgba(0,0,0,0.15);
+    color: #0F0F0F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .timeoff-section-num i { font-size: 16px; }
+  .timeoff-section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    color: #0F0F0F;
+    text-transform: uppercase;
+    flex: 1;
+  }
+  .timeoff-section-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: rgba(15,15,15,0.55);
+    text-transform: uppercase;
+  }
+  .timeoff-section-body {
+    padding: 18px 20px;
+  }
+
+  .timeoff-empty {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(230,230,230,0.4);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-style: italic;
+    letter-spacing: 0.2px;
+    line-height: 1.5;
+    padding: 4px 0;
+  }
+  .timeoff-empty i {
+    font-size: 20px;
+    color: rgba(167,139,250,0.55);
+    flex-shrink: 0;
+    font-style: normal;
+  }
+
+  .timeoff-summary-text {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: rgba(230,230,230,0.85);
+    line-height: 1.65;
+  }
+  .timeoff-summary-text strong { font-weight: 800; }
+
+  .timeoff-pending {
+    font-style: italic;
+    color: rgba(167,139,250,0.55);
+    font-size: 12px;
+    letter-spacing: 0.2px;
+  }
+
+  .timeoff-summary-total {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(167,139,250,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: rgba(230,230,230,0.55);
+  }
+  .timeoff-summary-total-value {
+    font-size: 18px;
+    color: #A78BFA;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  .reason-selected {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.08);
+    min-height: 44px;
+    align-items: center;
+  }
+  .reason-selected.empty {
+    border-style: dashed;
+    border-color: rgba(255,255,255,0.12);
+  }
+  .reason-selected-empty {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: rgba(230,230,230,0.35);
+    font-style: italic;
+    letter-spacing: 0.3px;
+  }
+  .reason-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    background: #FFB800;
+    color: #0F0F0F;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    animation: fadeInUp 0.2s ease;
+  }
+  .reason-chip-text {
+    padding: 7px 4px 7px 10px;
+  }
+  .reason-chip-x {
+    background: rgba(0,0,0,0.18);
+    border: none;
+    color: rgba(0,0,0,0.7);
+    padding: 7px 9px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.15s, color 0.15s;
+  }
+  .reason-chip-x:hover {
+    background: rgba(0,0,0,0.35);
+    color: #FFFFFF;
+  }
+  .reason-chip-x i { font-size: 12px; }
+
+  .reason-picker {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    flex-direction: column;
+  }
+  .reason-scroll-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: rgba(230,230,230,0.5);
+    padding: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .reason-scroll-btn.reason-scroll-down {
+    border-bottom: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .reason-scroll-btn:hover {
+    background: rgba(255,255,255,0.12);
+    color: #FFFFFF;
+  }
+  .reason-scroll-btn i { font-size: 14px; }
+  .reason-list-inner {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 220px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+  }
+  .reason-list-inner::-webkit-scrollbar { width: 4px; }
+  .reason-list-inner::-webkit-scrollbar-track { background: transparent; }
+  .reason-list-inner::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+  .reason-list-inner::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.32); }
+  .reason-item {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: rgba(230,230,230,0.78);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    text-align: left;
+    padding: 11px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .reason-item:last-child { border-bottom: none; }
+  .reason-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: #FFFFFF;
+  }
+  .reason-marker {
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .reason-marker i { font-size: 11px; color: rgba(230,230,230,0.6); }
+  .reason-item:hover .reason-marker {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.32);
+  }
+  .reason-item:hover .reason-marker i { color: #FFFFFF; }
+  .reason-item.selected {
+    background: rgba(255,184,0,0.10);
+    color: #FFFFFF;
+  }
+  .reason-item.selected .reason-marker {
+    background: #FFB800;
+    border-color: #FFB800;
+  }
+  .reason-item.selected .reason-marker i { color: #0F0F0F; }
+  .reason-text { flex: 1; }
+
   .submit-btn {
     width: 100%;
     background: rgba(255,255,255,0.06);
@@ -993,6 +2339,11 @@
   .submit-btn.ready.mode-out-ready {
     background: #FF5572;
     color: #FFFFFF;
+  }
+
+  .submit-btn.ready.mode-off-ready {
+    background: #FFFFFF;
+    color: #0F0F0F;
   }
 
   .submit-btn.ready:hover { opacity: 0.92; }
@@ -1089,6 +2440,38 @@
     margin-bottom: 28px;
     line-height: 1.6;
   }
+
+  .success-submitted {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(230,230,230,0.1);
+    padding: 8px 14px;
+    margin: 0 auto 24px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .success-submitted-label {
+    font-size: 9px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: rgba(230,230,230,0.45);
+    font-weight: 600;
+  }
+  .success-submitted-time {
+    display: inline-flex;
+    align-items: baseline;
+    font-weight: 700;
+  }
+  .success-submitted-time .ss-hours { font-size: 22px; color: #43D9FF; line-height: 1; }
+  .success-submitted-time.is-pm .ss-hours { color: #FFB800; }
+  .success-submitted-time .ss-sep { color: rgba(230,230,230,0.55); margin: 0 1px; font-size: 14px; }
+  .success-submitted-time .ss-mid { font-size: 14px; color: #E6E6E6; }
+  .success-submitted-time .ss-ms-sep { font-size: 10px; color: rgba(230,230,230,0.4); margin-left: 1px; }
+  .success-submitted-time .ss-ms { font-size: 10px; color: rgba(230,230,230,0.5); margin-left: 1px; }
+  .success-submitted-time .ss-ampm { font-size: 9px; color: rgba(230,230,230,0.45); letter-spacing: 1.5px; margin-left: 5px; font-weight: 700; }
+  .success-submitted-time.is-pm .ss-ampm { color: #FFB800; }
+  .success-submitted-time.is-am .ss-ampm { color: #43D9FF; }
 
   .reward-banner {
     background: rgba(255,184,0,0.08);
@@ -1200,29 +2583,43 @@
 <body class="mode-in">
 
 <div class="colorbar"></div>
+<div class="hour-flash" id="hour-flash"></div>
 
 <iframe name="offbox-submit-iframe" id="offbox-submit-iframe" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;border:0" aria-hidden="true"></iframe>
 
 <div class="container">
 
   <div class="header-row">
-    <div class="logo-block">
-      <div class="logo-dot">OB</div>
-      <span class="logo-text">OFF BOX Studios</span>
-    </div>
-    <div class="streak-badge" id="streak-badge" style="display:none">
-      <i class="ti ti-flame" aria-hidden="true"></i>
-      <span id="streak-count">3 day streak</span>
-    </div>
-  </div>
-
-  <div class="welcome" id="welcome-block">
-    <div class="welcome-inner">
-      <div class="welcome-left">
-        <div class="greeting" id="greeting-text">Good morning</div>
-        <div class="greeting-sub" id="greeting-sub">Quick check-in to set the day.</div>
+    <div class="clock-block" id="clock-block">
+      <div class="clock-text-stack">
+        <div class="clock-12">
+          <span class="clock-hours" id="clock-hours">12</span><span class="clock-sep">:</span><span class="clock-minutes" id="clock-minutes">00</span><span class="clock-secs-group"><span class="clock-sep">:</span><span id="clock-seconds">00</span><span class="clock-ms-sep">.</span><span class="clock-ms" id="clock-ms">00</span></span>
+          <span class="clock-ampm" id="clock-ampm">AM</span>
+        </div>
+        <div class="clock-24" id="clock-24">00:00:00</div>
       </div>
-      <div class="day-display" id="day-display">
+      <div class="clock-percent" id="clock-percent">
+        <div class="clock-percent-time" id="clock-percent-time">--</div>
+        <div class="clock-percent-row">
+          <span class="clock-percent-chip"><span class="clock-percent-num" id="clock-percent-num">--</span><span class="clock-percent-dot">.</span><span class="clock-percent-decimal" id="clock-percent-decimal">00</span><span class="clock-percent-sign">%</span></span><span class="clock-percent-suffix">LEFT</span>
+        </div>
+        <div class="clock-percent-label">
+          <span class="left-till">UNTIL</span>
+          <span class="next-target" id="clock-percent-next">--</span>
+        </div>
+      </div>
+      <div class="clock-progress-ms" id="clock-progress-ms">
+        <div class="clock-progress-ms-fill" id="clock-progress-ms-fill"></div>
+      </div>
+      <div class="clock-progress-sec" id="clock-progress-sec">
+        <div class="clock-progress-sec-fill" id="clock-progress-sec-fill"></div>
+      </div>
+      <div class="clock-progress-min" id="clock-progress-min">
+        <div class="clock-progress-min-fill" id="clock-progress-min-fill"></div>
+      </div>
+    </div>
+    <div class="day-display" id="day-display">
+      <div class="day-left">
         <div class="day-row">
           <div class="day-number" id="day-number">1</div>
           <div class="day-name" id="day-name">SUNDAY</div>
@@ -1234,16 +2631,68 @@
           <div class="day-block"></div>
           <div class="day-block"></div>
         </div>
+        <div class="day-shift-label" id="day-shift-label">--</div>
+      </div>
+      <div class="day-percent" id="day-percent">
+        <div class="day-percent-time" id="day-percent-time">--</div>
+        <div class="day-percent-row">
+          <span class="day-percent-chip"><span class="day-percent-num" id="day-percent-num">--</span><span class="day-percent-dot">.</span><span class="day-percent-decimal" id="day-percent-decimal">00</span><span class="day-percent-sign">%</span></span><span class="day-percent-suffix">LEFT</span>
+        </div>
+        <div class="day-percent-label">
+          <span class="left-till">UNTIL</span>
+          <span class="next-target" id="day-percent-next">--</span>
+        </div>
+      </div>
+      <div class="day-progress-day" id="day-progress-day">
+        <div class="day-progress-fill" id="day-progress-fill"></div>
       </div>
     </div>
   </div>
 
+  <div class="sleep-warning" id="sleep-warning">
+    <div class="sleep-warning-icon"><i class="ti ti-zzz"></i></div>
+    <div class="sleep-warning-content">
+      <strong>Hey, it's late. You should be sleeping.</strong>
+      <span>Tomorrow's a work day. The healthy zone is 7.5 to 8.5 hours of sleep. Less than 7 hours occasionally is okay, but repeated short nights hurt focus, mood, memory, and decisions. Please head to bed so tomorrow's you starts sharp.</span>
+    </div>
+  </div>
+
+  <div class="weekend-banner" id="weekend-banner">
+    <div class="weekend-banner-emoji">🎉</div>
+    <div class="weekend-banner-content">
+      <strong>ENJOY YOUR WEEKEND!</strong>
+      <span>You crushed the week. Sleep in, eat well, do something fun. Catch you Sunday.</span>
+    </div>
+    <div class="weekend-banner-emoji weekend-banner-emoji-right">🌴</div>
+  </div>
+
+  <div class="welcome" id="welcome-block">
+    <div class="welcome-text">
+      <div class="greeting" id="greeting-text">Good morning</div>
+      <div class="greeting-sub" id="greeting-sub">Quick check-in to set the day.</div>
+    </div>
+    <div class="display-mode-toggle" id="display-mode-toggle" role="group" aria-label="Display mode">
+      <button type="button" class="dm-btn active" data-display-mode="simple" onclick="setDisplayMode('simple')">
+        <i class="ti ti-minus" aria-hidden="true"></i>
+        <span>Simple</span>
+      </button>
+      <button type="button" class="dm-btn" data-display-mode="advanced" onclick="setDisplayMode('advanced')">
+        <i class="ti ti-adjustments" aria-hidden="true"></i>
+        <span>Advanced</span>
+      </button>
+    </div>
+  </div>
+
   <div class="mode-toggle">
-    <button class="mode-btn active-in" id="btn-in" onclick="setMode('in')">
+    <button class="mode-btn mode-btn-in active-in" id="btn-in" onclick="setMode('in')">
       <i class="ti ti-login" aria-hidden="true"></i>
       Log In
     </button>
-    <button class="mode-btn" id="btn-out" onclick="setMode('out')">
+    <button class="mode-btn mode-btn-off mode-btn-small" id="btn-off" onclick="setMode('off')">
+      <i class="ti ti-calendar-off" aria-hidden="true"></i>
+      Log Off
+    </button>
+    <button class="mode-btn mode-btn-out" id="btn-out" onclick="setMode('out')">
       <i class="ti ti-logout" aria-hidden="true"></i>
       Log Out
     </button>
@@ -1261,10 +2710,24 @@
 
   <div class="questions-grid" id="questions-grid"></div>
 
-  <div class="notes-section">
+  <div class="timeoff-section" id="timeoff-section">
+    <div class="timeoff-section-header">
+      <div class="timeoff-section-num"><i class="ti ti-clipboard-check"></i></div>
+      <div class="timeoff-section-title">Time Off Summary</div>
+      <div class="timeoff-section-sub">Live preview · updates as you fill in</div>
+    </div>
+    <div class="timeoff-section-body" id="timeoff-summary-body">
+      <div class="timeoff-empty">
+        <i class="ti ti-arrow-up"></i>
+        <span>Your time off summary will appear here as you fill in the questions above.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes-section" id="notes-section">
     <div class="notes-label">
       <div class="notes-icon"><i class="ti ti-message" aria-hidden="true"></i></div>
-      <div class="notes-title">Optional Notes</div>
+      <div class="notes-title" id="notes-title">Optional Log In Notes</div>
       <div class="notes-sub">Literally anything</div>
     </div>
     <textarea id="notes-input" placeholder="Tell us anything. Wins, frustrations, what you ate for breakfast, your favorite game right now, what TV show you binged, whether cats are better than dogs (they are), or just rant. We read every single one." oninput="state.notes=this.value"></textarea>
@@ -1282,6 +2745,10 @@
     </div>
     <div class="success-title" id="success-title">Logged in</div>
     <div class="success-msg" id="success-msg">Go crush today.</div>
+    <div class="success-submitted" id="success-submitted">
+      <span class="success-submitted-label">submitted at</span>
+      <span class="success-submitted-time" id="success-submitted-time"></span>
+    </div>
     <div class="reward-banner" id="reward-banner">
       <div class="reward-icon"><i class="ti ti-trophy" aria-hidden="true"></i></div>
       <div>
@@ -1300,6 +2767,252 @@
 
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6jgMZjVC4zS9pCX-cB2kSXtRJdhG0_wZYGlr2upUoUspqS6vqu5yFz4KaPfd0lmOZ/exec';
+
+  // =========================================================================
+  // WORK SCHEDULE CONFIG - edit these to change shifts and break times
+  // =========================================================================
+  const WORK_SCHEDULE = {
+    workStart: 9,    // workday start hour (24h format)
+    workEnd: 17,     // workday end hour (24h format)
+    segments: [
+      { name: '1ST SHIFT', start: 9,  end: 13, color: 'rgba(67,217,255,0.9)',   next: 'BREAK'     },
+      { name: 'BREAK',     start: 13, end: 14, color: 'rgba(255,255,255,0.9)',  next: '2ND SHIFT' },
+      { name: '2ND SHIFT', start: 14, end: 17, color: 'rgba(255,184,0,0.9)',   next: 'OFF'       }
+    ]
+  };
+
+  // Returns the multi-layer background for a shift bar layer.
+  //   - Top layer: 1px dark vertical dividers, one per hour
+  //   - Bottom layer: shift-color gradient with hard stops at each segment boundary
+  // opacityMultiplier: 1 = bright (the fill), <1 = dim (the always-visible backdrop showing the upcoming path)
+  function buildShiftBarBackground(opacityMultiplier) {
+    opacityMultiplier = opacityMultiplier == null ? 1 : opacityMultiplier;
+    const total = WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart;
+    const parts = [];
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      const startPct = ((seg.start - WORK_SCHEDULE.workStart) / total) * 100;
+      const endPct = ((seg.end - WORK_SCHEDULE.workStart) / total) * 100;
+      let color = seg.color;
+      if (opacityMultiplier !== 1) {
+        color = color.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^)]+)\)/, function(_, r, g, b, a) {
+          const dimmedAlpha = (parseFloat(a) * opacityMultiplier).toFixed(3);
+          return 'rgba(' + r.trim() + ',' + g.trim() + ',' + b.trim() + ',' + dimmedAlpha + ')';
+        });
+      }
+      parts.push(color + ' ' + startPct + '%');
+      parts.push(color + ' ' + endPct + '%');
+    });
+    const shiftGradient = 'linear-gradient(90deg, ' + parts.join(', ') + ')';
+    const dividerAlpha = opacityMultiplier < 1 ? 0.6 : 0.85;
+    const dividers = 'linear-gradient(90deg, transparent calc(100% - 2px), rgba(0,0,0,' + dividerAlpha + ') calc(100% - 2px))';
+    return {
+      image: dividers + ', ' + shiftGradient,
+      size: 'calc(100% / ' + total + ') 100%, 100% 100%',
+      repeat: 'repeat-x, no-repeat'
+    };
+  }
+
+  // Legacy single-gradient builder kept for compatibility
+  function buildShiftGradient() {
+    const total = WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart;
+    const parts = [];
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      const startPct = ((seg.start - WORK_SCHEDULE.workStart) / total) * 100;
+      const endPct = ((seg.end - WORK_SCHEDULE.workStart) / total) * 100;
+      parts.push(seg.color + ' ' + startPct + '%');
+      parts.push(seg.color + ' ' + endPct + '%');
+    });
+    return 'linear-gradient(90deg, ' + parts.join(', ') + ')';
+  }
+
+  function getCurrentShiftSegment(decimalHour) {
+    for (var i = 0; i < WORK_SCHEDULE.segments.length; i++) {
+      var seg = WORK_SCHEDULE.segments[i];
+      if (decimalHour >= seg.start && decimalHour < seg.end) {
+        return seg;
+      }
+    }
+    return null;
+  }
+
+  // Sun(0) through Thu(4) are workdays. Fri(5), Sat(6) are weekend.
+  function isWorkDay(dayIdx) {
+    return dayIdx >= 0 && dayIdx <= 4;
+  }
+
+  // Find the most recent workEnd (5pm of the last workday that has already finished)
+  function findLastWorkEnd(now) {
+    let d = new Date(now);
+    const decimalHour = d.getHours() + d.getMinutes()/60 + d.getSeconds()/3600;
+    if (decimalHour >= WORK_SCHEDULE.workEnd && isWorkDay(d.getDay())) {
+      d.setHours(WORK_SCHEDULE.workEnd, 0, 0, 0);
+      return d;
+    }
+    d.setDate(d.getDate() - 1);
+    while (!isWorkDay(d.getDay())) {
+      d.setDate(d.getDate() - 1);
+    }
+    d.setHours(WORK_SCHEDULE.workEnd, 0, 0, 0);
+    return d;
+  }
+
+  // Find the next workStart (9am of the next workday)
+  function findNextWorkStart(now) {
+    let d = new Date(now);
+    const decimalHour = d.getHours() + d.getMinutes()/60 + d.getSeconds()/3600;
+    if (decimalHour < WORK_SCHEDULE.workStart && isWorkDay(d.getDay())) {
+      d.setHours(WORK_SCHEDULE.workStart, 0, 0, 0);
+      return d;
+    }
+    d.setDate(d.getDate() + 1);
+    while (!isWorkDay(d.getDay())) {
+      d.setDate(d.getDate() + 1);
+    }
+    d.setHours(WORK_SCHEDULE.workStart, 0, 0, 0);
+    return d;
+  }
+
+  // Off-duty bar background with colored sleep zones at the end of the off period:
+  //   white (free time) → 1h light blue (wind-down) → 8h deep blue (sleep) → 1h light blue (wake-up prep) → next shift
+  // The last 10 hours before workStart are always the colored sleep zone. Earlier off-time is white.
+  function buildOffDutyBarBackground(opacityMultiplier, totalMs) {
+    opacityMultiplier = opacityMultiplier == null ? 1 : opacityMultiplier;
+    totalMs = totalMs || (16 * 3600 * 1000);
+
+    const whiteAlpha = (0.82 * opacityMultiplier).toFixed(3);
+    const windDownAlpha = (0.72 * opacityMultiplier).toFixed(3);
+    const deepSleepAlpha = (0.9 * opacityMultiplier).toFixed(3);
+
+    const white = 'rgba(255,255,255,' + whiteAlpha + ')';
+    const windDown = 'rgba(176,154,255,' + windDownAlpha + ')';   // soft lavender: wind-down / wake-up
+    const deepSleep = 'rgba(118,98,200,' + deepSleepAlpha + ')';  // rich indigo-violet: actual sleep
+
+    // Zone boundaries (% of total off period)
+    const oneHour = 3600 * 1000;
+    const sleepZoneStartPct = Math.max(0, ((totalMs - 10 * oneHour) / totalMs) * 100);  // start of pre-sleep (11pm equivalent)
+    const sleepStartPct      = Math.max(0, ((totalMs -  9 * oneHour) / totalMs) * 100);  // start of deep sleep (12am)
+    const sleepEndPct        = Math.max(0, ((totalMs -  1 * oneHour) / totalMs) * 100);  // end of deep sleep (8am)
+
+    const parts = [
+      white      + ' 0%',
+      white      + ' ' + sleepZoneStartPct + '%',
+      windDown   + ' ' + sleepZoneStartPct + '%',
+      windDown   + ' ' + sleepStartPct + '%',
+      deepSleep  + ' ' + sleepStartPct + '%',
+      deepSleep  + ' ' + sleepEndPct + '%',
+      windDown   + ' ' + sleepEndPct + '%',
+      windDown   + ' 100%'
+    ];
+    const shiftGradient = 'linear-gradient(90deg, ' + parts.join(', ') + ')';
+
+    // Hourly dividers; cap at 24 so long weekends don't get visually cramped
+    const totalHours = Math.max(1, Math.round(totalMs / oneHour));
+    const dividerCount = Math.min(24, totalHours);
+    const dividerAlpha = opacityMultiplier < 1 ? 0.6 : 0.85;
+    const dividers = 'linear-gradient(90deg, transparent calc(100% - 2px), rgba(0,0,0,' + dividerAlpha + ') calc(100% - 2px))';
+    return {
+      image: dividers + ', ' + shiftGradient,
+      size: 'calc(100% / ' + dividerCount + ') 100%, 100% 100%',
+      repeat: 'repeat-x, no-repeat'
+    };
+  }
+
+  function formatTimeRemaining(ms) {
+    if (ms <= 0) return '0s';
+    var totalSec = Math.ceil(ms / 1000);
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    // When an hour or more remains, show "Xh Ym" (no seconds, keeps it compact).
+    // Under an hour, seconds become useful so show "Ym Zs" or just "Zs".
+    if (h > 0) return h + 'h ' + m + 'm';
+    if (m > 0) return m + 'm ' + s + 's';
+    return s + 's';
+  }
+
+  // Returns info about the current shift segment OR the off-duty period.
+  // In work hours: mode='work', returns current segment info.
+  // Outside work hours: mode='off', spans last workEnd to next workStart (handles weekends).
+  function getSegmentInfo(now) {
+    const decimalHour = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600 + now.getMilliseconds()/3600000;
+    const workStart = WORK_SCHEDULE.workStart;
+    const workEnd = WORK_SCHEDULE.workEnd;
+    const todayIsWork = isWorkDay(now.getDay());
+
+    // In work hours on a workday: return current segment
+    if (todayIsWork && decimalHour >= workStart && decimalHour < workEnd) {
+      for (var i = 0; i < WORK_SCHEDULE.segments.length; i++) {
+        var seg = WORK_SCHEDULE.segments[i];
+        if (decimalHour >= seg.start && decimalHour < seg.end) {
+          var total = seg.end - seg.start;
+          var elapsed = decimalHour - seg.start;
+          var remaining = total - elapsed;
+          var nextColor = WORK_SCHEDULE.segments[i + 1]
+            ? WORK_SCHEDULE.segments[i + 1].color
+            : 'rgba(255,255,255,0.95)'; // OFF = white
+          return {
+            name: seg.name,
+            color: seg.color,
+            nextName: seg.next,
+            nextColor: nextColor,
+            remainingMs: remaining * 3600 * 1000,
+            percentLeft: (remaining / total) * 100,
+            isOutsideWork: false,
+            mode: 'work'
+          };
+        }
+      }
+    }
+
+    // Off duty: from last workEnd to next workStart (skips weekend days correctly)
+    const lastWorkEnd = findLastWorkEnd(now);
+    const nextWorkStart = findNextWorkStart(now);
+    const totalMs = nextWorkStart - lastWorkEnd;
+    const elapsedMs = now - lastWorkEnd;
+    const offProgress = Math.max(0, Math.min(100, (elapsedMs / totalMs) * 100));
+
+    // Two sub-zones within off-duty:
+    //   White free time (5pm to 11pm-equivalent): "UNTIL REST" (light blue target)
+    //   10-hour rest zone (last 10h before workStart): "UNTIL 1ST SHIFT" (cyan target)
+    const restZoneStart = new Date(nextWorkStart.getTime() - 10 * 3600 * 1000);
+    const inRestZone = now >= restZoneStart;
+    const restLavender = 'rgba(176,154,255,0.95)';
+
+    if (inRestZone) {
+      const restTotalMs = 10 * 3600 * 1000;
+      const restRemainingMs = nextWorkStart - now;
+      return {
+        name: 'REST',
+        color: restLavender,
+        nextName: '1ST SHIFT',
+        nextColor: WORK_SCHEDULE.segments[0].color,
+        remainingMs: restRemainingMs,
+        percentLeft: Math.max(0, Math.min(100, (restRemainingMs / restTotalMs) * 100)),
+        isOutsideWork: true,
+        mode: 'off',
+        offTotalMs: totalMs,
+        offElapsedMs: elapsedMs,
+        offProgress: offProgress
+      };
+    }
+
+    const freeTotalMs = restZoneStart - lastWorkEnd;
+    const freeRemainingMs = restZoneStart - now;
+    return {
+      name: 'OFF',
+      color: 'rgba(255,255,255,0.95)',
+      nextName: 'REST',
+      nextColor: restLavender,
+      remainingMs: freeRemainingMs,
+      percentLeft: Math.max(0, Math.min(100, (freeRemainingMs / freeTotalMs) * 100)),
+      isOutsideWork: true,
+      mode: 'off',
+      offTotalMs: totalMs,
+      offElapsedMs: elapsedMs,
+      offProgress: offProgress
+    };
+  }
+  // =========================================================================
 
   const HOURS_OPTIONS = [
     {v:480,l:'8h'},{v:420,l:'7h'},{v:360,l:'6h'},{v:300,l:'5h'},
@@ -1404,9 +3117,12 @@
 
   let mode = 'in';
   let state = {
-    goal: '', blocker: { has: null, what: '' },
+    goal: '', blocker: { has: null, what: '', unblocker: '' },
     energyIn: 0, expectedDiff: '',
     completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
+    timeOff: { days: [], from: '', to: '' },
+    reasons: [],
+    otherReason: '',
     notes: ''
   };
 
@@ -1476,12 +3192,36 @@
 
   function setMode(m) {
     mode = m;
-    document.body.className = m === 'in' ? 'mode-in' : 'mode-out';
-    document.getElementById('btn-in').className = 'mode-btn' + (m === 'in' ? ' active-in' : '');
-    document.getElementById('btn-out').className = 'mode-btn' + (m === 'out' ? ' active-out' : '');
-    document.getElementById('greeting-sub').textContent = m === 'in'
-      ? 'Quick check-in to set the day.'
-      : 'Wrap up. Honesty matters more than speed.';
+    // Use classList (not className=) so the display-simple/display-advanced class set elsewhere
+    // is preserved when switching modes. Overwriting className was wiping the simple/advanced mode.
+    document.body.classList.remove('mode-in', 'mode-out', 'mode-off');
+    document.body.classList.add(m === 'in' ? 'mode-in' : (m === 'out' ? 'mode-out' : 'mode-off'));
+    document.getElementById('btn-in').className  = 'mode-btn mode-btn-in'  + (m === 'in'  ? ' active-in'  : '');
+    document.getElementById('btn-out').className = 'mode-btn mode-btn-out' + (m === 'out' ? ' active-out' : '');
+    document.getElementById('btn-off').className = 'mode-btn mode-btn-off mode-btn-small' + (m === 'off' ? ' active-off' : '');
+
+    document.getElementById('greeting-sub').textContent =
+      m === 'in'  ? 'Quick check-in to set the day.' :
+      m === 'out' ? 'Wrap up. Honesty matters more than speed.' :
+                    'Log time off so the team can plan around it.';
+
+    // Notes section: title changes per mode; only LOG OFF gets the white styling (LOG IN/OUT stay purple)
+    const notesTitle = document.getElementById('notes-title');
+    const notesSection = document.getElementById('notes-section');
+    if (notesTitle) {
+      notesTitle.textContent =
+        m === 'in'  ? 'Optional Log In Notes' :
+        m === 'out' ? 'Optional Log Out Notes' :
+                      'Optional Log Off Notes';
+    }
+    if (notesSection) {
+      notesSection.classList.toggle('notes-mode-off', m === 'off');
+    }
+
+    // Restore the notes value in case we are switching back into this mode and have a saved draft
+    const notesInput = document.getElementById('notes-input');
+    if (notesInput) notesInput.value = state.notes || '';
+
     renderForm();
     updateSubmitState();
   }
@@ -1493,17 +3233,39 @@
 
   function renderForm() {
     const grid = document.getElementById('questions-grid');
-    grid.innerHTML = mode === 'in' ? renderLogin() : renderLogout();
+    grid.innerHTML =
+      mode === 'in'  ? renderLogin()  :
+      mode === 'out' ? renderLogout() :
+                       renderLogoff();
     setTimeout(() => {
       if (mode === 'in') {
         renderPixelSlider('energy-in', state.energyIn, ENERGY_IN_LABELS, '#39D98A', 'energyIn');
-      } else {
+      } else if (mode === 'out') {
         renderPixelSlider('actual-diff', state.actualDiff, DIFF_LABELS, '#A78BFA', 'actualDiff');
         renderPixelSlider('energy-out', state.energyOut, ENERGY_OUT_LABELS, '#FF6B9D', 'energyOut');
         renderCompletedList();
         attachCompletedHandlers();
+      } else { // off
+        attachTimeWheelHandlers();
       }
     }, 30);
+  }
+
+  // Mouse-wheel scroll handler for the time-range wheels (mirrors the cycleMeta behaviour
+  // in the LOG OUT 'What Got Done' wheel selectors).
+  function attachTimeWheelHandlers() {
+    document.querySelectorAll('.time-wheel').forEach(function(wheel) {
+      wheel.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const id = wheel.dataset.wheelId;
+        cycleTimeWheel(id, e.deltaY > 0 ? -1 : 1);
+      }, { passive: false });
+    });
+    // Paint initial AM/PM/outside colors so the wheels match their starting hour values.
+    updateTimeGroupColor('from');
+    updateTimeGroupColor('to');
+    // Paint the confirmation summary (or hide it) based on current state on first render.
+    updateTimeOffSummary();
   }
 
   function renderLogin() {
@@ -1541,6 +3303,8 @@
           <div class="blocker-detail${state.blocker.has === true ? ' show' : ''}" id="blocker-detail">
             <div class="blocker-detail-label">What's blocking you?</div>
             <input type="text" id="blocker-what" value="${escapeHtml(state.blocker.what || '')}" placeholder="One specific line" oninput="updateBlockerWhat(this.value)">
+            <div class="blocker-detail-label" style="margin-top:10px">Who or what can unblock you?</div>
+            <input type="text" id="blocker-unblocker" value="${escapeHtml(state.blocker.unblocker || '')}" placeholder="A name, a decision, a tool, a meeting..." oninput="updateBlockerUnblocker(this.value)">
           </div>
         </div>
       </div>
@@ -1686,6 +3450,615 @@
     `;
   }
 
+  // =========================================================================
+  // LOG OFF mode renderer
+  // Two questions: (1) Time Off — day picker (colored per DAY_COLORS) + optional
+  //                add-time-range wheel scrollers, (2) Reason — always-open
+  //                scrollable list with up/down arrows + mouse wheel.
+  // =========================================================================
+  const TIME_OFF_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU'];
+  // Same color rules as the day display block, so visual identity is consistent across the form.
+  const DAY_CHIP_COLORS = {
+    0: '#43D9FF', // Sun cyan
+    1: '#FFBF25', // Mon amber
+    2: '#00FF9E', // Tue green
+    3: '#FF518F', // Wed pink
+    4: '#9B5DE5'  // Thu purple
+  };
+  const REASON_OPTIONS = [
+    'Medical / Doctor visit',
+    'Personal matter',
+    'Family commitment',
+    'Religious observance',
+    'Travel',
+    'Conference / Event',
+    'Mental health day',
+    'Bereavement',
+    'Government appointment',
+    'Childcare / School',
+    'Home emergency',
+    'Other'
+  ];
+
+  // Compute the calendar date (e.g. "31 May") of any weekday index (0=Sun..6=Sat) within the current calendar week.
+  function getThisWeekDateLabel(dayIdx) {
+    const today = new Date();
+    const sundayThisWeek = new Date(today);
+    sundayThisWeek.setDate(today.getDate() - today.getDay());
+    const d = new Date(sundayThisWeek);
+    d.setDate(sundayThisWeek.getDate() + dayIdx);
+    const monthShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    return d.getDate() + ' ' + monthShort;
+  }
+
+  // Lazy-init the time-range visibility flag (so re-renders preserve the user's "show range" choice).
+  function isTimeRangeOpen() {
+    return !!(state.timeOff.from || state.timeOff.to || state.timeOff._rangeOpen);
+  }
+
+  function renderLogoff() {
+    const daysDone = state.timeOff.days.length > 0;
+    const reasonsDone = state.reasons.length > 0;
+    const rangeOpen = isTimeRangeOpen();
+    const dayCount = state.timeOff.days.length;
+    const rangeBtnEnabled = dayCount > 0;
+    // Question colors: purple for Time Off (rest/away mood), amber for Reason (scheduling).
+    const Q1_COLOR = '#A78BFA';
+    const Q2_COLOR = '#FFB800';
+    const hasOther = state.reasons.indexOf('Other') >= 0;
+
+    return `
+      <div class="question-card${daysDone ? ' done' : ''}" id="card-timeoff" style="--q-color:${Q1_COLOR}">
+        <div class="q-header-block" style="background:${Q1_COLOR}">
+          <div class="num">1</div>
+          <i class="ti ti-calendar-off q-icon" aria-hidden="true"></i>
+          <div class="title">Time Off</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Pick the full days you'll be away, or click Add Time Range if it's just part of a single day."></i>
+        </div>
+        <div class="q-content active${daysDone ? ' done' : ''}">
+          <div class="q-prompt">When will you be unavailable?</div>
+          <div class="timeoff-days" id="timeoff-days">
+            ${TIME_OFF_DAYS.map(function(label, i) {
+              const active = state.timeOff.days.indexOf(i) >= 0;
+              const color = DAY_CHIP_COLORS[i];
+              const dateLabel = active ? getThisWeekDateLabel(i) : '';
+              return '<button type="button" class="timeoff-day' + (active ? ' active' : '') + '" ' +
+                'style="--day-color:' + color + '" onclick="toggleTimeOffDay(' + i + ')">' +
+                '<span class="timeoff-day-label">' + label + '</span>' +
+                '<span class="timeoff-day-date">' + escapeHtml(dateLabel) + '</span>' +
+                '</button>';
+            }).join('')}
+          </div>
+
+          <div class="timeoff-range-block">
+            <button type="button" class="timeoff-range-add" id="timeoff-range-add"
+              style="display:${rangeOpen ? 'none' : 'flex'}"
+              ${rangeBtnEnabled ? '' : 'disabled'}
+              onclick="openTimeRange()">
+              <i class="ti ti-plus"></i>
+              <span>Add Time Range</span>
+              <span class="timeoff-range-add-hint">${rangeBtnEnabled ? 'Optional · for partial-day off' : 'Pick at least one day first'}</span>
+            </button>
+
+            <div class="timeoff-range-panel" id="timeoff-range-panel" style="display:${rangeOpen ? 'block' : 'none'}">
+              <div class="timeoff-range-panel-header">
+                <span class="timeoff-range-panel-title">Time Range</span>
+                <button type="button" class="timeoff-range-clear" onclick="clearTimeRange()" title="Remove range, use full day">
+                  <i class="ti ti-x"></i>
+                </button>
+              </div>
+              <div class="time-wheel-row">
+                <div class="time-wheel-group" id="time-group-from">
+                  <div class="time-wheel-group-label">FROM</div>
+                  <div class="time-wheel-pair">
+                    ${renderTimeWheel('from-h', getTimePart(state.timeOff.from, 'h', 9), 'hour')}
+                    <span class="time-wheel-colon">:</span>
+                    ${renderTimeWheel('from-m', getTimePart(state.timeOff.from, 'm', 0), 'minute')}
+                    ${renderTimeWheel('from-ampm', getTimePart(state.timeOff.from, 'h', 9), 'ampm')}
+                  </div>
+                </div>
+                <span class="time-wheel-arrow"><i class="ti ti-arrow-right"></i></span>
+                <div class="time-wheel-group" id="time-group-to">
+                  <div class="time-wheel-group-label">TO</div>
+                  <div class="time-wheel-pair">
+                    ${renderTimeWheel('to-h', getTimePart(state.timeOff.to, 'h', 13), 'hour')}
+                    <span class="time-wheel-colon">:</span>
+                    ${renderTimeWheel('to-m', getTimePart(state.timeOff.to, 'm', 0), 'minute')}
+                    ${renderTimeWheel('to-ampm', getTimePart(state.timeOff.to, 'h', 13), 'ampm')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="question-card${reasonsDone ? ' done' : ''}" id="card-reason" style="--q-color:${Q2_COLOR}">
+        <div class="q-header-block" style="background:${Q2_COLOR}">
+          <div class="num">2</div>
+          <i class="ti ti-question-mark q-icon" aria-hidden="true"></i>
+          <div class="title">Reason</div>
+          <i class="ti ti-info-circle info-icon" data-tip="Tap reasons to add. Pick one or more. The team only needs the category, not the details."></i>
+        </div>
+        <div class="q-content active${reasonsDone ? ' done' : ''}">
+          <div class="q-prompt">Why are you unavailable?</div>
+
+          <div class="reason-picker">
+            <button type="button" class="reason-scroll-btn reason-scroll-up" onclick="scrollReasonList(-1)" aria-label="scroll up"><i class="ti ti-chevron-up"></i></button>
+            <div class="reason-list-inner" id="reason-list-inner">
+              ${REASON_OPTIONS.map(function(r) {
+                const sel = state.reasons.indexOf(r) >= 0;
+                return '<button type="button" class="reason-item' + (sel ? ' selected' : '') + '" ' +
+                  'data-reason="' + escapeHtml(r) + '" onclick="addReason(this)">' +
+                  '<span class="reason-marker"><i class="ti ti-' + (sel ? 'check' : 'plus') + '"></i></span>' +
+                  '<span class="reason-text">' + escapeHtml(r) + '</span>' +
+                  '</button>';
+              }).join('')}
+            </div>
+            <button type="button" class="reason-scroll-btn reason-scroll-down" onclick="scrollReasonList(1)" aria-label="scroll down"><i class="ti ti-chevron-down"></i></button>
+          </div>
+
+          <div class="reason-other-wrap" id="reason-other-wrap" style="display:${hasOther ? 'block' : 'none'}">
+            <input type="text" class="reason-other-input" id="reason-other-input"
+              placeholder="Specify your reason..."
+              value="${escapeHtml(state.otherReason || '')}"
+              oninput="state.otherReason = this.value; updateReasonChips(); updateTimeOffSummary();">
+          </div>
+
+          <div class="reason-selected${state.reasons.length === 0 ? ' empty' : ''}" id="reason-selected">
+            ${renderReasonChipsHtml()}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- Time-off day toggle ----
+  function toggleTimeOffDay(idx) {
+    const i = state.timeOff.days.indexOf(idx);
+    if (i >= 0) state.timeOff.days.splice(i, 1);
+    else state.timeOff.days.push(idx);
+    state.timeOff.days.sort(function(a, b) { return a - b; });
+
+    // If no days remain, also collapse the time range (it's meaningless without days)
+    if (state.timeOff.days.length === 0) {
+      state.timeOff._rangeOpen = false;
+      state.timeOff.from = '';
+      state.timeOff.to = '';
+      renderForm();
+      updateSubmitState();
+      return;
+    }
+
+    // Day chips: update visuals + dates without a full re-render
+    const btns = document.querySelectorAll('.timeoff-day');
+    btns.forEach(function(b, n) {
+      const active = state.timeOff.days.indexOf(n) >= 0;
+      b.classList.toggle('active', active);
+      const dateEl = b.querySelector('.timeoff-day-date');
+      if (dateEl) dateEl.textContent = active ? getThisWeekDateLabel(n) : '';
+    });
+
+    // Add-time-range button: enable now that at least one day is picked
+    const rangeBtn = document.getElementById('timeoff-range-add');
+    if (rangeBtn) {
+      rangeBtn.disabled = false;
+      const hint = rangeBtn.querySelector('.timeoff-range-add-hint');
+      if (hint) hint.textContent = 'Optional · for partial-day off';
+    }
+
+    const card = document.getElementById('card-timeoff');
+    if (card) card.classList.toggle('done', state.timeOff.days.length > 0);
+    updateTimeOffSummary();
+    updateSubmitState();
+  }
+  function openTimeRange() {
+    state.timeOff._rangeOpen = true;
+    // Initialize defaults if completely empty
+    if (!state.timeOff.from) state.timeOff.from = '09:00';
+    if (!state.timeOff.to) state.timeOff.to = '13:00';
+    renderForm();
+  }
+
+  function clearTimeRange() {
+    state.timeOff.from = '';
+    state.timeOff.to = '';
+    state.timeOff._rangeOpen = false;
+    renderForm();
+    updateSubmitState();
+  }
+
+  // ---- Time wheel: extract hour or minute from "HH:MM" ----
+  function getTimePart(timeStr, part, fallback) {
+    if (!timeStr || timeStr.indexOf(':') < 0) return fallback;
+    const parts = timeStr.split(':');
+    return part === 'h' ? parseInt(parts[0], 10) : parseInt(parts[1], 10);
+  }
+
+  // ---- Time wheel HTML (hour shows 12-hour format, minute, and an AM/PM toggle wheel) ----
+  function renderTimeWheel(id, hourValue, type) {
+    const v = hourValue;
+    let display;
+    if (type === 'hour') {
+      let h12 = v % 12;
+      if (h12 === 0) h12 = 12;
+      display = String(h12);
+    } else if (type === 'minute') {
+      display = String(v).padStart(2, '0');
+    } else {
+      display = v < 12 ? 'AM' : 'PM';
+    }
+    return '<div class="time-wheel time-wheel-' + type + '" data-wheel-id="' + id + '" data-type="' + type + '" data-value="' + v + '">' +
+      '<button type="button" class="time-wheel-arrow time-wheel-up" onclick="cycleTimeWheel(\'' + id + '\', 1)" aria-label="increase"><i class="ti ti-chevron-up"></i></button>' +
+      '<div class="time-wheel-value" id="time-wheel-' + id + '">' + display + '</div>' +
+      '<button type="button" class="time-wheel-arrow time-wheel-down" onclick="cycleTimeWheel(\'' + id + '\', -1)" aria-label="decrease"><i class="ti ti-chevron-down"></i></button>' +
+      '</div>';
+  }
+
+  // Color rule for the time display: matches the clock block's AM/PM theming, with
+  // white = outside work hours (before 9am or 5pm+), mirroring the clock-hours block tint.
+  function getTimeColor(hour24) {
+    if (hour24 >= 9  && hour24 < 12) return '#43D9FF'; // AM in work hours
+    if (hour24 >= 12 && hour24 < 17) return '#FFB800'; // PM in work hours
+    return '#FFFFFF'; // outside work hours
+  }
+
+  // Repaint a group's color (FROM or TO) based on its hour wheel.
+  function updateTimeGroupColor(prefix) {
+    const hEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
+    if (!hEl) return;
+    const hour = parseInt(hEl.dataset.value, 10);
+    const color = getTimeColor(hour);
+    const group = document.getElementById('time-group-' + prefix);
+    if (group) group.style.setProperty('--group-color', color);
+  }
+
+  // Cycle a single wheel. Hour wraps 0-23 (displayed as 1-12), minute steps by 15 wrapping 0-59,
+  // ampm toggles ±12 on the paired hour wheel (so 9 AM becomes 9 PM).
+  // After every change we enforce a strict FROM < TO rule, symmetrically:
+  //   - FROM change that breaks the order pushes TO forward by 1 hour
+  //   - TO change that breaks the order pulls FROM back by 1 hour
+  // Edge case: if pulling FROM would go below 0:00, FROM is clamped at 0:00 and TO is bumped to 1:00.
+  function cycleTimeWheel(id, dir) {
+    const el = document.querySelector('[data-wheel-id="' + id + '"]');
+    if (!el) return;
+    const type = el.dataset.type;
+    const prefix = id.split('-')[0]; // 'from' or 'to'
+
+    if (type === 'ampm') {
+      const hourEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
+      if (!hourEl) return;
+      let h = parseInt(hourEl.dataset.value, 10);
+      h = (h + 12) % 24;
+      hourEl.dataset.value = h;
+      el.dataset.value = h;
+      refreshWheelDisplay(prefix + '-h');
+      refreshWheelDisplay(id);
+    } else if (type === 'hour') {
+      let v = parseInt(el.dataset.value, 10);
+      v = (v + dir + 24) % 24;
+      el.dataset.value = v;
+      refreshWheelDisplay(id);
+      const ampmEl = document.querySelector('[data-wheel-id="' + prefix + '-ampm"]');
+      if (ampmEl) {
+        ampmEl.dataset.value = v;
+        refreshWheelDisplay(prefix + '-ampm');
+      }
+    } else { // minute, step by 15
+      let v = parseInt(el.dataset.value, 10);
+      v = (v + dir * 15 + 60) % 60;
+      el.dataset.value = v;
+      refreshWheelDisplay(id);
+    }
+
+    // Symmetric enforcement: which side moved determines which side gets corrected
+    if (prefix === 'from') {
+      enforceRangeAfterFromChange();
+    } else {
+      enforceRangeAfterToChange();
+    }
+    syncTimeWheelsToState();
+    updateTimeGroupColor('from');
+    updateTimeGroupColor('to');
+    updateTimeOffSummary();
+  }
+
+  function readTimeWheelsAsMinutes(prefix) {
+    const hEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
+    const mEl = document.querySelector('[data-wheel-id="' + prefix + '-m"]');
+    if (!hEl || !mEl) return 0;
+    return parseInt(hEl.dataset.value, 10) * 60 + parseInt(mEl.dataset.value, 10);
+  }
+
+  // Write hour/minute back to wheels for one side.
+  function writeTimeWheels(prefix, totalMin) {
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    const hEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
+    const mEl = document.querySelector('[data-wheel-id="' + prefix + '-m"]');
+    const ampmEl = document.querySelector('[data-wheel-id="' + prefix + '-ampm"]');
+    if (hEl) { hEl.dataset.value = h; refreshWheelDisplay(prefix + '-h'); }
+    if (mEl) { mEl.dataset.value = m; refreshWheelDisplay(prefix + '-m'); }
+    if (ampmEl) { ampmEl.dataset.value = h; refreshWheelDisplay(prefix + '-ampm'); }
+  }
+
+  // FROM moved → if FROM >= TO, push TO forward by 15 minutes (snap to 15-min grid, clamp at 23:45).
+  function enforceRangeAfterFromChange() {
+    const fromMin = readTimeWheelsAsMinutes('from');
+    const toMin = readTimeWheelsAsMinutes('to');
+    if (fromMin >= toMin) {
+      let newToMin = fromMin + 15;
+      const MAX = 23 * 60 + 45;
+      if (newToMin > MAX) newToMin = MAX;
+      newToMin = Math.round(newToMin / 15) * 15;
+      writeTimeWheels('to', newToMin);
+    }
+  }
+
+  // TO moved → if TO <= FROM, pull FROM backward by 15 minutes. If FROM would go below 0, clamp at 0 and bump TO to 0:15.
+  function enforceRangeAfterToChange() {
+    let fromMin = readTimeWheelsAsMinutes('from');
+    let toMin = readTimeWheelsAsMinutes('to');
+    if (toMin <= fromMin) {
+      let newFromMin = toMin - 15;
+      if (newFromMin < 0) {
+        newFromMin = 0;
+        toMin = 15;
+        writeTimeWheels('to', toMin);
+      }
+      newFromMin = Math.round(newFromMin / 15) * 15;
+      writeTimeWheels('from', newFromMin);
+    }
+  }
+
+  // Re-render a single wheel's displayed text from its current data-value + type.
+  // Hours are shown as 1-12 with NO leading zero (so "9" not "09"); only 10/11/12 are two digits.
+  // Minutes always pad to 2 digits ("05" reads cleaner than "5" next to a colon).
+  function refreshWheelDisplay(id) {
+    const el = document.querySelector('[data-wheel-id="' + id + '"]');
+    if (!el) return;
+    const type = el.dataset.type;
+    const v = parseInt(el.dataset.value, 10);
+    let display;
+    if (type === 'hour') {
+      let h12 = v % 12;
+      if (h12 === 0) h12 = 12;
+      display = String(h12);
+    } else if (type === 'minute') {
+      display = String(v).padStart(2, '0');
+    } else {
+      display = v < 12 ? 'AM' : 'PM';
+    }
+    const valEl = document.getElementById('time-wheel-' + id);
+    if (valEl) valEl.textContent = display;
+  }
+
+  // Read hour + minute wheels and rebuild state.timeOff.from / .to as "HH:MM" (24h, what we store / submit).
+  function syncTimeWheelsToState() {
+    function read(id) {
+      const el = document.querySelector('[data-wheel-id="' + id + '"]');
+      return el ? parseInt(el.dataset.value, 10) : 0;
+    }
+    const fh = read('from-h'), fm = read('from-m');
+    const th = read('to-h'),   tm = read('to-m');
+    state.timeOff.from = String(fh).padStart(2, '0') + ':' + String(fm).padStart(2, '0');
+    state.timeOff.to   = String(th).padStart(2, '0') + ':' + String(tm).padStart(2, '0');
+    updateSubmitState();
+  }
+
+  // Build the chips HTML for the "selected reasons" row. If "Other" is picked and the user has
+  // typed something into the Other input, the chip shows that text instead of the bare label.
+  function renderReasonChipsHtml() {
+    if (state.reasons.length === 0) {
+      return '<span class="reason-selected-empty">Nothing selected yet — tap above to add</span>';
+    }
+    return state.reasons.map(function(r) {
+      const display = (r === 'Other' && state.otherReason && state.otherReason.trim())
+        ? 'Other: ' + state.otherReason.trim()
+        : r;
+      return '<span class="reason-chip">' +
+        '<span class="reason-chip-text">' + escapeHtml(display) + '</span>' +
+        '<button type="button" class="reason-chip-x" onclick="removeReason(\'' + escapeHtml(r).replace(/'/g, "&#39;") + '\')" aria-label="remove"><i class="ti ti-x"></i></button>' +
+      '</span>';
+    }).join('');
+  }
+
+  // Live-update the chips strip (called from the Other input's oninput so the chip text reflects typing).
+  function updateReasonChips() {
+    const sel = document.getElementById('reason-selected');
+    if (!sel) return;
+    sel.classList.toggle('empty', state.reasons.length === 0);
+    sel.innerHTML = renderReasonChipsHtml();
+  }
+
+  // ---- Reason picker: tap to add ----
+  function addReason(btn) {
+    const val = btn.dataset.reason;
+    const i = state.reasons.indexOf(val);
+    if (i >= 0) state.reasons.splice(i, 1);
+    else state.reasons.push(val);
+    refreshReasonUI();
+    // Show/hide the "Other" specify input
+    const otherWrap = document.getElementById('reason-other-wrap');
+    if (otherWrap) otherWrap.style.display = state.reasons.indexOf('Other') >= 0 ? 'block' : 'none';
+    // If Other was unchecked, also clear its text so submission doesn't carry stale data
+    if (state.reasons.indexOf('Other') < 0) state.otherReason = '';
+    updateTimeOffSummary();
+    updateSubmitState();
+  }
+  function removeReason(val) {
+    const i = state.reasons.indexOf(val);
+    if (i >= 0) state.reasons.splice(i, 1);
+    refreshReasonUI();
+    const otherWrap = document.getElementById('reason-other-wrap');
+    if (otherWrap) otherWrap.style.display = state.reasons.indexOf('Other') >= 0 ? 'block' : 'none';
+    if (state.reasons.indexOf('Other') < 0) state.otherReason = '';
+    updateTimeOffSummary();
+    updateSubmitState();
+  }
+  function refreshReasonUI() {
+    const sel = document.getElementById('reason-selected');
+    if (sel) {
+      sel.classList.toggle('empty', state.reasons.length === 0);
+      sel.innerHTML = renderReasonChipsHtml();
+    }
+    // List item selected state + icon swap
+    document.querySelectorAll('.reason-item').forEach(function(it) {
+      const r = it.dataset.reason;
+      const isSel = state.reasons.indexOf(r) >= 0;
+      it.classList.toggle('selected', isSel);
+      const ic = it.querySelector('.reason-marker i');
+      if (ic) ic.className = 'ti ti-' + (isSel ? 'check' : 'plus');
+    });
+    const card = document.getElementById('card-reason');
+    if (card) card.classList.toggle('done', state.reasons.length > 0);
+  }
+
+  function scrollReasonList(direction) {
+    const inner = document.getElementById('reason-list-inner');
+    if (inner) inner.scrollBy({ top: direction * 60, behavior: 'smooth' });
+  }
+
+  // Format an "HH:MM" 24-hour string as "H:MM AM/PM" for the human-readable confirmation.
+  function formatTime12(hhmm) {
+    const parts = hhmm.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const period = h < 12 ? 'AM' : 'PM';
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return h12 + ':' + String(m).padStart(2, '0') + ' ' + period;
+  }
+
+  // Format a duration in minutes as "Xh Ym" / "Xh" / "Ym".
+  function formatDurationMin(min) {
+    if (min <= 0) return '0h';
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    if (h > 0 && m > 0) return h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h';
+    return m + 'm';
+  }
+
+  // Compute the minutes-of-work-time this off period costs the studio.
+  // Work hours are 9am-5pm (WORK_SCHEDULE.workStart..workEnd). For each day:
+  //   - Full day off (no range) = the entire work day (8h)
+  //   - Partial range = intersection of [FROM, TO] with [9*60, 17*60]
+  // Total = perDayMinutes * dayCount.
+  function getOffWorkMinutesPerDay() {
+    const WORK_START = WORK_SCHEDULE.workStart * 60;
+    const WORK_END = WORK_SCHEDULE.workEnd * 60;
+    if (!state.timeOff.from || !state.timeOff.to) {
+      return WORK_END - WORK_START;
+    }
+    const fp = state.timeOff.from.split(':');
+    const tp = state.timeOff.to.split(':');
+    const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const toMin   = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    const start = Math.max(fromMin, WORK_START);
+    const end   = Math.min(toMin,   WORK_END);
+    return Math.max(0, end - start);
+  }
+
+  // Resolve reasons for display, substituting "Other" with the user-typed text if present.
+  function resolveReasonLabels() {
+    return state.reasons.map(function(r) {
+      if (r === 'Other' && state.otherReason && state.otherReason.trim()) {
+        return state.otherReason.trim();
+      }
+      return r;
+    });
+  }
+
+  // Join an array as a natural English list: "A", "A and B", "A, B, and C".
+  function joinNatural(arr) {
+    if (arr.length === 0) return '';
+    if (arr.length === 1) return arr[0];
+    if (arr.length === 2) return arr[0] + ' and ' + arr[1];
+    return arr.slice(0, -1).join(', ') + ', and ' + arr[arr.length - 1];
+  }
+
+  // Color helpers for the summary text — same palette as the rest of the form so the
+  // confirmation reads as a coherent recap of all the colored choices the user already made.
+  function colorizeDay(idx, text) {
+    const color = DAY_CHIP_COLORS[idx];
+    return '<strong style="color:' + color + '">' + escapeHtml(text) + '</strong>';
+  }
+  function colorizeTime(hhmm) {
+    const h = parseInt(hhmm.split(':')[0], 10);
+    // AM/PM determined purely by 12-hour boundary (matches the time-block AM/PM theme)
+    const color = h < 12 ? '#43D9FF' : '#FFB800';
+    return '<strong style="color:' + color + '">' + formatTime12(hhmm) + '</strong>';
+  }
+  function colorizeReason(text) {
+    return '<strong style="color:#FFB800">' + escapeHtml(text) + '</strong>';
+  }
+  function colorizePurple(text) {
+    return '<strong style="color:#A78BFA">' + text + '</strong>';
+  }
+
+  // Build and update the live summary at the bottom of the LOG OFF page. Lives in its own
+  // full-width section (#timeoff-section), not inside a question card. Progressively fills in:
+  //   - 0 days picked: empty hint
+  //   - days picked: writes the days-and-time sentence
+  //   - + reasons: appends "For X purposes." in amber
+  //   - always shows the work-hours-only total whenever days are picked
+  function updateTimeOffSummary() {
+    const body = document.getElementById('timeoff-summary-body');
+    if (!body) return;
+
+    const days = state.timeOff.days;
+
+    if (days.length === 0) {
+      body.innerHTML =
+        '<div class="timeoff-empty">' +
+          '<i class="ti ti-arrow-up"></i>' +
+          '<span>Your time off summary will appear here as you fill in the questions above.</span>' +
+        '</div>';
+      return;
+    }
+
+    const sortedDays = days.slice().sort(function(a,b){return a-b;});
+    const dayLabels = sortedDays.map(function(i) {
+      const short = TIME_OFF_DAYS[i];
+      const proper = short.charAt(0) + short.slice(1).toLowerCase();
+      return colorizeDay(i, proper + ' ' + getThisWeekDateLabel(i));
+    });
+    const daysStr = dayLabels.join(', ');
+
+    let timePhrase;
+    if (state.timeOff.from && state.timeOff.to) {
+      timePhrase = 'from ' + colorizeTime(state.timeOff.from) + ' to ' + colorizeTime(state.timeOff.to);
+    } else {
+      timePhrase = colorizePurple('full day');
+    }
+
+    const dayCountStr = days.length === 1 ? '1 day' : days.length + ' days';
+    const dayCountSpan = colorizePurple(dayCountStr);
+
+    let reasonsSentence;
+    if (state.reasons.length > 0) {
+      const labels = resolveReasonLabels().map(colorizeReason);
+      reasonsSentence = ' For ' + joinNatural(labels) + ' purposes.';
+    } else {
+      // Still missing reasons → show a soft pending hint instead of nothing, so the user knows the
+      // summary will keep filling in.
+      reasonsSentence = ' <span class="timeoff-pending">Pick a reason above to complete the summary.</span>';
+    }
+
+    const perDayMin = getOffWorkMinutesPerDay();
+    const totalMin = perDayMin * days.length;
+
+    body.innerHTML =
+      '<div class="timeoff-summary-text">' +
+        "You'll be off " + dayCountSpan + ' &mdash; ' + daysStr + ' ' + timePhrase + '.' + reasonsSentence +
+      '</div>' +
+      '<div class="timeoff-summary-total">' +
+        '<span>Total time off of work</span>' +
+        '<span class="timeoff-summary-total-value">' + formatDurationMin(totalMin) + '</span>' +
+      '</div>';
+  }
+
   function attachCompletedHandlers() {
     const input = document.getElementById('completed-input');
     if (!input) return;
@@ -1759,15 +4132,22 @@
     document.getElementById('blocker-yes').className = 'yn-btn' + (has ? ' yes-active' : '');
     document.getElementById('blocker-no').className = 'yn-btn' + (!has ? ' no-active' : '');
     document.getElementById('blocker-detail').classList.toggle('show', has);
-    // Done if: clear, OR yes-with-detail
-    const isDone = (has === false) || (has === true && (state.blocker.what || '').trim());
+    // Done if: clear, OR yes-with-both-fields
+    const isDone = (has === false) || (has === true && (state.blocker.what || '').trim() && (state.blocker.unblocker || '').trim());
     updateCard('blocker', isDone);
     updateSubmitState();
   }
 
   function updateBlockerWhat(value) {
     state.blocker.what = value;
-    const isDone = state.blocker.has === false || (state.blocker.has === true && value.trim());
+    const isDone = state.blocker.has === false || (state.blocker.has === true && value.trim() && (state.blocker.unblocker || '').trim());
+    updateCard('blocker', isDone);
+    updateSubmitState();
+  }
+
+  function updateBlockerUnblocker(value) {
+    state.blocker.unblocker = value;
+    const isDone = state.blocker.has === false || (state.blocker.has === true && (state.blocker.what || '').trim() && value.trim());
     updateCard('blocker', isDone);
     updateSubmitState();
   }
@@ -2130,11 +4510,11 @@
       let n = 0;
       if (state.goal.trim()) n++;
       if (state.blocker.has === false) n++;
-      else if (state.blocker.has === true && (state.blocker.what || '').trim()) n++;
+      else if (state.blocker.has === true && (state.blocker.what || '').trim() && (state.blocker.unblocker || '').trim()) n++;
       if (state.energyIn > 0) n++;
       if (state.expectedDiff) n++;
       return n;
-    } else {
+    } else if (mode === 'out') {
       let n = 0;
       if (state.completion === 'fully') n++;
       else if (state.completion && (state.completionReason || '').trim()) n++;
@@ -2142,25 +4522,40 @@
       if (state.actualDiff > 0) n++;
       if (state.energyOut > 0) n++;
       return n;
+    } else { // mode === 'off'
+      let n = 0;
+      if (state.timeOff.days.length > 0) n++;
+      if (state.reasons.length > 0) n++;
+      return n;
     }
+  }
+
+  // Total expected questions for the current mode (used for "X of Y done" hint)
+  function getTotalQuestions() {
+    return mode === 'off' ? 2 : 4;
   }
 
   function updateSubmitState() {
     const done = getDoneCount();
+    const total = getTotalQuestions();
     const btn = document.getElementById('submit-btn');
     const lateBtn = document.getElementById('submit-btn-late');
     const hint = document.getElementById('progress-hint');
-    if (done >= 4) {
-      btn.className = 'submit-btn ready ' + (mode === 'in' ? 'mode-in-ready' : 'mode-out-ready');
-      btn.textContent = mode === 'in' ? 'Lock in my day' : 'Wrap my day';
-      hint.innerHTML = '<span class="done-count" style="color:#39D98A">All 4 done</span>';
-      if (lateBtn) lateBtn.className = 'submit-btn-late ready ' + (mode === 'in' ? 'mode-in-ready' : 'mode-out-ready');
+    const readyClass = mode === 'in' ? 'mode-in-ready' : mode === 'out' ? 'mode-out-ready' : 'mode-off-ready';
+    const readyLabel = mode === 'in' ? 'Lock in my day' : mode === 'out' ? 'Wrap my day' : 'Submit time off';
+    if (done >= total) {
+      btn.className = 'submit-btn ready ' + readyClass;
+      btn.textContent = readyLabel;
+      hint.innerHTML = '<span class="done-count" style="color:#39D98A">All ' + total + ' done</span>';
+      if (lateBtn) lateBtn.className = 'submit-btn-late ready ' + readyClass;
     } else {
       btn.className = 'submit-btn';
-      btn.textContent = 'Submit (answer ' + (4 - done) + ' more)';
-      hint.innerHTML = '<span class="done-count">' + done + '</span> of 4 done';
+      btn.textContent = 'Submit (answer ' + (total - done) + ' more)';
+      hint.innerHTML = '<span class="done-count">' + done + '</span> of ' + total + ' done';
       if (lateBtn) lateBtn.className = 'submit-btn-late';
     }
+    // Hide the "submit as yesterday" button for LOG OFF since it's forward-looking, not a missed daily check-in
+    if (lateBtn) lateBtn.style.display = (mode === 'off') ? 'none' : '';
   }
 
   function highlightMissing() {
@@ -2177,10 +4572,10 @@
 
     if (mode === 'in') {
       if (!state.goal.trim()) markMissing('goal');
-      if (state.blocker.has === null || (state.blocker.has === true && !(state.blocker.what || '').trim())) markMissing('blocker');
+      if (state.blocker.has === null || (state.blocker.has === true && (!(state.blocker.what || '').trim() || !(state.blocker.unblocker || '').trim()))) markMissing('blocker');
       if (state.energyIn === 0) markMissing('energy-in');
       if (!state.expectedDiff) markMissing('difficulty');
-    } else {
+    } else if (mode === 'out') {
       if (!state.completion || (state.completion !== 'fully' && !(state.completionReason || '').trim())) markMissing('completion');
       if (state.completed.length === 0 || !allTasksComplete()) {
         markMissing('completed');
@@ -2203,6 +4598,9 @@
       }
       if (state.actualDiff === 0) markMissing('actual-diff');
       if (state.energyOut === 0) markMissing('energy-out');
+    } else { // off
+      if (state.timeOff.days.length === 0) markMissing('timeoff');
+      if (state.reasons.length === 0) markMissing('reason');
     }
 
     if (firstMissing) {
@@ -2210,8 +4608,10 @@
     }
   }
 
+  let lastSubmitDate = null;
+
   function submit(forYesterday) {
-    if (getDoneCount() < 4) {
+    if (getDoneCount() < getTotalQuestions()) {
       highlightMissing();
       return;
     }
@@ -2262,9 +4662,10 @@
       params.goal = state.goal;
       params.blocker_has = state.blocker.has === true ? 'yes' : 'no';
       params.blocker_what = state.blocker.what || '';
+      params.blocker_unblocker = state.blocker.unblocker || '';
       params.energy_in = String(state.energyIn);
       params.expected_diff = String(DIFF_MAP[state.expectedDiff] || 0);
-    } else {
+    } else if (mode === 'out') {
       params.completion = String(COMPLETION_MAP[state.completion] !== undefined ? COMPLETION_MAP[state.completion] : '');
       params.completion_reason = state.completionReason || '';
       // Numbered task list (oldest = #1, newest = last)
@@ -2295,8 +4696,29 @@
       params.total_hours = (totalMinutes() / 60).toString();
       params.actual_diff = String(state.actualDiff);
       params.energy_out = String(state.energyOut);
+    } else { // mode === 'off'
+      // Resolve the actual calendar dates (yyyy-mm-dd) for the selected weekday indexes (Sun=0..Thu=4) within the current week
+      const today = new Date();
+      const sundayThisWeek = new Date(today);
+      sundayThisWeek.setDate(today.getDate() - today.getDay());
+      const selectedDates = state.timeOff.days.slice().sort(function(a,b){return a-b;}).map(function(dayIdx) {
+        const d = new Date(sundayThisWeek);
+        d.setDate(sundayThisWeek.getDate() + dayIdx);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + dd;
+      });
+      params.off_days = selectedDates.join(',');
+      params.off_day_labels = state.timeOff.days.slice().sort(function(a,b){return a-b;}).map(function(i){ return TIME_OFF_DAYS[i]; }).join(',');
+      params.off_from = state.timeOff.from || '';
+      params.off_to = state.timeOff.to || '';
+      params.off_full_day = (!state.timeOff.from && !state.timeOff.to) ? 'yes' : 'no';
+      params.reasons = state.reasons.join(' | ');
+      params.other_reason = state.otherReason || '';
     }
 
+    lastSubmitDate = new Date();
     fireAllMethods(params);
     console.log('[OFFBOX] SENT PARAMS:', JSON.stringify(params, null, 2));
 
@@ -2381,13 +4803,38 @@
     document.querySelector('.mode-toggle').style.display = 'none';
     document.querySelector('.name-strip').style.display = 'none';
 
+    // Render submission timestamp in clock-block style
+    if (lastSubmitDate) {
+      const submittedEl = document.getElementById('success-submitted-time');
+      if (submittedEl) {
+        const h24 = lastSubmitDate.getHours();
+        const mm = lastSubmitDate.getMinutes();
+        const ss = lastSubmitDate.getSeconds();
+        const ms = lastSubmitDate.getMilliseconds();
+        const ampm = h24 >= 12 ? 'PM' : 'AM';
+        const h12 = (h24 % 12) || 12;
+        const pad = function(n) { return String(n).padStart(2, '0'); };
+        const padMs2 = function(n) { return String(Math.floor(n / 10)).padStart(2, '0'); };
+        submittedEl.className = 'success-submitted-time ' + (ampm === 'PM' ? 'is-pm' : 'is-am');
+        submittedEl.innerHTML =
+          '<span class="ss-hours">' + h12 + '</span>' +
+          '<span class="ss-sep">:</span>' +
+          '<span class="ss-mid">' + pad(mm) + '</span>' +
+          '<span class="ss-sep">:</span>' +
+          '<span class="ss-mid">' + pad(ss) + '</span>' +
+          '<span class="ss-ms-sep">.</span>' +
+          '<span class="ss-ms">' + padMs2(ms) + '</span>' +
+          '<span class="ss-ampm">' + ampm + '</span>';
+      }
+    }
+
     const screen = document.getElementById('success-screen');
     const name = (document.getElementById('name-input').value.trim().split(' ')[0]) || '';
 
     if (mode === 'in') {
       document.getElementById('success-title').textContent = 'Locked in' + (name ? ', ' + name : '');
       document.getElementById('success-msg').textContent = getInMsg();
-    } else {
+    } else if (mode === 'out') {
       document.getElementById('success-title').textContent = 'Day wrapped';
       document.getElementById('success-msg').textContent = getOutMsg();
       if (state.actualDiff >= 4 && (state.completion === 'fully' || state.completion === 'mostly')) {
@@ -2395,6 +4842,11 @@
         document.getElementById('reward-desc').textContent = 'You delivered on hard work. Three of these in two weeks unlocks team-wide recognition.';
         document.getElementById('reward-banner').classList.add('show');
       }
+    } else { // off
+      const dayLabels = state.timeOff.days.slice().sort(function(a,b){return a-b;}).map(function(i){ return TIME_OFF_DAYS[i]; }).join(', ');
+      document.getElementById('success-title').textContent = 'Time off submitted' + (name ? ', ' + name : '');
+      const rangeStr = (state.timeOff.from && state.timeOff.to) ? (' (' + state.timeOff.from + '-' + state.timeOff.to + ')') : ' (full day)';
+      document.getElementById('success-msg').textContent = dayLabels + rangeStr + '. The team has been notified.';
     }
     screen.style.display = 'block';
   }
@@ -2418,9 +4870,12 @@
 
   function resetAll() {
     state = {
-      goal: '', blocker: { has: null, what: '' },
+      goal: '', blocker: { has: null, what: '', unblocker: '' },
       energyIn: 0, expectedDiff: '',
       completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
+      timeOff: { days: [], from: '', to: '' },
+      reasons: [],
+      otherReason: '',
       notes: ''
     };
     document.getElementById('success-screen').style.display = 'none';
@@ -2464,8 +4919,10 @@
     }
   }
 
+  let lastDayIdx = -1;
   function updateDayDisplay() {
     const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+    const daysShort = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
     const DAY_COLORS = {
       0: '#43D9FF',  // Sunday   cyan
       1: '#FFBF25',  // Monday   amber
@@ -2475,35 +4932,329 @@
       5: '#FFFFFF',  // Friday   weekend
       6: '#FFFFFF'   // Saturday weekend
     };
-    const today = new Date();
-    const dayIdx = today.getDay();
+    const now = new Date();
+    const dayIdx = now.getDay();
+    const h24 = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
     const isWorkDay = dayIdx <= 4;
     const themeColor = DAY_COLORS[dayIdx];
 
     const display = document.getElementById('day-display');
+    if (!display) return;
     const numEl = document.getElementById('day-number');
     const nameEl = document.getElementById('day-name');
     const blocks = document.querySelectorAll('.day-block');
 
+    // Theme color
     display.style.setProperty('--theme-color', themeColor);
     numEl.textContent = dayIdx + 1;
     nameEl.textContent = days[dayIdx];
 
     if (isWorkDay) {
       display.classList.remove('weekend');
-      // Fill blocks 0 to dayIdx with theme color (passed + current days)
-      blocks.forEach(function(b, i) {
-        if (i <= dayIdx) b.classList.add('filled');
-        else b.classList.remove('filled');
-      });
     } else {
       display.classList.add('weekend');
-      // Weekend: no blocks filled, all white-outlined via CSS
-      blocks.forEach(function(b) { b.classList.remove('filled'); });
+    }
+    // Mark which blocks are filled (past + today) and which one is the current
+    blocks.forEach(function(b, i) {
+      b.classList.remove('current');
+      if (isWorkDay && i <= dayIdx) b.classList.add('filled');
+      else b.classList.remove('filled');
+      if (isWorkDay && i === dayIdx) b.classList.add('current');
+    });
+
+    // Day passed effect (when dayIdx changes from a known value)
+    if (lastDayIdx !== -1 && dayIdx !== lastDayIdx) {
+      display.classList.remove('day-passed');
+      void display.offsetWidth;
+      display.classList.add('day-passed');
+      setTimeout(function() { display.classList.remove('day-passed'); }, 6200);
+    }
+    lastDayIdx = dayIdx;
+
+    // Segment info (current shift, time/percent remaining, what's next, mode work/off)
+    const segInfo = getSegmentInfo(now);
+
+    // Current shift label, in shift color
+    const shiftLabelEl = document.getElementById('day-shift-label');
+    if (shiftLabelEl && segInfo) {
+      shiftLabelEl.textContent = segInfo.name;
+      shiftLabelEl.style.color = segInfo.color;
+      shiftLabelEl.classList.toggle('is-active', segInfo.name !== 'OFF');
+    }
+
+    // 3-line percent block: %, time-remaining (gray), UNTIL X (colored)
+    const pctTimeEl = document.getElementById('day-percent-time');
+    const pctNumEl = document.getElementById('day-percent-num');
+    const pctDecEl = document.getElementById('day-percent-decimal');
+    const pctNextEl = document.getElementById('day-percent-next');
+
+    if (segInfo) {
+      if (pctTimeEl) pctTimeEl.textContent = formatTimeRemaining(segInfo.remainingMs);
+      const pct = Math.max(0, Math.min(100, segInfo.percentLeft));
+      const intPart = Math.floor(pct);
+      const decPart = Math.floor((pct - intPart) * 100);
+      if (pctNumEl) pctNumEl.textContent = intPart;
+      if (pctDecEl) pctDecEl.textContent = String(decPart).padStart(2, '0');
+      if (pctNextEl) {
+        pctNextEl.textContent = segInfo.nextName;
+        pctNextEl.style.color = segInfo.nextColor;
+      }
+      // Color the percentage itself by the CURRENT shift: cyan in 1st, white in break/off, green in 2nd
+      const dayPercentEl = document.getElementById('day-percent');
+      if (dayPercentEl) {
+        dayPercentEl.style.color = segInfo.color;
+      }
+    }
+
+    // Shift bar — switches between WORK mode (shift colors 9am-5pm) and OFF mode (all white)
+    // Bar layered: dim backdrop showing full path + bright fill that sweeps left-to-right
+    const dayBar = document.getElementById('day-progress-day');
+    const dayFill = document.getElementById('day-progress-fill');
+    if (dayBar && dayFill) {
+      const targetMode = segInfo.mode;
+      if (dayBar.dataset.barMode !== targetMode) {
+        let dimBg, brightBg;
+        if (targetMode === 'work') {
+          dimBg = buildShiftBarBackground(0.3);
+          brightBg = buildShiftBarBackground(1);
+        } else {
+          dimBg = buildOffDutyBarBackground(0.3, segInfo.offTotalMs);
+          brightBg = buildOffDutyBarBackground(1, segInfo.offTotalMs);
+        }
+        dayBar.style.backgroundImage = dimBg.image;
+        dayBar.style.backgroundSize = dimBg.size;
+        dayBar.style.backgroundRepeat = dimBg.repeat;
+        dayBar.style.backgroundPosition = '0 0, 0 0';
+        dayFill.style.backgroundImage = brightBg.image;
+        dayFill.style.backgroundSize = brightBg.size;
+        dayFill.style.backgroundRepeat = brightBg.repeat;
+        dayFill.style.backgroundPosition = '0 0, 0 0';
+        dayBar.dataset.barMode = targetMode;
+      }
+
+      // Fill progress: workday progress in work mode, off-duty progress in off mode
+      let progress;
+      if (segInfo.mode === 'work') {
+        const decimalHour = h24 + m/60 + s/3600 + ms/3600000;
+        const workTotal = WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart;
+        progress = ((decimalHour - WORK_SCHEDULE.workStart) / workTotal) * 100;
+      } else {
+        progress = segInfo.offProgress;
+      }
+      progress = Math.max(0, Math.min(100, progress));
+      dayFill.style.clipPath = 'inset(0 ' + (100 - progress) + '% 0 0)';
+    }
+  }
+
+  let clockInit = false;
+  let lastH24 = 0, lastM = 0, lastS = 0;
+  function updateClock() {
+    const now = new Date();
+    const h24 = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = (h24 % 12) || 12;
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    const padMs2 = function(n) { return String(Math.floor(n / 10)).padStart(2, '0'); };
+
+    const hoursEl = document.getElementById('clock-hours');
+    if (!hoursEl) return;
+    hoursEl.textContent = h12;
+    document.getElementById('clock-minutes').textContent = pad(m);
+    document.getElementById('clock-seconds').textContent = pad(s);
+    document.getElementById('clock-ms').textContent = padMs2(ms);
+    document.getElementById('clock-ampm').textContent = ampm;
+    document.getElementById('clock-24').textContent = pad(h24) + ':' + pad(m) + ':' + pad(s);
+
+    const block = document.getElementById('clock-block');
+    if (block) {
+      if (ampm === 'PM') { block.classList.add('is-pm'); block.classList.remove('is-am'); }
+      else { block.classList.add('is-am'); block.classList.remove('is-pm'); }
+      if (m >= 30) block.classList.add('mins-half2');
+      else block.classList.remove('mins-half2');
+    }
+
+    // Progress bars
+    // MS bar: handled by msBarLoop (requestAnimationFrame), guaranteed to track real ms.
+
+    // Seconds bar (only when second changes): fills 0-100% as s goes 0-59
+    if (!clockInit || s !== lastS) {
+      const secFill = document.getElementById('clock-progress-sec-fill');
+      if (secFill) {
+        const secPercent = (s / 59) * 100;
+        secFill.style.clipPath = 'inset(0 ' + (100 - secPercent) + '% 0 0)';
+      }
+      // Color the :ss digit white from 0-29s, then white→light pink from 30-59s
+      const secEl = document.getElementById('clock-seconds');
+      if (secEl) {
+        if (s < 30) {
+          secEl.style.color = '#FFFFFF';
+        } else {
+          const t = (s - 30) / 29; // 0..1 across s=30..59
+          const r = 255;
+          const g = Math.round(255 - (255 - 181) * t);
+          const b = Math.round(255 - (255 - 206) * t);
+          secEl.style.color = 'rgb(' + r + ',' + g + ',' + b + ')';
+        }
+      }
+    }
+    // Minutes bar (only when minute changes): fills 0-100% as m goes 0-59, and color of bar shifts green→pink
+    if (!clockInit || m !== lastM) {
+      const minFill = document.getElementById('clock-progress-min-fill');
+      if (minFill) {
+        const minPercent = (m / 59) * 100;
+        minFill.style.clipPath = 'inset(0 ' + (100 - minPercent) + '% 0 0)';
+        // Interpolate solid bar color: minute 0 = #00FF9E green, minute 59 = #FF6B9D pink
+        const t = m / 59;
+        const r = Math.round(0   + (255 - 0)   * t);
+        const g = Math.round(255 + (107 - 255) * t);
+        const b = Math.round(158 + (157 - 158) * t);
+        // Use backgroundColor on the fill (track stays dim, divider lines in background-image preserved)
+        minFill.style.backgroundColor = 'rgba(' + r + ',' + g + ',' + b + ',0.6)';
+      }
+    }
+
+    // Animate digit changes on s/m/h transitions (skip first render)
+    if (clockInit) {
+      if (s !== lastS) animateDigit('clock-seconds', false);
+      if (m !== lastM) animateDigit('clock-minutes', true);
+      if (h24 !== lastH24) {
+        animateDigit('clock-hours', false);
+        if (block) {
+          block.classList.remove('hour-passed');
+          void block.offsetWidth;
+          block.classList.add('hour-passed');
+          setTimeout(function() { block.classList.remove('hour-passed'); }, 6200);
+        }
+        // Page-wide flash, color matches AM or PM
+        triggerPageHourFlash(ampm === 'PM');
+      }
+      if (m === 30 && lastM !== 30) {
+        if (block) {
+          block.classList.remove('half-passed');
+          void block.offsetWidth;
+          block.classList.add('half-passed');
+          setTimeout(function() { block.classList.remove('half-passed'); }, 5200);
+        }
+      }
+    }
+
+    // Hour-left percentage with 2 decimal places, updates every tick (50ms) for smooth decimal motion
+    const totalHourMs = 3600 * 1000;
+    const elapsedHourMs = m * 60 * 1000 + s * 1000 + ms;
+    const remainingHourMs = totalHourMs - elapsedHourMs;
+    const remainingPercent = (remainingHourMs / totalHourMs) * 100;
+    const intPart = Math.floor(remainingPercent);
+    const decPart = Math.floor((remainingPercent - intPart) * 100);
+    const pctTimeEl = document.getElementById('clock-percent-time');
+    const pctNumEl = document.getElementById('clock-percent-num');
+    const pctDecEl = document.getElementById('clock-percent-decimal');
+    if (pctTimeEl) pctTimeEl.textContent = formatTimeRemaining(remainingHourMs);
+    if (pctNumEl) pctNumEl.textContent = intPart;
+    if (pctDecEl) pctDecEl.textContent = String(decPart).padStart(2, '0');
+    // Next hour digit (only updates when hour rolls over)
+    if (!clockInit || h24 !== lastH24) {
+      const nextEl = document.getElementById('clock-percent-next');
+      if (nextEl) {
+        const nextH12 = (h12 % 12) + 1;
+        nextEl.textContent = nextH12;
+      }
+    }
+
+    lastH24 = h24; lastM = m; lastS = s;
+    clockInit = true;
+  }
+
+  function animateDigit(elId, isMinute) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const cls = isMinute ? 'tick-minute' : 'tick-fast';
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    setTimeout(function() { el.classList.remove(cls); }, isMinute ? 2100 : 250);
+  }
+
+  // The ms bar is driven by requestAnimationFrame using actual wall-clock time, so it is
+  // mathematically impossible to drift: the percentage is computed from Date.now() % 1000 every frame.
+  // On each wrap (ms goes from ~999 back to ~0 = a full second completed) we briefly light up the track
+  // via the .pulse class so the bar's reset doesn't feel like it disappeared.
+  let lastMsValue = 0;
+  function msBarLoop() {
+    const msFill = document.getElementById('clock-progress-ms-fill');
+    const msTrack = document.getElementById('clock-progress-ms');
+    const ms = Date.now() % 1000;
+    if (msFill) {
+      const percent = (ms / 1000) * 100;
+      msFill.style.clipPath = 'inset(0 ' + (100 - percent) + '% 0 0)';
+    }
+    // Wrap detection: last frame was near the end of the second, this frame is near the start
+    if (lastMsValue > 900 && ms < 100 && msTrack) {
+      msTrack.classList.remove('pulse');
+      void msTrack.offsetWidth; // force reflow so the animation restarts cleanly each second
+      msTrack.classList.add('pulse');
+    }
+    lastMsValue = ms;
+    requestAnimationFrame(msBarLoop);
+  }
+
+  function triggerPageHourFlash(isPM) {
+    const flash = document.getElementById('hour-flash');
+    if (!flash) return;
+    const cls = isPM ? 'pm-active' : 'am-active';
+    flash.classList.remove('am-active', 'pm-active');
+    void flash.offsetWidth;
+    flash.classList.add(cls);
+    setTimeout(function() { flash.classList.remove(cls); }, 6100);
+  }
+
+  function startClock() {
+    updateClock();
+    updateDayDisplay();
+    updateBanners();
+    setInterval(function() {
+      updateClock();
+      updateDayDisplay();
+      updateBanners();
+    }, 50);
+    requestAnimationFrame(msBarLoop);
+  }
+
+  // Banner toggles run on every tick. Cheap class flips — won't repaint unless state actually changes.
+  function updateBanners() {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+
+    // Sleep warning: 11pm-4am on Sat (night before Sun work) + Sun/Mon/Tue/Wed (night before next workday)
+    // Thursday night excluded since Friday is the weekend. The extra hour at 11pm gives them time to wind down.
+    const sleepBanner = document.getElementById('sleep-warning');
+    if (sleepBanner) {
+      const isWarningDay = day === 0 || day === 1 || day === 2 || day === 3 || day === 6;
+      const isLateNight = hour === 23 || (hour >= 0 && hour < 4);
+      const shouldShow = isWarningDay && isLateNight;
+      if (shouldShow !== sleepBanner.classList.contains('show')) {
+        sleepBanner.classList.toggle('show', shouldShow);
+      }
+    }
+
+    // Weekend banner: Thursday after 5pm (work finished) + all of Friday + all of Saturday
+    const weekendBanner = document.getElementById('weekend-banner');
+    if (weekendBanner) {
+      const isWeekendTime = (day === 4 && hour >= WORK_SCHEDULE.workEnd) || day === 5 || day === 6;
+      if (isWeekendTime !== weekendBanner.classList.contains('show')) {
+        weekendBanner.classList.toggle('show', isWeekendTime);
+      }
     }
   }
 
   window.onload = function() {
+    startClock();
     updateDayDisplay();
     // Migrate any existing task data to new structure
     if (Array.isArray(state.completed)) {
@@ -2542,7 +5293,23 @@
     });
     document.getElementById('greeting-text').textContent = getGreeting();
     autoDetectMode();
+    // Restore saved display mode preference (default = simple)
+    const savedDM = localStorage.getItem('offbox_display_mode') || 'simple';
+    setDisplayMode(savedDM, /* skipPersist */ true);
   };
+
+  // Toggle between simple and advanced display modes for the time + day blocks.
+  // Default is 'simple' (just HH:MM AM/PM and the day name with chips). 'advanced' shows the
+  // full live clock with progress bars, percentages, shift labels, etc. Persisted in localStorage.
+  function setDisplayMode(m, skipPersist) {
+    if (m !== 'simple' && m !== 'advanced') m = 'simple';
+    document.body.classList.toggle('display-simple', m === 'simple');
+    document.body.classList.toggle('display-advanced', m === 'advanced');
+    document.querySelectorAll('.dm-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.displayMode === m);
+    });
+    if (!skipPersist) localStorage.setItem('offbox_display_mode', m);
+  }
 </script>
 
 </body>
