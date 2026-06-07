@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OFF BOX Studios — Daily Log</title>
+<title>OFF BOX Studios · Daily Log</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -124,6 +124,45 @@
     padding-top: 20px;
     position: relative;
     z-index: 1;
+  }
+
+  /* Full-screen "ready to submit" sweep: a soft horizontal glow band that scans from the bottom
+     of the viewport to the top once, the moment the last question is completed. Fixed + full
+     viewport so it reaches the user no matter where they're scrolled. pointer-events:none so it
+     never blocks interaction. Color is set per mode via --sweep-color. */
+  .submit-ready-sweep {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    overflow: hidden;
+    opacity: 0;
+    --sweep-color: 57,217,138;
+  }
+  .submit-ready-sweep.active { opacity: 1; }
+  .sweep-band {
+    position: absolute;
+    left: -10%;
+    right: -10%;
+    height: 26vh;
+    bottom: -26vh;
+    background: linear-gradient(to top,
+      rgba(var(--sweep-color), 0) 0%,
+      rgba(var(--sweep-color), 0.16) 45%,
+      rgba(var(--sweep-color), 0.28) 55%,
+      rgba(var(--sweep-color), 0) 100%);
+    filter: blur(6px);
+  }
+  .submit-ready-sweep.active .sweep-band {
+    animation: sweepRise 1.15s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  @keyframes sweepRise {
+    0%   { transform: translateY(0);       opacity: 0; }
+    18%  { opacity: 1; }
+    100% { transform: translateY(-130vh);  opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .submit-ready-sweep { display: none; }
   }
 
   .header-row {
@@ -1160,14 +1199,50 @@
     border: 1px solid rgba(230,230,230,0.08);
     display: flex;
     flex-direction: column;
-    transition: border-color 0.3s, background 0.3s;
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
     animation: fadeInUp 0.4s ease both;
     position: relative;
+    /* Lock the grid track width: without this, wide inner content (e.g. a time value going from
+       "9:30" to "10:30") can force the 1fr track to grow and the whole card shifts. min-width:0
+       keeps the card pinned to its grid track regardless of content. */
+    min-width: 0;
+    overflow: hidden;
   }
 
   .question-card.done {
-    border-color: rgba(57,217,138,0.25);
-    background: rgba(57,217,138,0.03);
+    border-color: #39D98A;
+    background: rgba(57,217,138,0.11);
+    box-shadow: inset 0 0 0 1.5px rgba(57,217,138,0.6), 0 0 22px rgba(57,217,138,0.18);
+  }
+
+  /* One-time green "shine" flash over the whole card the moment it completes. A non-moving full-card
+     overlay (so no overflow clipping needed, won't clip the info tooltip) that flares green then
+     fades, layered on top of the persistent green styling for an unmistakable "done!" beat. */
+  .question-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(57,217,138,0);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+  .question-card.done::after {
+    animation: cardDoneShine 0.85s ease-out;
+  }
+  @keyframes cardDoneShine {
+    0%   { background: rgba(57,217,138,0.4); opacity: 1; }
+    100% { background: rgba(57,217,138,0); opacity: 0; }
+  }
+
+  /* DONE BEATS MISSING: if a card was flagged red (.missing) and then gets completed (.done),
+     force the green completed look and kill the red pulse. Higher specificity than either alone,
+     so completing a question always clears the red regardless of which mode/question it is. */
+  .question-card.missing.done {
+    border-color: #39D98A;
+    background: rgba(57,217,138,0.11);
+    box-shadow: inset 0 0 0 1.5px rgba(57,217,138,0.6), 0 0 22px rgba(57,217,138,0.18);
+    animation: none;
   }
 
   .question-card.missing {
@@ -1195,6 +1270,55 @@
     align-items: center;
     gap: 14px;
     font-weight: 700;
+    position: relative; /* anchor for the COMPLETED ::after badge */
+  }
+
+  /* COMPLETED! badge: rendered as ::after on every question header so it applies to all questions
+     with zero per-card markup. Hidden when the card isn't .done; pops in with a bouncy keyframe
+     when .done is added. The badge text color uses the question's own --q-color on a dark pill so
+     it reads as "this category, completed". */
+  .q-header-block::after {
+    content: "COMPLETED!";
+    position: absolute;
+    right: 46px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    opacity: 0;
+    background: #0F0F0F;
+    color: var(--q-color, #FFFFFF);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    padding: 4px 7px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .question-card.done .q-header-block::after {
+    animation: completedBadgePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes completedBadgePop {
+    0%   { opacity: 0; transform: translateY(-50%) scale(0.3) rotate(-12deg); }
+    50%  { opacity: 1; transform: translateY(-50%) scale(1.22) rotate(5deg); }
+    75%  { transform: translateY(-50%) scale(0.94) rotate(-2deg); }
+    100% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0deg); }
+  }
+
+  /* Header pulse: a brief outward glow in the question's own color when the card transitions
+     to done. Fires alongside the badge pop for a one-two visual that feels rewarding. */
+  .question-card.done .q-header-block {
+    animation: headerCompletePulse 0.75s ease-out;
+  }
+  @keyframes headerCompletePulse {
+    0%   { box-shadow: 0 0 0 0 transparent; }
+    35%  { box-shadow: 0 0 22px 5px color-mix(in srgb, var(--q-color, #FFFFFF) 65%, transparent); }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  /* On narrow screens the badge sits a touch closer in (or hides "!" character implicitly via
+     content truncation). At very small widths, shrink the badge a bit. */
+  @media (max-width: 420px) {
+    .q-header-block::after { right: 42px; font-size: 8px; padding: 3px 6px; }
   }
 
   .q-header-block .num {
@@ -1558,6 +1682,8 @@
     cursor: grab;
     transition: color 0.15s, background 0.15s;
     flex-shrink: 0;
+    /* slight outline so each segment of the task row reads as a distinct piece (no size change) */
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   }
   .task-card .drag-handle:hover { color: #43D9FF; background: rgba(255,255,255,0.1); }
   .task-card .drag-handle:active { cursor: grabbing; }
@@ -1570,6 +1696,8 @@
     gap: 10px;
     padding: 0 10px;
     min-width: 0;
+    /* white outline marks the text field as a fillable area */
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   }
   .task-card .task-num {
     background: rgba(57,217,138,0.4);
@@ -1642,6 +1770,8 @@
   .wheel-selector.wheel-where {
     color: #FFFFFF;
     width: 50px;
+    /* white outline marks WHERE as a selectable field */
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   }
   .wheel-selector.wheel-where.empty {
     background: rgba(255,255,255,0.05);
@@ -1651,6 +1781,8 @@
   .wheel-selector.wheel-time {
     color: #FFFFFF;
     width: 40px;
+    /* white outline marks TIME as a selectable field */
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   }
   .wheel-selector.wheel-time.empty {
     background: rgba(255,255,255,0.05);
@@ -1693,6 +1825,8 @@
     cursor: pointer;
     transition: background 0.15s;
     flex-shrink: 0;
+    /* white outline marks the remove control */
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
   }
   .task-card .remove:hover { background: rgba(255,85,114,0.75); }
   .task-card .remove i { font-size: 15px; }
@@ -1821,18 +1955,25 @@
      Q2 Reason: tap-to-add list with selected chips above, up/down scroll arrows.
      ========================================================================= */
 
-  /* --- Time-off day chips: per-day color rule (Sun cyan, Mon amber, Tue green, Wed pink, Thu purple) --- */
+  /* --- Time-off day chips: per-day color rule (Sun cyan, Mon amber, Tue green, Wed pink,
+       Thu purple, Fri/Sat white = weekend). Three additional cosmetic flags read off the
+       date, NOT the user's selection state:
+         .is-today     glow ring + brighter border so today reads as the obvious default
+         .is-past      dim + pink "missed?" corner dot (drops once selected) on past WORKDAYS
+         .is-weekend   white-tinted color + reduced opacity to flag "not a workday"
+     --- */
   .timeoff-days {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
     margin-bottom: 18px;
   }
   .timeoff-day {
+    position: relative;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.12);
     color: rgba(230,230,230,0.55);
-    padding: 12px 4px 10px;
+    padding: 10px 2px 9px;
     font-family: 'IBM Plex Mono', monospace;
     cursor: pointer;
     transition: all 0.2s;
@@ -1847,16 +1988,62 @@
     color: rgba(230,230,230,0.95);
     border-color: rgba(255,255,255,0.22);
   }
+  /* Past / weekend chips must look the SAME hovered as at rest, so they never appear "stuck
+     brighter" after a tap (sticky :hover on touch was the bug). Higher specificity than the
+     general hover above, so it wins. Opacity is held by the is-past / is-weekend rules below. */
+  .timeoff-day.is-past:not(.active):hover,
+  .timeoff-day.is-weekend:not(.active):hover {
+    background: rgba(255,255,255,0.04);
+    color: rgba(230,230,230,0.55);
+    border-color: rgba(255,255,255,0.12);
+  }
   .timeoff-day.active {
     background: var(--day-color);
     border-color: var(--day-color);
     color: #0F0F0F;
     box-shadow: 0 0 18px rgba(255,255,255,0.04), 0 0 0 1px var(--day-color) inset;
   }
+
+  /* TODAY: subtle WHITE outline + "TODAY" label (no heavy colored glow), so it reads as a gentle note. */
+  .timeoff-day.is-today:not(.active) {
+    border-color: rgba(255,255,255,0.55);
+    color: rgba(230,230,230,0.92);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22);
+  }
+  .timeoff-day.is-today.active {
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.6);
+  }
+
+  /* PAST workdays: dim + pink dot in corner to nudge the user that they might have missed
+     filing time-off for this day. Opacity stays fixed in every non-active state (no hover bump)
+     so the chip never gets "stuck brighter" after a tap. The dot disappears once selected. */
+  .timeoff-day.is-past:not(.active) {
+    opacity: 0.55;
+  }
+  .timeoff-day.is-past:not(.is-weekend)::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 5px;
+    height: 5px;
+    background: #FF5572;
+    box-shadow: 0 0 6px rgba(255,85,114,0.6);
+  }
+  .timeoff-day.is-past.active::after { display: none; }
+
+  /* WEEKEND (Fri / Sat): white-tinted, dimmed, fixed opacity (no hover bump). Still selectable. */
+  .timeoff-day.is-weekend:not(.active) {
+    opacity: 0.42;
+  }
+  /* If today falls on a weekend, keep it visible (today marker wins over the weekend dimming). */
+  .timeoff-day.is-today.is-weekend:not(.active) {
+    opacity: 1;
+  }
   .timeoff-day-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    letter-spacing: 1.5px;
+    letter-spacing: 1.2px;
     line-height: 1;
   }
   .timeoff-day-date {
@@ -1868,103 +2055,40 @@
     text-transform: uppercase;
     min-height: 9px;
   }
+  @media (max-width: 400px) {
+    .timeoff-day-label { font-size: 10px; letter-spacing: 0.8px; }
+    .timeoff-day { padding: 9px 1px 8px; }
+  }
 
   /* --- Time-range block: ADD button collapses to wheel panel on click --- */
-  .timeoff-range-block { margin-top: 4px; }
-  .timeoff-range-add {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px dashed rgba(255,255,255,0.18);
-    color: rgba(230,230,230,0.65);
-    padding: 14px 16px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.2s;
-  }
-  .timeoff-range-add:hover:not(:disabled) {
-    background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.32);
-    color: #FFFFFF;
-  }
-  .timeoff-range-add:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-  .timeoff-range-add i { font-size: 16px; }
-  .timeoff-range-add-hint {
-    margin-left: auto;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    text-transform: none;
-    color: rgba(230,230,230,0.4);
-    font-style: italic;
-  }
-
   /* "Other" specify input — appears under the reason picker when "Other" is selected. */
   .reason-other-wrap {
-    margin-top: 10px;
+    margin-top: 8px;
   }
   .reason-other-input {
     width: 100%;
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(255,184,0,0.35);
     color: #FFFFFF;
-    padding: 11px 14px;
+    padding: 8px 12px;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
+    font-size: 12px;
     transition: border-color 0.2s, background 0.2s;
     outline: none;
   }
   .reason-other-input::placeholder { color: rgba(230,230,230,0.35); font-style: italic; }
   .reason-other-input:focus { border-color: #FFB800; background: rgba(0,0,0,0.45); }
-
-  .timeoff-range-panel {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.12);
-    padding: 14px 16px;
-    animation: fadeInUp 0.25s ease;
+  /* Other is picked but the specify field is blank: flag it as required with a pulsing amber outline. */
+  .reason-other-input.required-empty {
+    border-color: #FFB800;
+    box-shadow: 0 0 0 1px rgba(255,184,0,0.5);
+    animation: otherRequiredPulse 1.6s ease-in-out infinite;
   }
-  .timeoff-range-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
+  .reason-other-input.required-empty::placeholder { color: rgba(255,184,0,0.7); font-style: normal; }
+  @keyframes otherRequiredPulse {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(255,184,0,0.4); }
+    50%      { box-shadow: 0 0 0 3px rgba(255,184,0,0.22); }
   }
-  .timeoff-range-panel-title {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: rgba(230,230,230,0.5);
-    text-transform: uppercase;
-  }
-  .timeoff-range-clear {
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(230,230,230,0.5);
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .timeoff-range-clear:hover {
-    background: rgba(255,85,114,0.15);
-    border-color: #FF5572;
-    color: #FF5572;
-  }
-  .timeoff-range-clear i { font-size: 12px; }
 
   .time-wheel-row {
     display: flex;
@@ -2049,7 +2173,8 @@
     gap: 6px;
     flex: 1;
   }
-  .time-wheel-group .time-wheel {
+  .time-wheel-group .time-wheel,
+  .timeoff-from-wheels .time-wheel {
     border-color: color-mix(in srgb, var(--group-color) 25%, rgba(255,255,255,0.12));
     background: color-mix(in srgb, var(--group-color) 6%, rgba(255,255,255,0.04));
     transition: border-color 0.25s ease, background 0.25s ease;
@@ -2058,6 +2183,625 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+
+  /* ============================================================================
+     Shift bar (Time Off range picker)
+     ----------------------------------------------------------------------------
+     32 quarter-hour cells laid out in a flex row spanning 9 AM to 5 PM. Cell colors
+     come from WORK_SCHEDULE.segments so the picker matches the day-block progress
+     bar at the top of the page. Drag across cells to select an off-range -- selected
+     cells fill with pink, the rest still show their shift color. Hour boundaries
+     get a darker divider; quarter boundaries get a lighter one. A thin white line
+     shows where "now" sits on the timeline.
+     ============================================================================ */
+
+  /* ============================================================================
+     SHIFT BAR (Time Off range picker)
+     ----------------------------------------------------------------------------
+     Layout (top to bottom):
+       [ CURRENT TIME btn  |  WHOLE DAY btn ]   <- action buttons, horizontal, equal width
+       [ ============= shift bar ============ ]
+        9  10  11  12  1  2  3  4  5            <- hour labels
+       [ SUMMARY BOX: OFF FROM → UNTIL  DUR ]   <- compact summary as the question footer
+
+     Cells:
+       - dim shift colors by default (backdrop look)
+       - past cells: extra-dim + grayscale (behind us)
+       - now cell: solid pulsing white-bordered block (the current 15 min)
+       - selected cells: white OUTLINE only (so the shift color underneath stays visible)
+       - whole-day mode: hide individual outlines, show one big block + "WHOLE DAY OFF" label
+     ============================================================================ */
+  .timeoff-shift-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 8px;
+  }
+  .timeoff-current-time-btn,
+  .timeoff-whole-day-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(230,230,230,0.85);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.1s;
+  }
+  .timeoff-current-time-btn i,
+  .timeoff-whole-day-btn i { font-size: 14px; }
+  .timeoff-current-time-btn:hover,
+  .timeoff-whole-day-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.35);
+    color: #FFFFFF;
+  }
+  .timeoff-current-time-btn:active,
+  .timeoff-whole-day-btn:active { transform: scale(0.97); }
+  /* Cyan accent for Current Time on hover so its identity reads vs Whole Day. */
+  .timeoff-current-time-btn:hover {
+    border-color: #43D9FF;
+    color: #43D9FF;
+    background: rgba(67,217,255,0.08);
+  }
+  /* Whole Day active state: bright white pill, makes "whole day mode" obvious. */
+  .timeoff-whole-day-btn.is-active {
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    color: #0F0F0F;
+    box-shadow: 0 0 0 1px #FFFFFF, 0 0 12px rgba(255,255,255,0.35);
+  }
+  .timeoff-whole-day-btn.is-active:hover {
+    background: #F0F0F0;
+    border-color: #F0F0F0;
+    color: #0F0F0F;
+  }
+
+  .timeoff-shift-bar-wrap {
+    margin-top: 4px;
+    position: relative;
+  }
+  .timeoff-shift-bar {
+    position: relative;
+    display: flex;
+    height: 44px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow:
+      inset 0 1px 3px rgba(0,0,0,0.5),
+      0 1px 0 rgba(255,255,255,0.04);
+    /* drag must not trigger page scroll on mobile */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overflow: hidden;
+  }
+  .timeoff-shift-cell {
+    flex: 1;
+    position: relative;
+    cursor: grab;
+    /* Default cells are dimmed; the bar reads as a "backdrop" until you pick a range. */
+    opacity: 0.35;
+    transition: opacity 0.18s ease, filter 0.18s ease, background 0.16s ease;
+  }
+  .timeoff-shift-cell:active { cursor: grabbing; }
+  .timeoff-shift-cell + .timeoff-shift-cell { box-shadow: inset 1px 0 0 rgba(0,0,0,0.22); }
+  .timeoff-shift-cell.is-hour-start { box-shadow: inset 2px 0 0 rgba(0,0,0,0.55); }
+  .timeoff-shift-cell:first-child { box-shadow: none; }
+  .timeoff-shift-cell:hover:not(.selected) { opacity: 0.62; }
+
+  /* PAST cells: more muted + desaturated. They're behind us, so they should recede. */
+  .timeoff-shift-cell.is-past:not(.is-now) {
+    opacity: 0.15;
+    filter: grayscale(0.8) brightness(0.7);
+  }
+  .timeoff-shift-cell.is-past.is-now { /* now wins, but show it's "at the boundary" */ }
+  /* Past + selected: still readable but stays muted vs future-selected. */
+  .timeoff-shift-cell.is-past.selected {
+    opacity: 0.55;
+    filter: grayscale(0.4) brightness(0.85);
+  }
+
+  /* NOW: a thin vertical "playhead" line at the EXACT current time (not cell-snapped), like the
+     current-time line in a calendar. The hour cell itself is not recolored or outlined, so it
+     never competes with the selection outline. A small dot caps the top and the whole thing pulses
+     slowly and subtly. */
+  .timeoff-shift-cell.is-past.is-now { /* now wins over past dimming */ }
+  .shift-now-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 0 7px rgba(255,255,255,0.65);
+    pointer-events: none;
+    z-index: 6;
+    animation: nowLinePulse 2.8s ease-in-out infinite;
+  }
+  .shift-now-line::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    box-shadow: 0 0 6px rgba(255,255,255,0.85);
+  }
+  @keyframes nowLinePulse {
+    0%, 100% { opacity: 0.45; }
+    50%      { opacity: 1; }
+  }
+
+  /* SELECTED cells: white outline ONLY. The shift color stays visible underneath so the user
+     can see what shift the selection covers. Outline is drawn via ::after so it overlays the
+     cell without overriding the background. */
+  .timeoff-shift-cell.selected { opacity: 0.9; }
+  .timeoff-shift-cell.selected::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .timeoff-shift-cell.is-selection-start::after {
+    box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset 2px 0 0 #FFFFFF;
+  }
+  .timeoff-shift-cell.is-selection-end::after {
+    box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset -2px 0 0 #FFFFFF;
+  }
+  /* Single-cell selection: outline all four sides. */
+  .timeoff-shift-cell.is-selection-start.is-selection-end::after {
+    box-shadow:
+      inset 0 2px 0 #FFFFFF,
+      inset 0 -2px 0 #FFFFFF,
+      inset 2px 0 0 #FFFFFF,
+      inset -2px 0 0 #FFFFFF;
+  }
+
+  /* WHOLE DAY mode: when the selection spans the full work window, hide the per-cell outlines
+     and show ONE solid block overlay with a "WHOLE DAY OFF" label instead. Cleaner feedback. */
+  .timeoff-shift-bar.is-whole-day .timeoff-shift-cell.selected::after { display: none; }
+  .timeoff-shift-bar.is-whole-day::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%);
+    box-shadow: inset 0 0 0 2px #FFFFFF;
+    pointer-events: none;
+    z-index: 4;
+    animation: wholeDayPulse 2s ease-in-out infinite;
+  }
+  .timeoff-shift-bar.is-whole-day::after {
+    content: 'WHOLE DAY OFF';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 800;
+    letter-spacing: 5px;
+    font-size: 13px;
+    text-shadow: 0 0 12px rgba(255,255,255,0.8), 0 0 4px #FFFFFF;
+    pointer-events: none;
+    z-index: 5;
+  }
+  @keyframes wholeDayPulse {
+    0%, 100% { background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 100%); }
+    50%      { background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%); }
+  }
+
+  .timeoff-shift-hour-labels {
+    position: relative;
+    height: 16px;
+    margin-top: 4px;
+  }
+  .timeoff-shift-hour-labels span {
+    position: absolute;
+    top: 4px;
+    transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: rgba(230,230,230,0.6);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .timeoff-shift-hour-labels span::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 3px;
+    background: rgba(230,230,230,0.35);
+  }
+
+  /* ============================================================================
+     TIME RANGE SUMMARY — three tiles. OFF FROM and UNTIL share the top row;
+     DURATION spans full width below them. Each tile has LEFT / RIGHT stepper
+     buttons (left = earlier/less, right = later/more) plus wheel-scroll. Buttons
+     are large for comfortable phone tapping.
+     ============================================================================ */
+  .timeoff-summary-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .timeoff-tile-wide { grid-column: 1 / -1; }
+
+  .timeoff-tile {
+    display: grid;
+    grid-template-columns: auto 1fr auto; /* leftBtn | content | rightBtn */
+    align-items: stretch;
+    gap: 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.12);
+    min-width: 0;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    cursor: ns-resize;
+    font-family: 'IBM Plex Mono', monospace;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .timeoff-tile.is-empty { opacity: 0.6; }
+  .timeoff-tile-content {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 10px 6px;
+    min-width: 0;
+  }
+  .timeoff-tile-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.7px;
+    color: rgba(230,230,230,0.5);
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .timeoff-tile-value {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    line-height: 1;
+    white-space: nowrap;
+    color: #FFFFFF;
+    text-align: center;
+  }
+  /* Width-stable digit container: min-width fits the widest "10:30" / "12:30" so the value box
+     never resizes when the digit count changes (no layout shifting while scrolling). */
+  .timeoff-tile-value-digits {
+    display: inline-block;
+    min-width: 5ch;
+    text-align: center;
+  }
+  .timeoff-tile-duration .timeoff-tile-value-digits { min-width: 7ch; }
+  .timeoff-tile-meridiem {
+    font-size: 10px;
+    margin-left: 2px;
+    opacity: 0.75;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .timeoff-tile-value-empty {
+    color: rgba(230,230,230,0.35);
+    font-style: italic;
+    font-size: 15px;
+  }
+  /* Left / right stepper buttons. Full-height side columns; large hit area for phones. */
+  .timeoff-tile-stepper {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    color: rgba(230,230,230,0.8);
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .timeoff-tile-stepper-left  { grid-column: 1; box-shadow: inset -1px 0 0 rgba(255,255,255,0.12); }
+  .timeoff-tile-stepper-right { grid-column: 3; box-shadow: inset 1px 0 0 rgba(255,255,255,0.12); }
+  .timeoff-tile-stepper:hover { background: rgba(255,255,255,0.14); color: #FFFFFF; }
+  .timeoff-tile-stepper:active { background: rgba(255,255,255,0.22); }
+  .timeoff-tile-stepper i { font-size: 18px; }
+  .timeoff-tile-stepper:disabled,
+  .timeoff-tile-stepper.is-disabled {
+    opacity: 0.22;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Quick acknowledgement flash on a tile when it changes (scroll or stepper press). */
+  .timeoff-tile.is-flash { animation: tileFlash 0.24s ease-out; }
+  @keyframes tileFlash {
+    0%   { border-color: #FFFFFF; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4); }
+    100% { border-color: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
+  }
+
+  /* CURRENT TIME button press effect + bar cyan glow (unchanged from before). */
+  .timeoff-current-time-btn.is-pressed { animation: currentTimePressed 0.45s ease-out; }
+  @keyframes currentTimePressed {
+    0%   { background: #43D9FF; color: #0F0F0F; transform: scale(0.96); border-color: #43D9FF; box-shadow: 0 0 0 0 rgba(67,217,255,0.7); }
+    45%  { background: rgba(67,217,255,0.22); color: #43D9FF; transform: scale(1.02); border-color: rgba(67,217,255,0.6); box-shadow: 0 0 14px 4px rgba(67,217,255,0.45); }
+    100% { background: rgba(255,255,255,0.05); color: rgba(230,230,230,0.85); transform: scale(1); border-color: rgba(255,255,255,0.18); box-shadow: 0 0 0 0 rgba(67,217,255,0); }
+  }
+  .timeoff-shift-bar.is-jumping-to-now { animation: barJumpToNow 0.55s ease-out; }
+  @keyframes barJumpToNow {
+    0%   { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 0 rgba(67,217,255,0); }
+    40%  { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 18px 4px rgba(67,217,255,0.65); }
+    100% { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04); }
+  }
+
+  @media (max-width: 480px) {
+    .timeoff-tile-stepper { width: 46px; }      /* bigger touch targets on phones */
+    .timeoff-tile-stepper i { font-size: 20px; }
+    .timeoff-tile-value { font-size: 17px; }
+    .timeoff-shift-bar { height: 38px; }
+    .timeoff-current-time-btn,
+    .timeoff-whole-day-btn { height: 38px; font-size: 9px; letter-spacing: 1px; }
+  }
+  .timeoff-from-block {
+    padding: 12px 14px 16px;
+    background: rgba(67,217,255,0.05);
+    border: 1px solid rgba(67,217,255,0.22);
+  }
+  .timeoff-from-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .timeoff-from-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(230,230,230,0.55);
+    text-transform: uppercase;
+  }
+  .timeoff-from-wheels {
+    --group-color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  /* Brief 0.5s pulse that runs after the Current button updates the FROM time, so the user
+     gets a visible "yes, it changed" signal beyond the value swap. */
+  @keyframes fromWheelsPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(67,217,255,0.55); transform: scale(1); }
+    35%  { box-shadow: 0 0 0 8px rgba(67,217,255,0); transform: scale(1.07); }
+    100% { box-shadow: 0 0 0 0 rgba(67,217,255,0); transform: scale(1); }
+  }
+  .timeoff-from-wheels.just-updated .time-wheel {
+    animation: fromWheelsPulse 0.5s ease-out;
+  }
+  /* The BACK AT box also flashes briefly to show it recomputed alongside FROM. */
+  @keyframes backAtPulse {
+    0%   { background: rgba(67,217,255,0.18); border-color: rgba(67,217,255,0.55); }
+    100% { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.18); }
+  }
+  .timeoff-to-display.just-updated {
+    animation: backAtPulse 0.5s ease-out;
+  }
+
+  /* "Current" button: compact, fits in the FROM block header. Sets FROM to now rounded to next :15. */
+  .timeoff-now-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(67,217,255,0.14);
+    border: 1px solid rgba(67,217,255,0.40);
+    color: #43D9FF;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 5px 9px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+  }
+  .timeoff-now-btn:hover { background: rgba(67,217,255,0.24); border-color: #43D9FF; color: #FFFFFF; }
+  .timeoff-now-btn:active { transform: scale(0.97); }
+  .timeoff-now-btn i { font-size: 12px; }
+
+  /* HOURS OFF block: slider drives how many whole hours off; TO ("BACK AT") is derived. */
+  .timeoff-duration {
+    margin-top: 14px;
+    padding: 14px;
+    background: rgba(167,139,250,0.06);
+    border: 1px solid rgba(167,139,250,0.25);
+  }
+  .timeoff-duration-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .timeoff-duration-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(230,230,230,0.55);
+    text-transform: uppercase;
+  }
+  .timeoff-duration-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 800;
+    color: #A78BFA;
+    letter-spacing: 0.5px;
+    transition: color 0.18s ease;
+  }
+
+  /* Segmented animated slider: 8 visible bars under the range input, one per hour.
+     The native thumb is hidden (transparent) so it still receives clicks/drags, while a custom
+     knob (.timeoff-duration-knob) is positioned PRECISELY via CSS calc() to overlap one segment
+     exactly. --knob-pos (0..7, set by JS) drives the left calc; --seg-width derives from the
+     container width minus the 8px padding on each side and the 7×3px gaps between segments. */
+  .timeoff-duration-slider-wrap {
+    --knob-pos: 0;
+    --seg-gap: 3px;
+    --seg-pad: 8px;
+    --seg-width: calc((100% - var(--seg-pad) * 2 - var(--seg-gap) * 7) / 8);
+    position: relative;
+    height: 24px;
+    margin: 6px 0 6px;
+  }
+  .timeoff-duration-segments {
+    position: absolute;
+    top: 50%;
+    left: var(--seg-pad);
+    right: var(--seg-pad);
+    transform: translateY(-50%);
+    display: flex;
+    gap: var(--seg-gap);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .timeoff-duration-segment {
+    flex: 1;
+    height: 6px;
+    background: rgba(167,139,250,0.16);
+    transition: background 0.28s ease, box-shadow 0.28s ease;
+  }
+  .timeoff-duration-segment.filled {
+    background: #A78BFA;
+    box-shadow: 0 0 8px rgba(167,139,250,0.5);
+  }
+  /* Cascade fill: each segment animates slightly later than the one before it. */
+  .timeoff-duration-segment:nth-child(1) { transition-delay: 0s; }
+  .timeoff-duration-segment:nth-child(2) { transition-delay: 0.035s; }
+  .timeoff-duration-segment:nth-child(3) { transition-delay: 0.07s; }
+  .timeoff-duration-segment:nth-child(4) { transition-delay: 0.105s; }
+  .timeoff-duration-segment:nth-child(5) { transition-delay: 0.14s; }
+  .timeoff-duration-segment:nth-child(6) { transition-delay: 0.175s; }
+  .timeoff-duration-segment:nth-child(7) { transition-delay: 0.21s; }
+  .timeoff-duration-segment:nth-child(8) { transition-delay: 0.245s; }
+
+  /* Custom knob: matches one segment width exactly, slides between segment slots with a smooth
+     transition. Sits OVER the current segment so the value indicator is pixel-aligned. */
+  .timeoff-duration-knob {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--seg-pad) + var(--knob-pos) * (var(--seg-width) + var(--seg-gap)));
+    transform: translateY(-50%);
+    width: var(--seg-width);
+    height: 16px;
+    background: #FFFFFF;
+    border: 2px solid #A78BFA;
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.20);
+    pointer-events: none;
+    z-index: 3;
+    transition: left 0.28s cubic-bezier(0.34, 1.45, 0.5, 1), transform 0.16s ease, box-shadow 0.16s ease;
+  }
+  .timeoff-duration-slider-wrap:hover .timeoff-duration-knob {
+    box-shadow: 0 0 0 5px rgba(167,139,250,0.28);
+  }
+  .timeoff-duration-slider:active ~ .timeoff-duration-knob {
+    transform: translateY(-50%) scale(1.08);
+  }
+
+  /* Native slider sits on top of the segments + knob; track and thumb are transparent so only
+     the custom layer is visible, but the input still captures clicks, drags, and arrow keys. */
+  .timeoff-duration-slider {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+    z-index: 2;
+    margin: 0;
+  }
+  .timeoff-duration-slider::-webkit-slider-runnable-track { background: transparent; height: 100%; border: none; }
+  .timeoff-duration-slider::-moz-range-track { background: transparent; height: 100%; border: none; }
+  .timeoff-duration-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  .timeoff-duration-slider::-moz-range-thumb {
+    width: 22px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+  }
+  .timeoff-duration-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: rgba(230,230,230,0.35);
+  }
+
+  /* BACK AT: the derived end time, read-only (dashed border signals "computed, not editable"). */
+  .timeoff-to-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.18);
+  }
+  .timeoff-to-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(230,230,230,0.45);
+    text-transform: uppercase;
+  }
+  .timeoff-to-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: 1px;
   }
 
   /* Confirmation summary block. Full-width, lives BELOW the questions-grid and ABOVE the notes
@@ -2171,18 +2915,16 @@
   .reason-selected {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 12px;
-    padding: 10px 12px;
+    gap: 5px;
+    margin-top: 10px;
+    padding: 6px 8px;
     background: rgba(0,0,0,0.25);
     border: 1px solid rgba(255,255,255,0.08);
-    min-height: 44px;
+    min-height: 0;
     align-items: center;
   }
-  .reason-selected.empty {
-    border-style: dashed;
-    border-color: rgba(255,255,255,0.12);
-  }
+  /* Empty: hide entirely. Tile selection is the primary confirmation; an empty dashed box wastes space. */
+  .reason-selected.empty { display: none; }
   .reason-selected-empty {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
@@ -2204,13 +2946,13 @@
     animation: fadeInUp 0.2s ease;
   }
   .reason-chip-text {
-    padding: 7px 4px 7px 10px;
+    padding: 4px 3px 4px 8px;
   }
   .reason-chip-x {
     background: rgba(0,0,0,0.18);
     border: none;
     color: rgba(0,0,0,0.7);
-    padding: 7px 9px;
+    padding: 4px 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2220,96 +2962,110 @@
     background: rgba(0,0,0,0.35);
     color: #FFFFFF;
   }
-  .reason-chip-x i { font-size: 12px; }
+  .reason-chip-x i { font-size: 10px; }
 
-  .reason-picker {
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.12);
+  /* ---- Reason picker: compact grouped grid of horizontal icon tiles, color-coded ---- */
+  .reason-groups {
     display: flex;
     flex-direction: column;
+    gap: 10px;
   }
-  .reason-scroll-btn {
-    width: 100%;
-    background: rgba(255,255,255,0.05);
-    border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    color: rgba(230,230,230,0.5);
-    padding: 7px;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-    flex-shrink: 0;
+  .reason-group-label {
     display: flex;
     align-items: center;
-    justify-content: center;
-  }
-  .reason-scroll-btn.reason-scroll-down {
-    border-bottom: none;
-    border-top: 1px solid rgba(255,255,255,0.06);
-  }
-  .reason-scroll-btn:hover {
-    background: rgba(255,255,255,0.12);
-    color: #FFFFFF;
-  }
-  .reason-scroll-btn i { font-size: 14px; }
-  .reason-list-inner {
-    flex: 1;
-    overflow-y: auto;
-    max-height: 220px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.2) transparent;
-  }
-  .reason-list-inner::-webkit-scrollbar { width: 4px; }
-  .reason-list-inner::-webkit-scrollbar-track { background: transparent; }
-  .reason-list-inner::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
-  .reason-list-inner::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.32); }
-  .reason-item {
-    width: 100%;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    color: rgba(230,230,230,0.78);
+    gap: 6px;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    text-align: left;
-    padding: 11px 14px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .reason-group-dot { width: 6px; height: 6px; flex-shrink: 0; }
+  .reason-group-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .reason-tile {
+    --reason-color: #FFB800;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 22px 7px 9px; /* right pad reserves room for the check badge */
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.10);
     cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.1s ease;
+    min-height: 38px;
+    text-align: left;
+  }
+  .reason-tile:hover {
+    background: color-mix(in srgb, var(--reason-color) 9%, rgba(255,255,255,0.03));
+    border-color: color-mix(in srgb, var(--reason-color) 45%, rgba(255,255,255,0.10));
+  }
+  .reason-tile:active { transform: scale(0.97); }
+  .reason-tile-icon {
     display: flex;
     align-items: center;
-    gap: 12px;
-    transition: background 0.15s, color 0.15s;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--reason-color);
+    flex-shrink: 0;
+    transition: transform 0.18s ease;
   }
-  .reason-item:last-child { border-bottom: none; }
-  .reason-item:hover {
-    background: rgba(255,255,255,0.05);
-    color: #FFFFFF;
+  .reason-tile-icon i { font-size: 17px; line-height: 1; }
+  .reason-tile-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: rgba(230,230,230,0.7);
+    letter-spacing: 0.1px;
+    flex: 1;
+    min-width: 0;
+    transition: color 0.18s ease;
   }
-  .reason-marker {
-    width: 18px;
-    height: 18px;
-    display: inline-flex;
+  .reason-tile-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 14px;
+    height: 14px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.18);
-    flex-shrink: 0;
-    transition: all 0.2s;
+    background: var(--reason-color);
+    color: #0F0F0F;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.18s ease, transform 0.18s ease;
   }
-  .reason-marker i { font-size: 11px; color: rgba(230,230,230,0.6); }
-  .reason-item:hover .reason-marker {
-    background: rgba(255,255,255,0.12);
-    border-color: rgba(255,255,255,0.32);
+  .reason-tile-check i { font-size: 9px; line-height: 1; }
+  .reason-tile.selected {
+    background: color-mix(in srgb, var(--reason-color) 16%, transparent);
+    border-color: var(--reason-color);
   }
-  .reason-item:hover .reason-marker i { color: #FFFFFF; }
-  .reason-item.selected {
-    background: rgba(255,184,0,0.10);
-    color: #FFFFFF;
+  .reason-tile.selected .reason-tile-label { color: #FFFFFF; }
+  .reason-tile.selected .reason-tile-check { opacity: 1; transform: scale(1); }
+
+  /* inline hint next to the prompt ("Pick one or more") */
+  .q-prompt-hint {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(230,230,230,0.4);
+    letter-spacing: 0.5px;
+    text-transform: none;
   }
-  .reason-item.selected .reason-marker {
-    background: #FFB800;
-    border-color: #FFB800;
+
+  @media (max-width: 380px) {
+    .reason-tile-label { font-size: 9.5px; }
+    .reason-tile { min-height: 36px; padding: 6px 20px 6px 7px; }
+    .reason-tile-icon i { font-size: 15px; }
   }
-  .reason-item.selected .reason-marker i { color: #0F0F0F; }
-  .reason-text { flex: 1; }
 
   .submit-btn {
     width: 100%;
@@ -2334,20 +3090,55 @@
   .submit-btn.ready.mode-in-ready {
     background: #39D98A;
     color: #0F0F0F;
+    animation: submitGlowGreen 2.6s ease-in-out infinite;
   }
 
   .submit-btn.ready.mode-out-ready {
     background: #FF5572;
     color: #FFFFFF;
+    animation: submitGlowPink 2.6s ease-in-out infinite;
   }
 
   .submit-btn.ready.mode-off-ready {
     background: #FFFFFF;
     color: #0F0F0F;
+    animation: submitGlowWhite 2.6s ease-in-out infinite;
+  }
+
+  /* "Ready to submit" glow: a soft, upward-biased halo that rises from the button and pulses
+     gently. Negative y-offset pushes the glow up so it reads as "rising"; the large blur covers a
+     wide area. Deliberately low-opacity / slow so it's noticeable but never shouty. */
+  @keyframes submitGlowGreen {
+    0%, 100% { box-shadow: 0 -4px 24px -4px rgba(57,217,138,0.32); }
+    50%      { box-shadow: 0 -12px 52px 2px rgba(57,217,138,0.62); }
+  }
+  @keyframes submitGlowPink {
+    0%, 100% { box-shadow: 0 -4px 24px -4px rgba(255,85,114,0.32); }
+    50%      { box-shadow: 0 -12px 52px 2px rgba(255,85,114,0.6); }
+  }
+  @keyframes submitGlowWhite {
+    0%, 100% { box-shadow: 0 -4px 24px -4px rgba(255,255,255,0.25); }
+    50%      { box-shadow: 0 -12px 52px 2px rgba(255,255,255,0.5); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .submit-btn.ready { animation: none !important; }
   }
 
   .submit-btn.ready:hover { opacity: 0.92; }
   .submit-btn.ready:active { transform: scale(0.99); }
+
+  /* In-flight / disabled submit state: prevents the double-tap that causes duplicate rows. */
+  .submit-btn:disabled,
+  .submit-btn.is-submitting,
+  .submit-btn-late:disabled,
+  .submit-btn-late.is-submitting {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+    animation: none !important;
+    filter: grayscale(0.3);
+  }
+  .submit-btn.is-submitting { position: relative; }
 
   .progress-hint {
     text-align: center;
@@ -2448,8 +3239,29 @@
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(230,230,230,0.1);
     padding: 8px 14px;
-    margin: 0 auto 24px;
     font-family: 'IBM Plex Mono', monospace;
+  }
+  /* Stack the time block + Back button vertically, both the same width, centered. The Back
+     button sits directly BELOW the submitted-time block for a cleaner aligned look. */
+  .success-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 240px;
+    max-width: 90%;
+    margin: 0 auto 24px;
+  }
+  .success-actions .success-submitted {
+    margin: 0;
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .success-actions .reset-link {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
   }
   .success-submitted-label {
     font-size: 9px;
@@ -2584,6 +3396,7 @@
 
 <div class="colorbar"></div>
 <div class="hour-flash" id="hour-flash"></div>
+<div class="submit-ready-sweep" id="submit-ready-sweep" aria-hidden="true"><div class="sweep-band"></div></div>
 
 <iframe name="offbox-submit-iframe" id="offbox-submit-iframe" style="display:none;position:absolute;left:-9999px;width:1px;height:1px;border:0" aria-hidden="true"></iframe>
 
@@ -2745,10 +3558,6 @@
     </div>
     <div class="success-title" id="success-title">Logged in</div>
     <div class="success-msg" id="success-msg">Go crush today.</div>
-    <div class="success-submitted" id="success-submitted">
-      <span class="success-submitted-label">submitted at</span>
-      <span class="success-submitted-time" id="success-submitted-time"></span>
-    </div>
     <div class="reward-banner" id="reward-banner">
       <div class="reward-icon"><i class="ti ti-trophy" aria-hidden="true"></i></div>
       <div>
@@ -2756,7 +3565,13 @@
         <div class="reward-desc" id="reward-desc">Three of these in two weeks unlocks recognition.</div>
       </div>
     </div>
-    <button class="reset-link" onclick="resetAll()">Back</button>
+    <div class="success-actions">
+      <div class="success-submitted" id="success-submitted">
+        <span class="success-submitted-label">submitted at</span>
+        <span class="success-submitted-time" id="success-submitted-time"></span>
+      </div>
+      <button class="reset-link" onclick="resetAll()">Back</button>
+    </div>
   </div>
 
   <div class="credits">
@@ -2780,6 +3595,12 @@
       { name: '2ND SHIFT', start: 14, end: 17, color: 'rgba(255,184,0,0.9)',   next: 'OFF'       }
     ]
   };
+
+  // Granularity of the time-off picker. 60-min slots -- after testing, sub-hour precision wasn't
+  // needed (small differences get squared up informally). Changing this to 15 or 30 re-derives the
+  // whole picker: bar cell count, snapping, stepper ticks, and current-time rounding all key off it.
+  const SLOT_MIN = 60;
+  function slotCount() { return (WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart) * 60 / SLOT_MIN; }
 
   // Returns the multi-layer background for a shift bar layer.
   //   - Top layer: 1px dark vertical dividers, one per hour
@@ -3120,7 +3941,7 @@
     goal: '', blocker: { has: null, what: '', unblocker: '' },
     energyIn: 0, expectedDiff: '',
     completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
-    timeOff: { days: [], from: '', to: '' },
+    timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false },
     reasons: [],
     otherReason: '',
     notes: ''
@@ -3251,8 +4072,7 @@
     }, 30);
   }
 
-  // Mouse-wheel scroll handler for the time-range wheels (mirrors the cycleMeta behaviour
-  // in the LOG OUT 'What Got Done' wheel selectors).
+  // Mouse-wheel scroll handler for the time-range FROM wheels + the duration slider.
   function attachTimeWheelHandlers() {
     document.querySelectorAll('.time-wheel').forEach(function(wheel) {
       wheel.addEventListener('wheel', function(e) {
@@ -3261,9 +4081,27 @@
         cycleTimeWheel(id, e.deltaY > 0 ? -1 : 1);
       }, { passive: false });
     });
-    // Paint initial AM/PM/outside colors so the wheels match their starting hour values.
+    // Duration slider: scrolling adjusts by a single hour (1-8), matching the +1 step.
+    const slider = document.getElementById('timeoff-duration-slider');
+    if (slider) {
+      slider.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        let v = parseInt(slider.value, 10) || 1;
+        v += (e.deltaY > 0 ? -1 : 1);
+        if (v < 1) v = 1;
+        if (v > 8) v = 8;
+        slider.value = v; // programmatic change: sync the input itself (drag path does this natively)
+        setDuration(v);
+      }, { passive: false });
+    }
+    // Paint the FROM group color so the wheels match their starting hour value.
     updateTimeGroupColor('from');
-    updateTimeGroupColor('to');
+    // Paint segment fills on first render so the slider state matches state.timeOff.durationHours.
+    updateDurationSegments();
+    // NEW: bind the shift-bar drag handler + paint selection + draw the now indicator.
+    attachShiftBarHandlers();
+    updateShiftBarSelection();
+    paintNowIndicator();
     // Paint the confirmation summary (or hide it) based on current state on first render.
     updateTimeOffSummary();
   }
@@ -3456,29 +4294,49 @@
   //                add-time-range wheel scrollers, (2) Reason — always-open
   //                scrollable list with up/down arrows + mouse wheel.
   // =========================================================================
-  const TIME_OFF_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU'];
+  const TIME_OFF_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
   // Same color rules as the day display block, so visual identity is consistent across the form.
+  // Friday and Saturday are weekend days in Saudi Arabia: rendered white to read as "not a workday".
   const DAY_CHIP_COLORS = {
     0: '#43D9FF', // Sun cyan
     1: '#FFBF25', // Mon amber
     2: '#00FF9E', // Tue green
     3: '#FF518F', // Wed pink
-    4: '#9B5DE5'  // Thu purple
+    4: '#9B5DE5', // Thu purple
+    5: '#FFFFFF', // Fri white (weekend)
+    6: '#FFFFFF'  // Sat white (weekend)
   };
+  // Reason groups: each has a label + color. Tiles are color-coded by group so related reasons
+  // read as a set at a glance. Colors reuse the studio palette (pink/cyan/amber/purple).
+  const REASON_GROUPS = {
+    health:   { label: 'Health & Wellbeing',  color: '#FF6B9D' },
+    personal: { label: 'Family & Personal',   color: '#43D9FF' },
+    work:     { label: 'Work & Travel',       color: '#FFB800' },
+    other:    { label: 'Obligations & Other', color: '#A78BFA' }
+  };
+
+  // Each reason: label (also the stored/submitted value), a Tabler icon, and its group.
+  // IMPORTANT: the labels must stay byte-for-byte identical to the Apps Script REASON_TO_FIELD map.
   const REASON_OPTIONS = [
-    'Medical / Doctor visit',
-    'Personal matter',
-    'Family commitment',
-    'Religious observance',
-    'Travel',
-    'Conference / Event',
-    'Mental health day',
-    'Bereavement',
-    'Government appointment',
-    'Childcare / School',
-    'Home emergency',
-    'Other'
+    { label: 'Medical / Doctor visit', icon: 'stethoscope',     group: 'health' },
+    { label: 'Mental health',          icon: 'brain',           group: 'health' },
+    { label: 'Personal matter',        icon: 'user',            group: 'personal' },
+    { label: 'Family commitment',      icon: 'users',           group: 'personal' },
+    { label: 'School / Childcare',     icon: 'school',          group: 'personal' },
+    { label: 'Bereavement',            icon: 'flower',          group: 'personal' },
+    { label: 'Travel',                 icon: 'plane',           group: 'work' },
+    { label: 'Conference / Event',     icon: 'calendar-event',  group: 'work' },
+    { label: 'Religious observance',   icon: 'building-mosque', group: 'other' },
+    { label: 'Government appointment', icon: 'building-bank',   group: 'other' },
+    { label: 'Home emergency',         icon: 'alert-triangle',  group: 'other' },
+    { label: 'Other',                  icon: 'dots',            group: 'other' }
   ];
+
+  // Group color for a given reason label (used by tiles + selected chips).
+  function getReasonColor(label) {
+    const opt = REASON_OPTIONS.find(function(o) { return o.label === label; });
+    return opt ? REASON_GROUPS[opt.group].color : '#FFB800';
+  }
 
   // Compute the calendar date (e.g. "31 May") of any weekday index (0=Sun..6=Sat) within the current calendar week.
   function getThisWeekDateLabel(dayIdx) {
@@ -3488,20 +4346,25 @@
     const d = new Date(sundayThisWeek);
     d.setDate(sundayThisWeek.getDate() + dayIdx);
     const monthShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
-    return d.getDate() + ' ' + monthShort;
+    return d.getDate() + '-' + monthShort;
   }
 
   // Lazy-init the time-range visibility flag (so re-renders preserve the user's "show range" choice).
-  function isTimeRangeOpen() {
-    return !!(state.timeOff.from || state.timeOff.to || state.timeOff._rangeOpen);
-  }
+  // (Removed: time range is now required and always shown when at least one day is picked.)
 
   function renderLogoff() {
-    const daysDone = state.timeOff.days.length > 0;
-    const reasonsDone = state.reasons.length > 0;
-    const rangeOpen = isTimeRangeOpen();
+    // Seed a default time range so the FROM/UNTIL/DURATION tiles are populated and scrollable
+    // the moment the form opens. Skipped if the user explicitly cleared via right-click.
+    if ((!state.timeOff.from || !state.timeOff.to) && !state.timeOff._userCleared) {
+      seedDefaultTimeoffRange();
+    }
+    const hasRange = !!(state.timeOff.from && state.timeOff.to);
     const dayCount = state.timeOff.days.length;
-    const rangeBtnEnabled = dayCount > 0;
+    const daysDone = dayCount > 0 && hasRange;
+    const reasonsDone = reasonsComplete();
+    const wholeDayFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
+    const wholeDayTo   = minutesToHHMM(WORK_SCHEDULE.workEnd * 60);
+    const isWholeDay   = state.timeOff.from === wholeDayFrom && state.timeOff.to === wholeDayTo;
     // Question colors: purple for Time Off (rest/away mood), amber for Reason (scheduling).
     const Q1_COLOR = '#A78BFA';
     const Q2_COLOR = '#FFB800';
@@ -3513,61 +4376,67 @@
           <div class="num">1</div>
           <i class="ti ti-calendar-off q-icon" aria-hidden="true"></i>
           <div class="title">Time Off</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Pick the full days you'll be away, or click Add Time Range if it's just part of a single day."></i>
+          <i class="ti ti-info-circle info-icon" data-tip="Pick the days you'll be away, then drag the bar to set the hours. Hit Whole Day if you're off the entire shift."></i>
         </div>
         <div class="q-content active${daysDone ? ' done' : ''}">
           <div class="q-prompt">When will you be unavailable?</div>
           <div class="timeoff-days" id="timeoff-days">
-            ${TIME_OFF_DAYS.map(function(label, i) {
-              const active = state.timeOff.days.indexOf(i) >= 0;
-              const color = DAY_CHIP_COLORS[i];
-              const dateLabel = active ? getThisWeekDateLabel(i) : '';
-              return '<button type="button" class="timeoff-day' + (active ? ' active' : '') + '" ' +
-                'style="--day-color:' + color + '" onclick="toggleTimeOffDay(' + i + ')">' +
-                '<span class="timeoff-day-label">' + label + '</span>' +
-                '<span class="timeoff-day-date">' + escapeHtml(dateLabel) + '</span>' +
-                '</button>';
-            }).join('')}
+            ${(function() {
+              const todayIdx = new Date().getDay(); // 0=Sun..6=Sat
+              return TIME_OFF_DAYS.map(function(label, i) {
+                const active = state.timeOff.days.indexOf(i) >= 0;
+                const color = DAY_CHIP_COLORS[i];
+                const isToday = i === todayIdx;
+                const isPast = i < todayIdx;
+                const isWeekend = i >= 5;
+                const dateLabel = active ? getThisWeekDateLabel(i) : (isToday ? 'TODAY' : '');
+                const cls = ['timeoff-day'];
+                if (active) cls.push('active');
+                if (isToday) cls.push('is-today');
+                if (isPast) cls.push('is-past');
+                if (isWeekend) cls.push('is-weekend');
+                return '<button type="button" class="' + cls.join(' ') + '" ' +
+                  'style="--day-color:' + color + '" onclick="toggleTimeOffDay(' + i + ')">' +
+                  '<span class="timeoff-day-label">' + label + '</span>' +
+                  '<span class="timeoff-day-date">' + escapeHtml(dateLabel) + '</span>' +
+                  '</button>';
+              }).join('');
+            })()}
           </div>
 
-          <div class="timeoff-range-block">
-            <button type="button" class="timeoff-range-add" id="timeoff-range-add"
-              style="display:${rangeOpen ? 'none' : 'flex'}"
-              ${rangeBtnEnabled ? '' : 'disabled'}
-              onclick="openTimeRange()">
-              <i class="ti ti-plus"></i>
-              <span>Add Time Range</span>
-              <span class="timeoff-range-add-hint">${rangeBtnEnabled ? 'Optional · for partial-day off' : 'Pick at least one day first'}</span>
+          <!-- Action buttons above the slider: Current Time on the left, Whole Day on the right.
+               Equal width via grid. Both always shown, slider always shown, range always required. -->
+          <div class="timeoff-shift-actions">
+            <button type="button" class="timeoff-current-time-btn" id="timeoff-current-time-btn" onclick="selectCurrentTime()">
+              <i class="ti ti-clock-hour-3"></i>
+              <span>Current Time</span>
             </button>
+            <button type="button" class="timeoff-whole-day-btn${isWholeDay ? ' is-active' : ''}" id="timeoff-whole-day-btn" onclick="selectWholeDay()">
+              <i class="ti ti-sun"></i>
+              <span>Whole Day</span>
+            </button>
+          </div>
 
-            <div class="timeoff-range-panel" id="timeoff-range-panel" style="display:${rangeOpen ? 'block' : 'none'}">
-              <div class="timeoff-range-panel-header">
-                <span class="timeoff-range-panel-title">Time Range</span>
-                <button type="button" class="timeoff-range-clear" onclick="clearTimeRange()" title="Remove range, use full day">
-                  <i class="ti ti-x"></i>
-                </button>
-              </div>
-              <div class="time-wheel-row">
-                <div class="time-wheel-group" id="time-group-from">
-                  <div class="time-wheel-group-label">FROM</div>
-                  <div class="time-wheel-pair">
-                    ${renderTimeWheel('from-h', getTimePart(state.timeOff.from, 'h', 9), 'hour')}
-                    <span class="time-wheel-colon">:</span>
-                    ${renderTimeWheel('from-m', getTimePart(state.timeOff.from, 'm', 0), 'minute')}
-                    ${renderTimeWheel('from-ampm', getTimePart(state.timeOff.from, 'h', 9), 'ampm')}
-                  </div>
-                </div>
-                <span class="time-wheel-arrow"><i class="ti ti-arrow-right"></i></span>
-                <div class="time-wheel-group" id="time-group-to">
-                  <div class="time-wheel-group-label">TO</div>
-                  <div class="time-wheel-pair">
-                    ${renderTimeWheel('to-h', getTimePart(state.timeOff.to, 'h', 13), 'hour')}
-                    <span class="time-wheel-colon">:</span>
-                    ${renderTimeWheel('to-m', getTimePart(state.timeOff.to, 'm', 0), 'minute')}
-                    ${renderTimeWheel('to-ampm', getTimePart(state.timeOff.to, 'h', 13), 'ampm')}
-                  </div>
-                </div>
-              </div>
+          <!-- Shift bar — always visible. Right-click to clear selection. -->
+          <div class="timeoff-shift-bar-wrap">
+            <div class="timeoff-shift-bar${isWholeDay ? ' is-whole-day' : ''}" id="timeoff-shift-bar" role="slider" aria-label="Drag to pick off-time range, right-click to clear">
+              ${buildShiftBarCellsHtml()}
+            </div>
+            <div class="timeoff-shift-hour-labels">${buildShiftBarHourLabelsHtml()}</div>
+          </div>
+
+          <!-- Summary: OFF FROM and UNTIL share the top row; DURATION spans full width below.
+               Each tile scrolls (wheel) or steps via the left/right buttons (mobile-friendly),
+               in 30-min increments. Left = earlier/less, right = later/more. -->
+          <div class="timeoff-summary-grid">
+            <div class="timeoff-tile timeoff-tile-from" id="timeoff-tile-from" data-tile-field="from" title="Scroll or use the arrows to adjust by 1 hour">
+              ${buildTimeoffTileHtml('from')}
+            </div>
+            <div class="timeoff-tile timeoff-tile-until" id="timeoff-tile-until" data-tile-field="until" title="Scroll or use the arrows to adjust by 1 hour">
+              ${buildTimeoffTileHtml('until')}
+            </div>
+            <div class="timeoff-tile timeoff-tile-duration timeoff-tile-wide" id="timeoff-tile-duration" data-tile-field="duration" title="Scroll or use the arrows to adjust by 1 hour">
+              ${buildTimeoffTileHtml('duration')}
             </div>
           </div>
         </div>
@@ -3581,28 +4450,38 @@
           <i class="ti ti-info-circle info-icon" data-tip="Tap reasons to add. Pick one or more. The team only needs the category, not the details."></i>
         </div>
         <div class="q-content active${reasonsDone ? ' done' : ''}">
-          <div class="q-prompt">Why are you unavailable?</div>
+          <div class="q-prompt">Why are you unavailable? <span class="q-prompt-hint">Pick one or more</span></div>
 
-          <div class="reason-picker">
-            <button type="button" class="reason-scroll-btn reason-scroll-up" onclick="scrollReasonList(-1)" aria-label="scroll up"><i class="ti ti-chevron-up"></i></button>
-            <div class="reason-list-inner" id="reason-list-inner">
-              ${REASON_OPTIONS.map(function(r) {
-                const sel = state.reasons.indexOf(r) >= 0;
-                return '<button type="button" class="reason-item' + (sel ? ' selected' : '') + '" ' +
-                  'data-reason="' + escapeHtml(r) + '" onclick="addReason(this)">' +
-                  '<span class="reason-marker"><i class="ti ti-' + (sel ? 'check' : 'plus') + '"></i></span>' +
-                  '<span class="reason-text">' + escapeHtml(r) + '</span>' +
-                  '</button>';
-              }).join('')}
-            </div>
-            <button type="button" class="reason-scroll-btn reason-scroll-down" onclick="scrollReasonList(1)" aria-label="scroll down"><i class="ti ti-chevron-down"></i></button>
+          <div class="reason-groups">
+            ${Object.keys(REASON_GROUPS).map(function(gk) {
+              const g = REASON_GROUPS[gk];
+              const items = REASON_OPTIONS.filter(function(o) { return o.group === gk; });
+              return '<div class="reason-group">' +
+                '<div class="reason-group-label" style="color:' + g.color + '">' +
+                  '<span class="reason-group-dot" style="background:' + g.color + '"></span>' +
+                  g.label +
+                '</div>' +
+                '<div class="reason-group-grid">' +
+                  items.map(function(o) {
+                    const sel = state.reasons.indexOf(o.label) >= 0;
+                    return '<button type="button" class="reason-tile' + (sel ? ' selected' : '') + '" ' +
+                      'data-reason="' + escapeHtml(o.label) + '" style="--reason-color:' + g.color + '" ' +
+                      'onclick="addReason(this)">' +
+                      '<span class="reason-tile-check"><i class="ti ti-check"></i></span>' +
+                      '<span class="reason-tile-icon"><i class="ti ti-' + o.icon + '"></i></span>' +
+                      '<span class="reason-tile-label">' + escapeHtml(o.label) + '</span>' +
+                    '</button>';
+                  }).join('') +
+                '</div>' +
+              '</div>';
+            }).join('')}
           </div>
 
           <div class="reason-other-wrap" id="reason-other-wrap" style="display:${hasOther ? 'block' : 'none'}">
             <input type="text" class="reason-other-input" id="reason-other-input"
-              placeholder="Specify your reason..."
+              placeholder="Specify your reason (required)..."
               value="${escapeHtml(state.otherReason || '')}"
-              oninput="state.otherReason = this.value; updateReasonChips(); updateTimeOffSummary();">
+              oninput="state.otherReason = this.value; refreshReasonUI(); updateReasonChips(); updateTimeOffSummary(); updateSubmitState();">
           </div>
 
           <div class="reason-selected${state.reasons.length === 0 ? ' empty' : ''}" id="reason-selected">
@@ -3620,52 +4499,688 @@
     else state.timeOff.days.push(idx);
     state.timeOff.days.sort(function(a, b) { return a - b; });
 
-    // If no days remain, also collapse the time range (it's meaningless without days)
-    if (state.timeOff.days.length === 0) {
-      state.timeOff._rangeOpen = false;
-      state.timeOff.from = '';
-      state.timeOff.to = '';
-      renderForm();
-      updateSubmitState();
-      return;
-    }
-
-    // Day chips: update visuals + dates without a full re-render
-    const btns = document.querySelectorAll('.timeoff-day');
-    btns.forEach(function(b, n) {
+    // Day chip visuals: update active state + dates without a full re-render
+    const todayIdx = new Date().getDay();
+    document.querySelectorAll('.timeoff-day').forEach(function(b, n) {
       const active = state.timeOff.days.indexOf(n) >= 0;
       b.classList.toggle('active', active);
       const dateEl = b.querySelector('.timeoff-day-date');
-      if (dateEl) dateEl.textContent = active ? getThisWeekDateLabel(n) : '';
+      if (dateEl) dateEl.textContent = active ? getThisWeekDateLabel(n) : (n === todayIdx ? 'TODAY' : '');
     });
 
-    // Add-time-range button: enable now that at least one day is picked
-    const rangeBtn = document.getElementById('timeoff-range-add');
-    if (rangeBtn) {
-      rangeBtn.disabled = false;
-      const hint = rangeBtn.querySelector('.timeoff-range-add-hint');
-      if (hint) hint.textContent = 'Optional · for partial-day off';
-    }
-
+    // Card done state: needs BOTH days picked AND a time range. The slider stays visible
+    // regardless of day-pick state -- the range is required, not optional.
     const card = document.getElementById('card-timeoff');
-    if (card) card.classList.toggle('done', state.timeOff.days.length > 0);
+    if (card) {
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
     updateTimeOffSummary();
     updateSubmitState();
   }
-  function openTimeRange() {
-    state.timeOff._rangeOpen = true;
-    // Initialize defaults if completely empty
-    if (!state.timeOff.from) state.timeOff.from = '09:00';
-    if (!state.timeOff.to) state.timeOff.to = '13:00';
-    renderForm();
+  // ===========================================================================
+  // Shift bar (Time Off range picker)
+  // ---------------------------------------------------------------------------
+  // The picker is a horizontal strip of (workEnd - workStart) * 4 quarter-hour
+  // cells. Cells are colored by which WORK_SCHEDULE segment they fall in (cyan
+  // shift 1, white break, amber shift 2), so the bar mirrors the day-block
+  // progress bar at the top of the page. Drag across cells to set the off-range
+  // (start time = first selected cell, end time = end of last selected cell).
+  // A white "now" line marks the current moment on the timeline.
+  // ===========================================================================
+
+  function minutesToHHMM(min) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
   }
 
-  function clearTimeRange() {
-    state.timeOff.from = '';
-    state.timeOff.to = '';
-    state.timeOff._rangeOpen = false;
-    renderForm();
+  function timeToCellIndex(hhmm) {
+    if (!hhmm) return -1;
+    const parts = hhmm.split(':');
+    const totalMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    return Math.floor((totalMin - WORK_SCHEDULE.workStart * 60) / SLOT_MIN);
+  }
+
+  // Pretty "Xh Ym" / "X HOURS" / "Ym" derived from state.timeOff.from and .to.
+  function computeDurationStr() {
+    if (!state.timeOff.from || !state.timeOff.to) return '';
+    const fp = state.timeOff.from.split(':');
+    const tp = state.timeOff.to.split(':');
+    const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    const dur = tMin - fMin;
+    if (dur <= 0) return '';
+    const h = Math.floor(dur / 60);
+    const m = dur % 60;
+    if (h > 0 && m > 0) return h + 'H ' + m + 'M';
+    if (h > 0) return h + ' HOUR' + (h === 1 ? '' : 'S');
+    return m + ' MIN';
+  }
+
+  // Render the cell row. Each cell looks up its segment color from WORK_SCHEDULE so changing
+  // shift hours / break time in WORK_SCHEDULE.segments is the SINGLE place to edit — both the
+  // top day-progress-bar AND this picker re-derive from it.
+  function buildShiftBarCellsHtml() {
+    const cells = [];
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const totalCells = slotCount();
+    // Pre-compute selection from state so the initial render already shows the picked cells.
+    let fromCell = -1;
+    let toCellInclusive = -1;
+    if (state.timeOff.from && state.timeOff.to) {
+      fromCell = timeToCellIndex(state.timeOff.from);
+      toCellInclusive = timeToCellIndex(state.timeOff.to) - 1;
+    }
+    // Pre-compute "now" cell so initial render already has the is-now / is-past / is-future
+    // classes (no flicker between renderForm and the post-render paintNowIndicator pass).
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    let nowCellIdx = -1;
+    if (nowMin >= startMin && nowMin < endMin) {
+      nowCellIdx = Math.floor((nowMin - startMin) / SLOT_MIN);
+    }
+    for (let i = 0; i < totalCells; i++) {
+      const midHour = (startMin + i * SLOT_MIN + SLOT_MIN / 2) / 60; // mid-of-cell for clean segment lookup
+      let color = 'rgba(255,255,255,0.06)';
+      for (let s = 0; s < WORK_SCHEDULE.segments.length; s++) {
+        const seg = WORK_SCHEDULE.segments[s];
+        if (midHour >= seg.start && midHour < seg.end) { color = seg.color; break; }
+      }
+      const cellStartMin = startMin + i * SLOT_MIN;
+      const cellEndMin   = cellStartMin + SLOT_MIN;
+      const isHourStart = (i % (60 / SLOT_MIN)) === 0;
+      const isSelected  = (fromCell >= 0 && i >= fromCell && i <= toCellInclusive);
+      const isSelStart  = isSelected && i === fromCell;
+      const isSelEnd    = isSelected && i === toCellInclusive;
+      const isNow       = (i === nowCellIdx);
+      const isPast      = !isNow && cellEndMin <= nowMin;
+      const isFuture    = !isNow && cellStartMin > nowMin;
+      const classes = ['timeoff-shift-cell'];
+      if (isHourStart) classes.push('is-hour-start');
+      if (isSelected)  classes.push('selected');
+      if (isSelStart)  classes.push('is-selection-start');
+      if (isSelEnd)    classes.push('is-selection-end');
+      if (isNow)       classes.push('is-now');
+      if (isPast)      classes.push('is-past');
+      if (isFuture)    classes.push('is-future');
+      cells.push('<div class="' + classes.join(' ') + '" data-cell="' + i + '" style="background:' + color + '"></div>');
+    }
+    return cells.join('');
+  }
+
+  function buildShiftBarHourLabelsHtml() {
+    const labels = [];
+    const totalHours = WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart;
+    for (let i = 0; i <= totalHours; i++) {
+      const h24 = WORK_SCHEDULE.workStart + i;
+      let display = h24;
+      if (display > 12) display -= 12;
+      if (display === 0) display = 12;
+      const pct = (i / totalHours) * 100;
+      labels.push('<span style="left:' + pct + '%">' + display + '</span>');
+    }
+    return labels.join('');
+  }
+
+  // Apply state.timeOff.from / .to to cell selection classes + refresh summary box +
+  // toggle the bar's .is-whole-day class so the single-block overlay shows in whole day mode.
+  function updateShiftBarSelection() {
+    const cells = document.querySelectorAll('.timeoff-shift-cell');
+    if (!cells.length) return;
+    let fromCell = -1;
+    let toCellInclusive = -1;
+    if (state.timeOff.from && state.timeOff.to) {
+      fromCell = timeToCellIndex(state.timeOff.from);
+      toCellInclusive = timeToCellIndex(state.timeOff.to) - 1;
+    }
+    cells.forEach(function(c, i) {
+      const sel = fromCell >= 0 && i >= fromCell && i <= toCellInclusive;
+      c.classList.toggle('selected', sel);
+      c.classList.toggle('is-selection-start', sel && i === fromCell);
+      c.classList.toggle('is-selection-end',   sel && i === toCellInclusive);
+    });
+    // Toggle whole-day overlay on the bar element itself when the selection spans the full work day.
+    const bar = document.getElementById('timeoff-shift-bar');
+    if (bar) {
+      const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
+      const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
+      const isWhole = state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
+      bar.classList.toggle('is-whole-day', isWhole);
+    }
+    updateTimeoffSummaryRow();
+    updateWholeDayBtnState();
+  }
+
+  // Refresh is-now / is-past / is-future on every cell. Cheap class flips, idempotent.
+  // Called from the clock tick so the "now" block walks across the bar as time passes.
+  function paintNowIndicator() {
+    const cells = document.querySelectorAll('.timeoff-shift-cell');
+    if (!cells.length) return;
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    let nowCellIdx = -1;
+    if (nowMin >= startMin && nowMin < endMin) {
+      nowCellIdx = Math.floor((nowMin - startMin) / SLOT_MIN);
+    }
+    cells.forEach(function(c, i) {
+      const cellStartMin = startMin + i * SLOT_MIN;
+      const cellEndMin   = cellStartMin + SLOT_MIN;
+      const isNow    = (i === nowCellIdx);
+      const isPast   = !isNow && cellEndMin <= nowMin;
+      const isFuture = !isNow && cellStartMin > nowMin;
+      c.classList.toggle('is-now',    isNow);
+      c.classList.toggle('is-past',   isPast);
+      c.classList.toggle('is-future', isFuture);
+    });
+
+    // Floating "now" playhead: a thin vertical line at the EXACT current minute inside the bar.
+    // Lives in the bar (position:relative) so it overlays the cells; positioned by real time, so
+    // it drifts slowly across the current hour cell rather than snapping.
+    const bar2 = document.getElementById('timeoff-shift-bar');
+    if (bar2) {
+      let line = bar2.querySelector('.shift-now-line');
+      const inHours = nowMin >= startMin && nowMin <= endMin;
+      if (inHours) {
+        if (!line) {
+          line = document.createElement('div');
+          line.className = 'shift-now-line';
+          bar2.appendChild(line);
+        }
+        const pct = (nowMin - startMin) / (endMin - startMin) * 100;
+        line.style.left = pct + '%';
+        line.style.display = 'block';
+      } else if (line) {
+        line.style.display = 'none';
+      }
+    }
+  }
+
+  // Pointer-driven drag-to-select with CLOSEST-EDGE behavior:
+  //   - If there's already a selection, tapping anywhere picks whichever edge (start or end)
+  //     is closer to the tap; that edge then follows the pointer for the rest of the drag.
+  //     This means the user never has to "start over" -- any tap nudges the nearer edge.
+  //   - If there's no selection yet, the tapped cell becomes both anchor and moving edge.
+  // Idempotent: only binds once per bar element via dataset flag.
+  function attachShiftBarHandlers() {
+    const bar = document.getElementById('timeoff-shift-bar');
+    if (!bar) return;
+    if (bar.dataset.handlersBound === '1') return;
+    bar.dataset.handlersBound = '1';
+
+    let dragging = false;
+    let anchorCell = -1; // the edge that stays put during this drag
+
+    function getCellFromPoint(x, y) {
+      const el = document.elementFromPoint(x, y);
+      if (!el) return null;
+      const cell = el.closest('.timeoff-shift-cell');
+      if (!cell || !bar.contains(cell)) return null;
+      return parseInt(cell.dataset.cell, 10);
+    }
+
+    function applySelection(movingCell) {
+      const a = Math.min(anchorCell, movingCell);
+      const b = Math.max(anchorCell, movingCell);
+      const startMin = WORK_SCHEDULE.workStart * 60;
+      state.timeOff.from = minutesToHHMM(startMin + a * SLOT_MIN);
+      state.timeOff.to   = minutesToHHMM(startMin + (b + 1) * SLOT_MIN);
+      updateShiftBarSelection();
+      updateTimeOffSummary();
+      updateSubmitState();
+    }
+
+    bar.addEventListener('pointerdown', function(e) {
+      const target = e.target.closest('.timeoff-shift-cell');
+      if (!target) return;
+      e.preventDefault();
+      try { bar.setPointerCapture(e.pointerId); } catch (_) {}
+      dragging = true;
+      const tappedCell = parseInt(target.dataset.cell, 10);
+
+      // Pick the anchor: if there's a current selection, anchor is the FAR edge so the NEAR edge
+      // (the one closer to the tap) gets pulled to the tap point. With no selection, anchor = tap.
+      if (state.timeOff.from && state.timeOff.to) {
+        const currentFromCell = timeToCellIndex(state.timeOff.from);
+        const currentToCellIncl = timeToCellIndex(state.timeOff.to) - 1;
+        const distToStart = Math.abs(tappedCell - currentFromCell);
+        const distToEnd   = Math.abs(tappedCell - currentToCellIncl);
+        anchorCell = (distToStart <= distToEnd) ? currentToCellIncl : currentFromCell;
+      } else {
+        anchorCell = tappedCell;
+      }
+      applySelection(tappedCell);
+    });
+
+    bar.addEventListener('pointermove', function(e) {
+      if (!dragging) return;
+      const movingCell = getCellFromPoint(e.clientX, e.clientY);
+      if (movingCell === null) return;
+      applySelection(movingCell);
+    });
+
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      if (e && e.pointerId !== undefined) {
+        try { bar.releasePointerCapture(e.pointerId); } catch (_) {}
+      }
+    }
+    bar.addEventListener('pointerup', endDrag);
+    bar.addEventListener('pointercancel', endDrag);
+
+    // Right-click anywhere on the bar wipes the selection so the user can restart cleanly.
+    // Also clears _previousRange so the next Whole Day press starts fresh.
+    bar.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      state.timeOff.from = '';
+      state.timeOff.to = '';
+      state.timeOff._previousRange = null;
+      state.timeOff._userCleared = true; // don't auto-reseed on the next render
+      updateShiftBarSelection();
+      updateTimeOffSummary();
+      updateSubmitState();
+      const card = document.getElementById('card-timeoff');
+      if (card) card.classList.remove('done');
+    });
+
+    // Bind wheel + delegated stepper click on each of the three summary tiles. Idempotent per
+    // tile element (separate dataset flags). Wheel = scroll-to-adjust; chevron buttons inside
+    // the tile = step-to-adjust (mobile-friendly). The click handler is delegated to the tile
+    // so it survives innerHTML rebuilds inside updateTimeoffTile.
+    ['from', 'until', 'duration'].forEach(function(field) {
+      const tile = document.getElementById('timeoff-tile-' + field);
+      if (!tile || tile.dataset.handlersBound === '1') return;
+      tile.dataset.handlersBound = '1';
+      // Wheel
+      tile.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        // Empty range: first scroll seeds a sensible default so the user can tweak immediately
+        // without having to touch the slider first.
+        if (!state.timeOff.from || !state.timeOff.to) {
+          seedDefaultTimeoffRange();
+          flashTimeoffTile(tile);
+          return;
+        }
+        const direction = e.deltaY < 0 ? 1 : -1;
+        if (adjustTimeoffField(field, direction)) flashTimeoffTile(tile);
+      }, { passive: false });
+      // Delegated click on the left/right stepper chevrons inside this tile
+      tile.addEventListener('click', function(e) {
+        const leftBtn  = e.target.closest('.timeoff-tile-stepper-left');
+        const rightBtn = e.target.closest('.timeoff-tile-stepper-right');
+        if (!leftBtn && !rightBtn) return;
+        e.stopPropagation();
+        if (!state.timeOff.from || !state.timeOff.to) { seedDefaultTimeoffRange(); flashTimeoffTile(tile); return; }
+        const direction = rightBtn ? 1 : -1;
+        if (adjustTimeoffField(field, direction)) flashTimeoffTile(tile);
+      });
+    });
+  }
+
+  // "Whole Day" toggle:
+  //   - First press: save current from/to to _previousRange, then set selection to the entire
+  //     work window (e.g. 9:00 -> 17:00).
+  //   - Second press while already in whole-day mode: restore _previousRange (the range that
+  //     was active right before Whole Day was pressed). If there was nothing saved, fall back
+  //     to clearing the range.
+  // The bar's .is-whole-day class (set by updateShiftBarSelection) shows the single-block
+  // "WHOLE DAY OFF" overlay when whole-day mode is active.
+  function selectWholeDay() {
+    const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
+    const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
+    const isCurrentlyWhole = state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
+
+    if (isCurrentlyWhole) {
+      // Toggle OFF: restore the previous range if we saved one. Otherwise clear.
+      if (state.timeOff._previousRange && state.timeOff._previousRange.from && state.timeOff._previousRange.to) {
+        state.timeOff.from = state.timeOff._previousRange.from;
+        state.timeOff.to   = state.timeOff._previousRange.to;
+      } else {
+        state.timeOff.from = '';
+        state.timeOff.to = '';
+      }
+      state.timeOff._previousRange = null;
+    } else {
+      // Toggle ON: save the current range (if any) so the next press can restore it.
+      if (state.timeOff.from && state.timeOff.to) {
+        state.timeOff._previousRange = { from: state.timeOff.from, to: state.timeOff.to };
+      } else {
+        state.timeOff._previousRange = null;
+      }
+      state.timeOff.from = wholeFrom;
+      state.timeOff.to   = wholeTo;
+    }
+    updateShiftBarSelection();
+    updateTimeOffSummary();
     updateSubmitState();
+    const card = document.getElementById('card-timeoff');
+    if (card) {
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
+  }
+
+  // Seed a sensible default range (the slot containing "now", clamped to work hours) so the
+  // FROM/UNTIL/DURATION tiles are populated and immediately scrollable -- the user shouldn't
+  // need to touch the slider first. Safe to call before the DOM exists (the update* calls no-op).
+  function seedDefaultTimeoffRange() {
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const cells = slotCount();
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    let cellIdx;
+    if (nowMin <= startMin)    cellIdx = 0;
+    else if (nowMin >= endMin) cellIdx = cells - 1;
+    else                       cellIdx = Math.floor((nowMin - startMin) / SLOT_MIN);
+    state.timeOff.from = minutesToHHMM(startMin + cellIdx * SLOT_MIN);
+    state.timeOff.to   = minutesToHHMM(startMin + (cellIdx + 1) * SLOT_MIN);
+    state.timeOff._previousRange = null;
+    state.timeOff._userCleared = false;
+    updateShiftBarSelection();
+    updateTimeOffSummary();
+    updateSubmitState();
+    const card = document.getElementById('card-timeoff');
+    if (card) {
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
+  }
+
+  // "Current Time" quick action: select the next 1-hour cell at or after now (rounding UP).
+  //   12:01 PM -> 1:00 PM
+  //   12:00 PM -> 12:00 PM (already on a boundary)
+  //   1:00 PM -> 1:00 PM (already on the hour)
+  // Outside work hours: clamps to first/last cell.
+  // Visual effect: the button pulses cyan and the bar gets a brief cyan glow halo so the
+  // "jump to now" action feels punchy and acknowledged.
+  function selectCurrentTime() {
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const cellCount = (endMin - startMin) / SLOT_MIN;
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    let cellIdx;
+    if (nowMin <= startMin)      cellIdx = 0;
+    else if (nowMin >= endMin)   cellIdx = cellCount - 1;
+    else                         cellIdx = Math.ceil((nowMin - startMin) / SLOT_MIN);
+    if (cellIdx >= cellCount)    cellIdx = cellCount - 1;
+    state.timeOff.from = minutesToHHMM(startMin + cellIdx * SLOT_MIN);
+    state.timeOff.to   = minutesToHHMM(startMin + (cellIdx + 1) * SLOT_MIN);
+    state.timeOff._previousRange = null; // hitting Current Time defines a new baseline
+    updateShiftBarSelection();
+    updateTimeOffSummary();
+    updateSubmitState();
+    const card = document.getElementById('card-timeoff');
+    if (card) {
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
+    // Press feedback: button cyan pulse + bar cyan glow.
+    const btn = document.getElementById('timeoff-current-time-btn');
+    if (btn) {
+      btn.classList.remove('is-pressed');
+      void btn.offsetWidth;
+      btn.classList.add('is-pressed');
+      setTimeout(function() { btn.classList.remove('is-pressed'); }, 470);
+    }
+    const bar = document.getElementById('timeoff-shift-bar');
+    if (bar) {
+      bar.classList.remove('is-jumping-to-now');
+      void bar.offsetWidth;
+      bar.classList.add('is-jumping-to-now');
+      setTimeout(function() { bar.classList.remove('is-jumping-to-now'); }, 570);
+    }
+  }
+
+  // Toggles .is-active on the Whole Day button when the current selection spans the full
+  // work window. Visual feedback so the user knows they're in "whole day" mode.
+  function updateWholeDayBtnState() {
+    const btn = document.getElementById('timeoff-whole-day-btn');
+    if (!btn) return;
+    const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
+    const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
+    const isWhole = state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
+    btn.classList.toggle('is-active', isWhole);
+  }
+
+  // Split "HH:MM" into { time, meridiem, color } so the summary box can render AM/PM separately
+  // and color the digits by half-of-day (AM = cyan / 1st shift, PM = amber / 2nd shift).
+  function formatTime12Parts(hhmm) {
+    if (!hhmm) return null;
+    const parts = hhmm.split(':');
+    let h = parseInt(parts[0], 10);
+    const m = parts[1];
+    const isPM = h >= 12;
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    return {
+      time: h + ':' + m,
+      meridiem: isPM ? 'PM' : 'AM',
+      color: isPM ? '#FFB800' : '#43D9FF'
+    };
+  }
+
+  // Build the inner HTML for one summary tile. field = 'from' | 'until' | 'duration'.
+  // Layout: [left stepper] [label + value] [right stepper]. Left = earlier/less, right = later/more.
+  // Steppers disable at the limits for clear visual feedback.
+  function buildTimeoffTileHtml(field) {
+    const from = state.timeOff.from;
+    const to = state.timeOff.to;
+    const hasRange = !!(from && to);
+
+    let label, valueHtml, canLeft, canRight;
+    if (!hasRange) {
+      label = field === 'from' ? 'OFF FROM' : field === 'until' ? 'UNTIL' : 'DURATION';
+      valueHtml = '<span class="timeoff-tile-value-digits timeoff-tile-value-empty">--</span>';
+      canLeft = false;
+      canRight = false;
+    } else {
+      const cellCount = slotCount();
+      const fromCell = timeToCellIndex(from);
+      const toCellIncl = timeToCellIndex(to) - 1;
+      if (field === 'from') {
+        const fp = formatTime12Parts(from);
+        label = 'OFF FROM';
+        valueHtml = '<span class="timeoff-tile-value-digits" style="color:' + fp.color + '">' + fp.time + '</span>' +
+                    '<span class="timeoff-tile-meridiem" style="color:' + fp.color + '">' + fp.meridiem + '</span>';
+        canLeft  = fromCell > 0;            // earlier, down to workStart
+        canRight = fromCell < toCellIncl;   // later, stays before UNTIL (min 1 slot)
+      } else if (field === 'until') {
+        const tp = formatTime12Parts(to);
+        label = 'UNTIL';
+        valueHtml = '<span class="timeoff-tile-value-digits" style="color:' + tp.color + '">' + tp.time + '</span>' +
+                    '<span class="timeoff-tile-meridiem" style="color:' + tp.color + '">' + tp.meridiem + '</span>';
+        canLeft  = toCellIncl > fromCell;       // earlier, down to FROM + 1 slot
+        canRight = toCellIncl < cellCount - 1;  // later, up to workEnd
+      } else { // duration
+        label = 'DURATION';
+        valueHtml = '<span class="timeoff-tile-value-digits">' + computeDurationStr() + '</span>';
+        canLeft  = toCellIncl > fromCell;       // less
+        canRight = toCellIncl < cellCount - 1;  // more
+      }
+    }
+
+    return '' +
+      '<button type="button" class="timeoff-tile-stepper timeoff-tile-stepper-left' + (canLeft ? '' : ' is-disabled') + '" aria-label="Earlier" tabindex="-1">' +
+        '<i class="ti ti-chevron-left"></i></button>' +
+      '<div class="timeoff-tile-content">' +
+        '<div class="timeoff-tile-label">' + label + '</div>' +
+        '<div class="timeoff-tile-value">' + valueHtml + '</div>' +
+      '</div>' +
+      '<button type="button" class="timeoff-tile-stepper timeoff-tile-stepper-right' + (canRight ? '' : ' is-disabled') + '" aria-label="Later" tabindex="-1">' +
+        '<i class="ti ti-chevron-right"></i></button>';
+  }
+
+  function updateTimeoffTile(field) {
+    const tile = document.getElementById('timeoff-tile-' + field);
+    if (!tile) return;
+    tile.innerHTML = buildTimeoffTileHtml(field);
+    const hasRange = !!(state.timeOff.from && state.timeOff.to);
+    tile.classList.toggle('is-empty', !hasRange);
+  }
+
+  function updateTimeoffSummaryRow() {
+    updateTimeoffTile('from');
+    updateTimeoffTile('until');
+    updateTimeoffTile('duration');
+  }
+
+  // Brief acknowledgment flash on a tile after a scroll-tick or stepper press.
+  function flashTimeoffTile(tile) {
+    if (!tile) return;
+    tile.classList.remove('is-flash');
+    void tile.offsetWidth; // force reflow so the animation replays
+    tile.classList.add('is-flash');
+  }
+
+  // Adjust one field by one 15-min tick. field = 'from' | 'until' | 'duration'.
+  // direction: +1 = up (later time / more duration), -1 = down (earlier / less).
+  // Returns true if the state actually changed, false if clamped against a limit.
+  function adjustTimeoffField(field, direction) {
+    if (!state.timeOff.from || !state.timeOff.to) return false;
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const cellCount = slotCount();
+    const fromCell = timeToCellIndex(state.timeOff.from);
+    const toCellIncl = timeToCellIndex(state.timeOff.to) - 1;
+    let newFromCell = fromCell;
+    let newToCellIncl = toCellIncl;
+    if (field === 'from') {
+      newFromCell = fromCell + (direction > 0 ? 1 : -1);
+      if (newFromCell < 0) newFromCell = 0;
+      if (newFromCell > toCellIncl) newFromCell = toCellIncl; // duration >= 15 min
+    } else { // 'until' or 'duration' both move the end
+      newToCellIncl = toCellIncl + (direction > 0 ? 1 : -1);
+      if (newToCellIncl >= cellCount) newToCellIncl = cellCount - 1;
+      if (newToCellIncl < fromCell)   newToCellIncl = fromCell;
+    }
+    if (newFromCell === fromCell && newToCellIncl === toCellIncl) return false;
+    state.timeOff.from = minutesToHHMM(startMin + newFromCell * SLOT_MIN);
+    state.timeOff.to   = minutesToHHMM(startMin + (newToCellIncl + 1) * SLOT_MIN);
+    state.timeOff._previousRange = null; // user is defining a new range; reset Whole Day undo
+    updateShiftBarSelection();
+    updateTimeOffSummary();
+    updateSubmitState();
+    return true;
+  }
+
+  // Current local time as "HH:MM" (24h).
+  function getNowHHMM() {
+    const now = new Date();
+    return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
+
+  // Round a "HH:MM" UP to the next :00 / :15 / :30 / :45 boundary. 9:10 -> 9:15, 9:16 -> 9:30, 9:30 -> 9:30.
+  // Clamped at 23:45 so it never rolls past midnight.
+  function roundUpToQuarterHour(hhmm) {
+    const parts = hhmm.split(':');
+    let total = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+    total = Math.ceil(total / 15) * 15;
+    const MAX = 23 * 60 + 45;
+    if (total > MAX) total = MAX;
+    const hh = Math.floor(total / 60);
+    const mm = total % 60;
+    return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+  }
+
+  // "Current" button: set FROM to now (rounded up to next :15), keep the chosen duration, recompute TO.
+  // Does PARTIAL DOM updates only (no full renderForm) so the panel doesn't flicker / appear to reset.
+  // Triggers a brief 0.5s pulse animation on the FROM wheels + BACK AT box so the user gets
+  // visible feedback that something updated.
+  function setFromToNow() {
+    state.timeOff.from = roundUpToQuarterHour(getNowHHMM());
+    recomputeTo();
+    writeFromWheelsFromState();
+    updateTimeGroupColor('from');
+    updateToDisplay();
+    updateTimeOffSummary();
+    updateSubmitState();
+    flashFromUpdated();
+  }
+
+  // Restart the pulse animation by toggling the .just-updated class. Removing and re-adding
+  // (with a forced reflow in between) ensures the animation replays even on rapid clicks.
+  function flashFromUpdated() {
+    [document.querySelector('.timeoff-from-wheels'), document.querySelector('.timeoff-to-display')]
+      .forEach(function(el) {
+        if (!el) return;
+        el.classList.remove('just-updated');
+        void el.offsetWidth; // force reflow so the animation re-fires
+        el.classList.add('just-updated');
+        setTimeout(function() { el.classList.remove('just-updated'); }, 600);
+      });
+  }
+
+  // Push state.timeOff.from into the FROM hour/minute/ampm wheel data-values + visible display.
+  function writeFromWheelsFromState() {
+    if (!state.timeOff.from) return;
+    const parts = state.timeOff.from.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const hEl = document.querySelector('[data-wheel-id="from-h"]');
+    const mEl = document.querySelector('[data-wheel-id="from-m"]');
+    const ampmEl = document.querySelector('[data-wheel-id="from-ampm"]');
+    if (hEl)   { hEl.dataset.value = h;   refreshWheelDisplay('from-h'); }
+    if (mEl)   { mEl.dataset.value = m;   refreshWheelDisplay('from-m'); }
+    if (ampmEl){ ampmEl.dataset.value = h; refreshWheelDisplay('from-ampm'); }
+  }
+
+  // TO is always derived: FROM + durationHours, clamped at 23:45 so it stays a valid same-day time.
+  function recomputeTo() {
+    if (!state.timeOff.from) { state.timeOff.to = ''; return; }
+    const parts = state.timeOff.from.split(':');
+    let total = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10) + (state.timeOff.durationHours || 1) * 60;
+    const MAX = 23 * 60 + 45;
+    if (total > MAX) total = MAX;
+    const hh = Math.floor(total / 60);
+    const mm = total % 60;
+    state.timeOff.to = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    updateSubmitState();
+  }
+
+  // Duration slider handler (1-8h, whole hours). Updates TO + segment fills + displays.
+  function setDuration(val) {
+    state.timeOff.durationHours = parseInt(val, 10) || 1;
+    if (state.timeOff.durationHours > 8) state.timeOff.durationHours = 8;
+    if (state.timeOff.durationHours < 1) state.timeOff.durationHours = 1;
+    recomputeTo();
+    updateDurationDisplay();
+    updateDurationSegments();
+    updateTimeOffSummary();
+    updateSubmitState();
+  }
+
+  // Toggle .filled on each segment AND slide the custom knob into place over the active segment.
+  // The CSS handles the animation (cubic-bezier on `left` for an overshoot feel, cascade on segment fills).
+  function updateDurationSegments() {
+    const v = state.timeOff.durationHours;
+    document.querySelectorAll('.timeoff-duration-segment').forEach(function(seg, i) {
+      seg.classList.toggle('filled', i < v);
+    });
+    const wrap = document.querySelector('.timeoff-duration-slider-wrap');
+    if (wrap) wrap.style.setProperty('--knob-pos', v - 1);
+  }
+
+  function updateDurationDisplay() {
+    const dv = document.getElementById('timeoff-duration-value');
+    if (dv) dv.textContent = state.timeOff.durationHours + ' hour' + (state.timeOff.durationHours === 1 ? '' : 's');
+    // NOTE: do NOT write slider.value here. When this runs inside the slider's own oninput (drag),
+    // re-assigning slider.value fights the native drag and makes the value jump, which left BACK AT
+    // showing stale/wrong times. Programmatic callers (scroll handler, openTimeRange) set slider.value themselves.
+    updateToDisplay();
+  }
+
+  function updateToDisplay() {
+    const tv = document.getElementById('timeoff-to-value');
+    if (tv) tv.textContent = state.timeOff.to ? formatTime12(state.timeOff.to) : '--';
   }
 
   // ---- Time wheel: extract hour or minute from "HH:MM" ----
@@ -3713,17 +5228,14 @@
     if (group) group.style.setProperty('--group-color', color);
   }
 
-  // Cycle a single wheel. Hour wraps 0-23 (displayed as 1-12), minute steps by 15 wrapping 0-59,
-  // ampm toggles ±12 on the paired hour wheel (so 9 AM becomes 9 PM).
-  // After every change we enforce a strict FROM < TO rule, symmetrically:
-  //   - FROM change that breaks the order pushes TO forward by 1 hour
-  //   - TO change that breaks the order pulls FROM back by 1 hour
-  // Edge case: if pulling FROM would go below 0:00, FROM is clamped at 0:00 and TO is bumped to 1:00.
+  // Cycle a FROM wheel. Hour wraps 0-23 (shown 1-12), minute steps by 30 (only :00 / :30),
+  // ampm toggles the paired hour by +/-12. TO is always derived from FROM + duration, so there
+  // are no TO wheels to reconcile: after any FROM change we just recompute TO from the duration.
   function cycleTimeWheel(id, dir) {
     const el = document.querySelector('[data-wheel-id="' + id + '"]');
     if (!el) return;
     const type = el.dataset.type;
-    const prefix = id.split('-')[0]; // 'from' or 'to'
+    const prefix = id.split('-')[0]; // always 'from' now
 
     if (type === 'ampm') {
       const hourEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
@@ -3744,71 +5256,42 @@
         ampmEl.dataset.value = v;
         refreshWheelDisplay(prefix + '-ampm');
       }
-    } else { // minute, step by 15
-      let v = parseInt(el.dataset.value, 10);
-      v = (v + dir * 15 + 60) % 60;
-      el.dataset.value = v;
+    } else { // minute: steps by 15 (cycles 0 / 15 / 30 / 45), and overflows into the hour wheel
+      // so it acts as a fine-tuner across hour boundaries.
+      // Convert FROM to total minutes, advance by +/- 15, wrap mod 24h, then push both h and m back.
+      const hEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
+      if (!hEl) return;
+      let total = parseInt(hEl.dataset.value, 10) * 60 + parseInt(el.dataset.value, 10);
+      total = ((total + dir * 15) % (24 * 60) + 24 * 60) % (24 * 60);
+      const newH = Math.floor(total / 60);
+      const newM = total % 60;
+      el.dataset.value = newM;
+      hEl.dataset.value = newH;
       refreshWheelDisplay(id);
+      refreshWheelDisplay(prefix + '-h');
+      const ampmEl = document.querySelector('[data-wheel-id="' + prefix + '-ampm"]');
+      if (ampmEl) {
+        ampmEl.dataset.value = newH;
+        refreshWheelDisplay(prefix + '-ampm');
+      }
     }
 
-    // Symmetric enforcement: which side moved determines which side gets corrected
-    if (prefix === 'from') {
-      enforceRangeAfterFromChange();
-    } else {
-      enforceRangeAfterToChange();
-    }
-    syncTimeWheelsToState();
+    syncFromWheelToState();
+    recomputeTo();
     updateTimeGroupColor('from');
-    updateTimeGroupColor('to');
+    updateToDisplay();
     updateTimeOffSummary();
   }
 
-  function readTimeWheelsAsMinutes(prefix) {
-    const hEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
-    const mEl = document.querySelector('[data-wheel-id="' + prefix + '-m"]');
-    if (!hEl || !mEl) return 0;
-    return parseInt(hEl.dataset.value, 10) * 60 + parseInt(mEl.dataset.value, 10);
-  }
-
-  // Write hour/minute back to wheels for one side.
-  function writeTimeWheels(prefix, totalMin) {
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    const hEl = document.querySelector('[data-wheel-id="' + prefix + '-h"]');
-    const mEl = document.querySelector('[data-wheel-id="' + prefix + '-m"]');
-    const ampmEl = document.querySelector('[data-wheel-id="' + prefix + '-ampm"]');
-    if (hEl) { hEl.dataset.value = h; refreshWheelDisplay(prefix + '-h'); }
-    if (mEl) { mEl.dataset.value = m; refreshWheelDisplay(prefix + '-m'); }
-    if (ampmEl) { ampmEl.dataset.value = h; refreshWheelDisplay(prefix + '-ampm'); }
-  }
-
-  // FROM moved → if FROM >= TO, push TO forward by 15 minutes (snap to 15-min grid, clamp at 23:45).
-  function enforceRangeAfterFromChange() {
-    const fromMin = readTimeWheelsAsMinutes('from');
-    const toMin = readTimeWheelsAsMinutes('to');
-    if (fromMin >= toMin) {
-      let newToMin = fromMin + 15;
-      const MAX = 23 * 60 + 45;
-      if (newToMin > MAX) newToMin = MAX;
-      newToMin = Math.round(newToMin / 15) * 15;
-      writeTimeWheels('to', newToMin);
-    }
-  }
-
-  // TO moved → if TO <= FROM, pull FROM backward by 15 minutes. If FROM would go below 0, clamp at 0 and bump TO to 0:15.
-  function enforceRangeAfterToChange() {
-    let fromMin = readTimeWheelsAsMinutes('from');
-    let toMin = readTimeWheelsAsMinutes('to');
-    if (toMin <= fromMin) {
-      let newFromMin = toMin - 15;
-      if (newFromMin < 0) {
-        newFromMin = 0;
-        toMin = 15;
-        writeTimeWheels('to', toMin);
-      }
-      newFromMin = Math.round(newFromMin / 15) * 15;
-      writeTimeWheels('from', newFromMin);
-    }
+  // Read the FROM hour/minute wheels into state.timeOff.from ("HH:MM", 24h).
+  function syncFromWheelToState() {
+    const hEl = document.querySelector('[data-wheel-id="from-h"]');
+    const mEl = document.querySelector('[data-wheel-id="from-m"]');
+    if (!hEl || !mEl) return;
+    const fh = parseInt(hEl.dataset.value, 10);
+    const fm = parseInt(mEl.dataset.value, 10);
+    state.timeOff.from = String(fh).padStart(2, '0') + ':' + String(fm).padStart(2, '0');
+    updateSubmitState();
   }
 
   // Re-render a single wheel's displayed text from its current data-value + type.
@@ -3833,30 +5316,18 @@
     if (valEl) valEl.textContent = display;
   }
 
-  // Read hour + minute wheels and rebuild state.timeOff.from / .to as "HH:MM" (24h, what we store / submit).
-  function syncTimeWheelsToState() {
-    function read(id) {
-      const el = document.querySelector('[data-wheel-id="' + id + '"]');
-      return el ? parseInt(el.dataset.value, 10) : 0;
-    }
-    const fh = read('from-h'), fm = read('from-m');
-    const th = read('to-h'),   tm = read('to-m');
-    state.timeOff.from = String(fh).padStart(2, '0') + ':' + String(fm).padStart(2, '0');
-    state.timeOff.to   = String(th).padStart(2, '0') + ':' + String(tm).padStart(2, '0');
-    updateSubmitState();
-  }
-
   // Build the chips HTML for the "selected reasons" row. If "Other" is picked and the user has
   // typed something into the Other input, the chip shows that text instead of the bare label.
   function renderReasonChipsHtml() {
     if (state.reasons.length === 0) {
-      return '<span class="reason-selected-empty">Nothing selected yet — tap above to add</span>';
+      return '<span class="reason-selected-empty">Nothing selected yet. Tap above to add</span>';
     }
     return state.reasons.map(function(r) {
       const display = (r === 'Other' && state.otherReason && state.otherReason.trim())
         ? 'Other: ' + state.otherReason.trim()
         : r;
-      return '<span class="reason-chip">' +
+      const color = getReasonColor(r);
+      return '<span class="reason-chip" style="background:' + color + '">' +
         '<span class="reason-chip-text">' + escapeHtml(display) + '</span>' +
         '<button type="button" class="reason-chip-x" onclick="removeReason(\'' + escapeHtml(r).replace(/'/g, "&#39;") + '\')" aria-label="remove"><i class="ti ti-x"></i></button>' +
       '</span>';
@@ -3902,21 +5373,22 @@
       sel.classList.toggle('empty', state.reasons.length === 0);
       sel.innerHTML = renderReasonChipsHtml();
     }
-    // List item selected state + icon swap
-    document.querySelectorAll('.reason-item').forEach(function(it) {
-      const r = it.dataset.reason;
-      const isSel = state.reasons.indexOf(r) >= 0;
-      it.classList.toggle('selected', isSel);
-      const ic = it.querySelector('.reason-marker i');
-      if (ic) ic.className = 'ti ti-' + (isSel ? 'check' : 'plus');
+    // Tile selected state (the check badge + fill are CSS-driven off .selected)
+    document.querySelectorAll('.reason-tile').forEach(function(tile) {
+      tile.classList.toggle('selected', state.reasons.indexOf(tile.dataset.reason) >= 0);
     });
+    // "Other" specify field: mark required-empty (amber outline) when Other is picked but blank.
+    const otherInput = document.getElementById('reason-other-input');
+    const otherPicked = state.reasons.indexOf('Other') >= 0;
+    if (otherInput) {
+      otherInput.classList.toggle('required-empty', otherPicked && !(state.otherReason || '').trim());
+    }
     const card = document.getElementById('card-reason');
-    if (card) card.classList.toggle('done', state.reasons.length > 0);
-  }
-
-  function scrollReasonList(direction) {
-    const inner = document.getElementById('reason-list-inner');
-    if (inner) inner.scrollBy({ top: direction * 60, behavior: 'smooth' });
+    if (card) {
+      const done = reasonsComplete();
+      card.classList.toggle('done', done);
+      if (done) card.classList.remove('missing'); // completing clears the red "missing" flag
+    }
   }
 
   // Format an "HH:MM" 24-hour string as "H:MM AM/PM" for the human-readable confirmation.
@@ -4022,7 +5494,7 @@
     const dayLabels = sortedDays.map(function(i) {
       const short = TIME_OFF_DAYS[i];
       const proper = short.charAt(0) + short.slice(1).toLowerCase();
-      return colorizeDay(i, proper + ' ' + getThisWeekDateLabel(i));
+      return colorizeDay(i, proper + '-' + getThisWeekDateLabel(i));
     });
     const daysStr = dayLabels.join(', ');
 
@@ -4033,25 +5505,51 @@
       timePhrase = colorizePurple('full day');
     }
 
-    const dayCountStr = days.length === 1 ? '1 day' : days.length + ' days';
-    const dayCountSpan = colorizePurple(dayCountStr);
+    // Past vs future tense: if EVERY selected day is strictly before today, use past tense.
+    const todayDayIdx = new Date().getDay(); // 0=Sun..6=Sat
+    const allPast = sortedDays.every(function(d) { return d < todayDayIdx; });
+    const verb = allPast ? 'You were off' : "You'll be off";
+
+    // Amount label: show total hours for partial-day selections; show "X day(s)" only when
+    // the time range covers the entire work day (whole-day mode).
+    const perDayMin = getOffWorkMinutesPerDay();
+    const totalMin = perDayMin * days.length;
+    const WORK_DAY_MIN = (WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart) * 60;
+    const isWholeDay = perDayMin >= WORK_DAY_MIN;
+    let amountStr;
+    if (isWholeDay) {
+      amountStr = days.length === 1 ? '1 day' : days.length + ' days';
+    } else {
+      const totalHours = totalMin / 60;
+      if (totalMin < 60) {
+        amountStr = totalMin + ' minute' + (totalMin === 1 ? '' : 's');
+      } else if (totalMin % 60 === 0) {
+        amountStr = totalHours + ' hour' + (totalHours === 1 ? '' : 's');
+      } else {
+        amountStr = totalHours.toFixed(1) + ' hours';
+      }
+    }
+    const amountSpan = '<strong style="color:#FFFFFF">' + amountStr + '</strong>';
 
     let reasonsSentence;
     if (state.reasons.length > 0) {
-      const labels = resolveReasonLabels().map(colorizeReason);
+      // Each reason is colored by its group color (matches the tiles + chips). "Other" is shown
+      // as the typed text in quotes, still colored by the Other group color.
+      const labels = state.reasons.map(function(r) {
+        const display = (r === 'Other' && state.otherReason && state.otherReason.trim())
+          ? '\u201C' + state.otherReason.trim() + '\u201D'
+          : r;
+        const color = getReasonColor(r);
+        return '<strong style="color:' + color + '">' + escapeHtml(display) + '</strong>';
+      });
       reasonsSentence = ' For ' + joinNatural(labels) + ' purposes.';
     } else {
-      // Still missing reasons → show a soft pending hint instead of nothing, so the user knows the
-      // summary will keep filling in.
       reasonsSentence = ' <span class="timeoff-pending">Pick a reason above to complete the summary.</span>';
     }
 
-    const perDayMin = getOffWorkMinutesPerDay();
-    const totalMin = perDayMin * days.length;
-
     body.innerHTML =
       '<div class="timeoff-summary-text">' +
-        "You'll be off " + dayCountSpan + ' &mdash; ' + daysStr + ' ' + timePhrase + '.' + reasonsSentence +
+        verb + ' ' + amountSpan + ': ' + daysStr + ' ' + timePhrase + '.' + reasonsSentence +
       '</div>' +
       '<div class="timeoff-summary-total">' +
         '<span>Total time off of work</span>' +
@@ -4083,6 +5581,7 @@
   function renderPixelSlider(id, currentVal, labels, defaultColor, stateKey) {
     const track = document.getElementById(id + '-track');
     if (!track) return;
+    track.dataset.defaultColor = defaultColor;
     track.innerHTML = '';
     for (let i = 1; i <= 5; i++) {
       const cell = document.createElement('div');
@@ -4095,6 +5594,21 @@
   }
 
   function setPixelValue(id, val, labels, stateKey) {
+    let cardKey = id;
+    // Toggle: pressing the already-selected value deselects it (marks the question incomplete).
+    if (state[stateKey] === val) {
+      state[stateKey] = 0;
+      const track = document.getElementById(id + '-track');
+      const defColor = (track && track.dataset.defaultColor) || '#FFFFFF';
+      if (track) track.querySelectorAll('.pixel-cell').forEach(function(cell) {
+        cell.classList.remove('filled');
+        cell.style.setProperty('--q-color', defColor);
+      });
+      updatePixelDisplay(id, 0, labels);
+      updateCard(cardKey, false);
+      updateSubmitState();
+      return;
+    }
     state[stateKey] = val;
     const track = document.getElementById(id + '-track');
     const color = labels[val].color;
@@ -4107,10 +5621,6 @@
       }
     });
     updatePixelDisplay(id, val, labels);
-    let cardKey = id;
-    if (id === 'energy-in') cardKey = 'energy-in';
-    if (id === 'energy-out') cardKey = 'energy-out';
-    if (id === 'actual-diff') cardKey = 'actual-diff';
     updateCard(cardKey, true);
     updateSubmitState();
   }
@@ -4128,12 +5638,19 @@
   }
 
   function setBlocker(has) {
-    state.blocker.has = has;
-    document.getElementById('blocker-yes').className = 'yn-btn' + (has ? ' yes-active' : '');
-    document.getElementById('blocker-no').className = 'yn-btn' + (!has ? ' no-active' : '');
-    document.getElementById('blocker-detail').classList.toggle('show', has);
-    // Done if: clear, OR yes-with-both-fields
-    const isDone = (has === false) || (has === true && (state.blocker.what || '').trim() && (state.blocker.unblocker || '').trim());
+    // Toggle: pressing the same yes/no again deselects (resets to null = incomplete).
+    if (state.blocker.has === has) {
+      state.blocker.has = null;
+    } else {
+      state.blocker.has = has;
+    }
+    const isYes = state.blocker.has === true;
+    const isNo  = state.blocker.has === false;
+    document.getElementById('blocker-yes').className = 'yn-btn' + (isYes ? ' yes-active' : '');
+    document.getElementById('blocker-no').className = 'yn-btn' + (isNo ? ' no-active' : '');
+    document.getElementById('blocker-detail').classList.toggle('show', isYes);
+    // Done if: explicitly "no", OR "yes" with both detail fields filled
+    const isDone = isNo || (isYes && (state.blocker.what || '').trim() && (state.blocker.unblocker || '').trim());
     updateCard('blocker', isDone);
     updateSubmitState();
   }
@@ -4153,6 +5670,14 @@
   }
 
   function setExpectedDiff(btn, level) {
+    // Toggle: pressing the active button deselects it (marks question incomplete).
+    if (state.expectedDiff === level) {
+      btn.parentElement.querySelectorAll('.linear-btn').forEach(b => b.classList.remove('active'));
+      state.expectedDiff = '';
+      updateCard('difficulty', false);
+      updateSubmitState();
+      return;
+    }
     btn.parentElement.querySelectorAll('.linear-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.expectedDiff = level;
@@ -4161,6 +5686,17 @@
   }
 
   function setCompletion(btn, level) {
+    // Toggle: pressing the active button deselects it (marks question incomplete).
+    if (state.completion === level) {
+      btn.parentElement.querySelectorAll('.linear-btn').forEach(b => b.classList.remove('active'));
+      state.completion = '';
+      state.completionReason = '';
+      const reasonField = document.getElementById('completion-reason');
+      if (reasonField) reasonField.classList.remove('show');
+      updateCard('completion', false);
+      updateSubmitState();
+      return;
+    }
     btn.parentElement.querySelectorAll('.linear-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     state.completion = level;
@@ -4505,6 +6041,14 @@
     }
   }
 
+  // Reasons count as complete when at least one is picked AND, if "Other" is among them, the
+  // free-text "specify" field is filled. This gates both the done state and the submit count.
+  function reasonsComplete() {
+    if (state.reasons.length === 0) return false;
+    if (state.reasons.indexOf('Other') >= 0 && !(state.otherReason || '').trim()) return false;
+    return true;
+  }
+
   function getDoneCount() {
     if (mode === 'in') {
       let n = 0;
@@ -4524,8 +6068,8 @@
       return n;
     } else { // mode === 'off'
       let n = 0;
-      if (state.timeOff.days.length > 0) n++;
-      if (state.reasons.length > 0) n++;
+      if (state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to) n++;
+      if (reasonsComplete()) n++;
       return n;
     }
   }
@@ -4535,6 +6079,7 @@
     return mode === 'off' ? 2 : 4;
   }
 
+  let wasAllDone = false;
   function updateSubmitState() {
     const done = getDoneCount();
     const total = getTotalQuestions();
@@ -4543,7 +6088,8 @@
     const hint = document.getElementById('progress-hint');
     const readyClass = mode === 'in' ? 'mode-in-ready' : mode === 'out' ? 'mode-out-ready' : 'mode-off-ready';
     const readyLabel = mode === 'in' ? 'Lock in my day' : mode === 'out' ? 'Wrap my day' : 'Submit time off';
-    if (done >= total) {
+    const allDone = done >= total;
+    if (allDone) {
       btn.className = 'submit-btn ready ' + readyClass;
       btn.textContent = readyLabel;
       hint.innerHTML = '<span class="done-count" style="color:#39D98A">All ' + total + ' done</span>';
@@ -4554,8 +6100,23 @@
       hint.innerHTML = '<span class="done-count">' + done + '</span> of ' + total + ' done';
       if (lateBtn) lateBtn.className = 'submit-btn-late';
     }
+    // Fire the full-screen sweep once, only on the transition from not-all-done to all-done.
+    if (allDone && !wasAllDone) triggerSubmitSweep();
+    wasAllDone = allDone;
     // Hide the "submit as yesterday" button for LOG OFF since it's forward-looking, not a missed daily check-in
     if (lateBtn) lateBtn.style.display = (mode === 'off') ? 'none' : '';
+  }
+
+  // Full-screen bottom-to-top scan when the form first becomes fully complete.
+  function triggerSubmitSweep() {
+    const sweep = document.getElementById('submit-ready-sweep');
+    if (!sweep) return;
+    const rgb = mode === 'in' ? '57,217,138' : mode === 'out' ? '255,85,114' : '255,255,255';
+    sweep.style.setProperty('--sweep-color', rgb);
+    sweep.classList.remove('active');
+    void sweep.offsetWidth; // force reflow so the animation replays
+    sweep.classList.add('active');
+    setTimeout(function() { sweep.classList.remove('active'); }, 1250);
   }
 
   function highlightMissing() {
@@ -4599,8 +6160,15 @@
       if (state.actualDiff === 0) markMissing('actual-diff');
       if (state.energyOut === 0) markMissing('energy-out');
     } else { // off
-      if (state.timeOff.days.length === 0) markMissing('timeoff');
-      if (state.reasons.length === 0) markMissing('reason');
+      if (state.timeOff.days.length === 0 || !state.timeOff.from || !state.timeOff.to) markMissing('timeoff');
+      if (!reasonsComplete()) {
+        markMissing('reason');
+        // If Other is picked but blank, flag the specify field too.
+        const otherInput = document.getElementById('reason-other-input');
+        if (otherInput && state.reasons.indexOf('Other') >= 0 && !(state.otherReason || '').trim()) {
+          otherInput.classList.add('required-empty');
+        }
+      }
     }
 
     if (firstMissing) {
@@ -4609,8 +6177,16 @@
   }
 
   let lastSubmitDate = null;
+  // Guard against double submission. Set true the moment a valid submit fires; reset in resetAll.
+  // This is the primary fix for duplicate rows: without it, a user who doesn't see immediate
+  // feedback (there's a 2.5s delay before the success screen) taps Submit again, firing a second
+  // request with a fresh ts that the server can't dedupe against the first.
+  let isSubmitting = false;
 
   function submit(forYesterday) {
+    // Hard guard: if a submission is already in flight, ignore further taps. JS is single-threaded
+    // so this is set synchronously before any await/network, making rapid double-taps a no-op.
+    if (isSubmitting) return;
     if (getDoneCount() < getTotalQuestions()) {
       highlightMissing();
       return;
@@ -4624,6 +6200,10 @@
       document.getElementById('name-strip').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    // Validation passed -> lock immediately so a second tap during the 2.5s pre-success window
+    // can't fire another request.
+    isSubmitting = true;
+    lockSubmitButtons();
     if (forYesterday) {
       // submit silently as yesterday
     }
@@ -4655,6 +6235,9 @@
       name: name,
       notes: state.notes || '',
       ts: String(submissionTs),
+      // Stable per submit() call: every one of the 5 parallel send-methods carries the SAME id,
+      // so the server collapses them to a single row (tier-1 dedup).
+      submission_id: 'offbox_' + submissionTs + '_' + Math.random().toString(36).slice(2, 10),
       for_day: forDayValue
     };
 
@@ -4729,6 +6312,22 @@
     }
 
     setTimeout(showSuccess, 2500);
+  }
+
+  // Disable both submit buttons + show "Submitting..." the instant a valid submit fires, so the
+  // user gets immediate feedback and the buttons are inert during the 2.5s pre-success window.
+  function lockSubmitButtons() {
+    const btn = document.getElementById('submit-btn');
+    const lateBtn = document.getElementById('submit-btn-late');
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('is-submitting');
+      btn.textContent = 'Submitting...';
+    }
+    if (lateBtn) {
+      lateBtn.disabled = true;
+      lateBtn.classList.add('is-submitting');
+    }
   }
 
   // Fires submission via 5 parallel methods. Dedupe in Apps Script ensures one row.
@@ -4869,11 +6468,17 @@
   }
 
   function resetAll() {
+    // Clear the in-flight guard + re-enable the buttons for the next submission.
+    isSubmitting = false;
+    const sbReset = document.getElementById('submit-btn');
+    if (sbReset) { sbReset.disabled = false; sbReset.classList.remove('is-submitting'); }
+    const lbReset = document.getElementById('submit-btn-late');
+    if (lbReset) { lbReset.disabled = false; lbReset.classList.remove('is-submitting'); }
     state = {
       goal: '', blocker: { has: null, what: '', unblocker: '' },
       energyIn: 0, expectedDiff: '',
       completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
-      timeOff: { days: [], from: '', to: '' },
+      timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false },
       reasons: [],
       otherReason: '',
       notes: ''
@@ -4886,7 +6491,7 @@
     document.getElementById('progress-hint').style.display = 'block';
     const lateBtnRestore = document.getElementById('submit-btn-late');
     if (lateBtnRestore) lateBtnRestore.style.display = 'flex';
-    document.querySelector('.welcome').style.display = 'block';
+    document.querySelector('.welcome').style.display = 'flex';
     document.querySelector('.mode-toggle').style.display = 'grid';
     document.querySelector('.name-strip').style.display = 'flex';
     document.getElementById('notes-input').value = '';
@@ -5222,6 +6827,10 @@
       updateDayDisplay();
       updateBanners();
     }, 50);
+    // Independent slower tick to walk the "now" cell across the shift bar as minutes pass.
+    // 15s is plenty since the smallest unit is a 60-minute cell. paintNowIndicator no-ops if
+    // the bar isn't rendered (i.e. when mode !== 'off'), so this is safe to run globally.
+    setInterval(paintNowIndicator, 15000);
     requestAnimationFrame(msBarLoop);
   }
 
