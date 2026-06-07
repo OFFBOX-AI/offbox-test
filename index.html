@@ -1202,12 +1202,14 @@
     transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
     animation: fadeInUp 0.4s ease both;
     position: relative;
-    /* Lock the grid track width: without this, wide inner content (e.g. a time value going from
-       "9:30" to "10:30") can force the 1fr track to grow and the whole card shifts. min-width:0
-       keeps the card pinned to its grid track regardless of content. */
+    /* Lock the grid track width so wide inner content (e.g. "9:30" -> "10:30") can't stretch the
+       card. min-width:0 is what actually does this for a grid item; we deliberately do NOT use
+       overflow:hidden here because it clipped the info tooltip that pops above the header. */
     min-width: 0;
-    overflow: hidden;
   }
+  /* When hovering a card (e.g. to read its info tooltip) lift it above its grid neighbors so the
+     tooltip, which extends above the header, is never covered by the card in the row above. */
+  .question-card:hover { z-index: 20; }
 
   .question-card.done {
     border-color: #39D98A;
