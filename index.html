@@ -3939,6 +3939,14 @@
   }
 
   let mode = 'in';
+  // Stable submission id, generated once per form session. Used as the dedupe key so that even
+  // if the form is somehow submitted twice (double-tap, the 5 send-methods, a stray retry) every
+  // request carries the SAME id and the server collapses them into a single row. Regenerated on
+  // every reset so the next entry is a distinct submission.
+  function genSubmissionId() {
+    return 'offbox_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  }
+
   let state = {
     goal: '', blocker: { has: null, what: '', unblocker: '' },
     energyIn: 0, expectedDiff: '',
@@ -3946,7 +3954,8 @@
     timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false },
     reasons: [],
     otherReason: '',
-    notes: ''
+    notes: '',
+    submissionId: genSubmissionId()
   };
 
   const ENERGY_IN_LABELS = {
@@ -6237,9 +6246,9 @@
       name: name,
       notes: state.notes || '',
       ts: String(submissionTs),
-      // Stable per submit() call: every one of the 5 parallel send-methods carries the SAME id,
-      // so the server collapses them to a single row (tier-1 dedup).
-      submission_id: 'offbox_' + submissionTs + '_' + Math.random().toString(36).slice(2, 10),
+      // STABLE per form session (not per call): every send-method AND any accidental repeat
+      // carry the same id, so the server dedupe collapses them all to one row.
+      submission_id: state.submissionId,
       for_day: forDayValue
     };
 
@@ -6332,65 +6341,61 @@
     }
   }
 
-  // Fires submission via 5 parallel methods. Dedupe in Apps Script ensures one row.
+  // Fires submission via diverse methods, STAGGERED in time so they cannot race the server dedupe.
   function fireAllMethods(params) {
-    const urlParams = Object.keys(params).map(function(k) {
+    // Build a fresh FormData each time (FormData is single-use across requests).
+    function makeFd() {
+      const f = new FormData();
+      Object.keys(params).forEach(function (k) { f.append(k, params[k]); });
+      return f;
+    }
+    const urlParams = Object.keys(params).map(function (k) {
       return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
     }).join('&');
-    const fullUrl = SCRIPT_URL + '?' + urlParams;
 
-    // METHOD 1: Hidden iframe form POST - bulletproof, native browser form submit
-    // Works on Opera, iOS Safari, every mobile browser, every privacy setting
-    try {
-      const form = document.createElement('form');
-      form.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;visibility:hidden';
-      form.action = SCRIPT_URL;
-      form.method = 'POST';
-      form.target = 'offbox-submit-iframe';
-      form.enctype = 'application/x-www-form-urlencoded';
-      Object.keys(params).forEach(function(key) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = params[key];
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(function(){ try { document.body.removeChild(form); } catch(e){} }, 8000);
-      console.log('[OFFBOX] iframe form fired');
-    } catch (e) { console.error('[OFFBOX] iframe failed:', e); }
+    // Fire diverse methods STAGGERED in time (not all at once). Firing five requests
+    // simultaneously was racing the server's dedupe; spacing them ~0.7s apart means the server
+    // has already written + cached the first by the time the next arrives, so the later ones are
+    // cleanly dropped. All carry the same stable submission_id, so at most one row is ever written.
 
-    // METHOD 2: fetch POST with FormData (no-cors)
+    // t=0  sendBeacon: most reliable fire-and-forget; survives navigation; best on mobile.
+    let beaconOk = false;
     try {
-      const fd = new FormData();
-      Object.keys(params).forEach(function(k){ fd.append(k, params[k]); });
-      fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: fd, cache: 'no-cache' }).catch(function(){});
-      console.log('[OFFBOX] fetch POST fired');
-    } catch(e) { console.error('[OFFBOX] fetch POST failed:', e); }
+      if (navigator.sendBeacon) { beaconOk = navigator.sendBeacon(SCRIPT_URL, makeFd()); }
+    } catch (e) { console.error('[OFFBOX] beacon failed:', e); }
+    console.log('[OFFBOX] beacon', beaconOk ? 'sent' : 'unavailable');
 
-    // METHOD 3: navigator.sendBeacon (best for mobile, fire-and-forget POST)
-    try {
-      if (navigator.sendBeacon) {
-        const fd = new FormData();
-        Object.keys(params).forEach(function(k){ fd.append(k, params[k]); });
-        navigator.sendBeacon(SCRIPT_URL, fd);
-        console.log('[OFFBOX] sendBeacon fired');
-      }
-    } catch(e) { console.error('[OFFBOX] sendBeacon failed:', e); }
+    // t=0.7s  fetch POST (no-cors): modern-browser backup. Deduped server-side if the beacon landed.
+    setTimeout(function () {
+      try {
+        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: makeFd(), cache: 'no-cache' }).catch(function () {});
+        console.log('[OFFBOX] fetch POST fired');
+      } catch (e) { console.error('[OFFBOX] fetch POST failed:', e); }
+    }, 700);
 
-    // METHOD 4: fetch GET no-cors (fallback)
-    try {
-      fetch(fullUrl, { method: 'GET', mode: 'no-cors', cache: 'no-cache' }).catch(function(){});
-      console.log('[OFFBOX] fetch GET fired');
-    } catch(e) { console.error('[OFFBOX] fetch GET failed:', e); }
-
-    // METHOD 5: Image GET (works in some restrictive contexts)
-    try {
-      const img = new Image();
-      img.src = fullUrl;
-      console.log('[OFFBOX] image fired');
-    } catch(e) { console.error('[OFFBOX] image failed:', e); }
+    // t=1.6s  Hidden iframe form POST: ultimate fallback for restrictive/older browsers where
+    // beacon + fetch are blocked. Deduped if an earlier method already landed.
+    setTimeout(function () {
+      try {
+        const form = document.createElement('form');
+        form.style.cssText = 'position:absolute;left:-9999px;width:0;height:0;visibility:hidden';
+        form.action = SCRIPT_URL;
+        form.method = 'POST';
+        form.target = 'offbox-submit-iframe';
+        form.enctype = 'application/x-www-form-urlencoded';
+        Object.keys(params).forEach(function (key) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = params[key];
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(function () { try { document.body.removeChild(form); } catch (e) {} }, 8000);
+        console.log('[OFFBOX] iframe form fired');
+      } catch (e) { console.error('[OFFBOX] iframe failed:', e); }
+    }, 1600);
   }
 
   function showSuccess() {
@@ -6483,7 +6488,8 @@
       timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false },
       reasons: [],
       otherReason: '',
-      notes: ''
+      notes: '',
+      submissionId: genSubmissionId()
     };
     document.getElementById('success-screen').style.display = 'none';
     document.getElementById('reward-banner').classList.remove('show');
