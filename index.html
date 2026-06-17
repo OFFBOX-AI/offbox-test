@@ -2016,13 +2016,29 @@
     box-shadow: 0 0 0 2px rgba(255,255,255,0.6);
   }
 
-  /* PAST workdays: dim + pink dot in corner to nudge the user that they might have missed
-     filing time-off for this day. Opacity stays fixed in every non-active state (no hover bump)
-     so the chip never gets "stuck brighter" after a tap. The dot disappears once selected. */
+  /* PAST workdays: dim only, no dot. They're behind you, don't need an indicator. */
   .timeoff-day.is-past:not(.active) {
     opacity: 0.55;
   }
-  .timeoff-day.is-past:not(.is-weekend)::after {
+
+  /* TODAY (not selected): green pulsing CUBE in the corner -- "this is the active day". */
+  .timeoff-day.is-today:not(.active)::after {
+    content: "";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 6px;
+    height: 6px;
+    background: #39D98A;
+    animation: todayDotPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes todayDotPulse {
+    0%, 100% { box-shadow: 0 0 3px rgba(57,217,138,0.45); opacity: 0.85; }
+    50%      { box-shadow: 0 0 11px rgba(57,217,138,0.95); opacity: 1; }
+  }
+
+  /* FUTURE workdays: red cube -- "you haven't checked in for this day yet" notification. */
+  .timeoff-day.is-future:not(.is-weekend):not(.active)::after {
     content: "";
     position: absolute;
     top: 5px;
@@ -2032,7 +2048,7 @@
     background: #FF5572;
     box-shadow: 0 0 6px rgba(255,85,114,0.6);
   }
-  .timeoff-day.is-past.active::after { display: none; }
+  .timeoff-day.is-future.active::after { display: none; }
 
   /* WEEKEND (Fri / Sat): white-tinted, dimmed, fixed opacity (no hover bump). Still selectable. */
   .timeoff-day.is-weekend:not(.active) {
@@ -2249,12 +2265,6 @@
   }
   .timeoff-current-time-btn:active,
   .timeoff-whole-day-btn:active { transform: scale(0.97); }
-  /* Cyan accent for Current Time on hover so its identity reads vs Whole Day. */
-  .timeoff-current-time-btn:hover {
-    border-color: #43D9FF;
-    color: #43D9FF;
-    background: rgba(67,217,255,0.08);
-  }
   /* Whole Day active state: bright white pill, makes "whole day mode" obvious. */
   .timeoff-whole-day-btn.is-active {
     background: #FFFFFF;
@@ -2307,6 +2317,32 @@
     filter: grayscale(0.8) brightness(0.7);
   }
   .timeoff-shift-cell.is-past.is-now { /* now wins, but show it's "at the boundary" */ }
+
+  /* Break cells: you can't be off during the break (you're not working then anyway). They show
+     as locked: striped pattern, dimmer, not-allowed cursor, no hover lift. A selected range can
+     still visually SPAN them (so 12pm to 4pm shows continuously) but the break cells themselves
+     never get the white selection outline, and their time doesn't count toward duration. */
+  .timeoff-shift-cell.is-break {
+    background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.32) 4px 6px) !important;
+    cursor: not-allowed !important;
+    opacity: 0.38;
+  }
+  .timeoff-shift-cell.is-break:hover { opacity: 0.38 !important; }
+  .timeoff-shift-cell.is-break.selected::after,
+  .timeoff-shift-cell.is-break.is-selection-start::after,
+  .timeoff-shift-cell.is-break.is-selection-end::after { display: none; }
+
+  /* Snap animation: when an edge auto-adjusts off a break cell, the NEW edge cell emits a single
+     clean green outline ripple. One coherent motion, brand-green, smooth ease. No competing amber
+     pulse -- that read as an "error", which the auto-adjust isn't. */
+  @keyframes snapEdgeArrive {
+    0%   { box-shadow: 0 0 0 0 rgba(57,217,138,0.95), inset 0 0 0 2px rgba(57,217,138,0.9); }
+    100% { box-shadow: 0 0 0 14px rgba(57,217,138,0), inset 0 0 0 2px rgba(57,217,138,0); }
+  }
+  .timeoff-shift-cell.is-snap-arriving {
+    animation: snapEdgeArrive 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 7;
+  }
   /* Past + selected: still readable but stays muted vs future-selected. */
   .timeoff-shift-cell.is-past.selected {
     opacity: 0.55;
@@ -2322,56 +2358,130 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 2px;
-    margin-left: -1px;
-    background: rgba(255,255,255,0.92);
-    box-shadow: 0 0 7px rgba(255,255,255,0.65);
+    width: 4px;
+    margin-left: -2px;
+    background: rgba(57,217,138,0.95);
+    box-shadow: 0 0 10px rgba(57,217,138,0.8);
     pointer-events: none;
     z-index: 6;
-    animation: nowLinePulse 2.8s ease-in-out infinite;
+    animation: nowLinePulse 2.6s ease-in-out infinite;
   }
   .shift-now-line::before {
     content: '';
     position: absolute;
-    top: 2px;
+    top: -5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #FFFFFF;
-    box-shadow: 0 0 6px rgba(255,255,255,0.85);
+    width: 10px;
+    height: 6px;
+    background: #39D98A;
+    box-shadow: 0 0 8px rgba(57,217,138,0.95);
+    /* explicitly cubic -- no rounded corners */
   }
   @keyframes nowLinePulse {
-    0%, 100% { opacity: 0.45; }
+    0%, 100% { opacity: 0.5; }
     50%      { opacity: 1; }
   }
 
-  /* SELECTED cells: white outline ONLY. The shift color stays visible underneath so the user
-     can see what shift the selection covers. Outline is drawn via ::after so it overlays the
-     cell without overriding the background. */
+  /* LOCKED-TO-NOW visuals. When the Current Time toggle is on, the bar's now-cell, the OFF FROM
+     tile, and the Current Time button all share a brand-green pulsing outline. The day-today dot
+     and now-line use the same green, so the whole "active / running" state reads as one language. */
+  @keyframes lockToNowPulse {
+    0%, 100% { box-shadow: 0 0 0 1.5px rgba(57,217,138,0.7), 0 0 7px rgba(57,217,138,0.4); }
+    50%      { box-shadow: 0 0 0 2px rgba(57,217,138,1),  0 0 14px rgba(57,217,138,0.75); }
+  }
+  .timeoff-current-time-btn.is-locked-to-now {
+    background: #39D98A;
+    border-color: #39D98A;
+    color: #0F0F0F;
+    box-shadow: 0 0 0 1px #39D98A, 0 0 12px rgba(57,217,138,0.4);
+  }
+  .timeoff-current-time-btn.is-locked-to-now:hover {
+    background: #39D98A;
+    border-color: #39D98A;
+    color: #0F0F0F;
+  }
+  .timeoff-tile.is-locked-to-now {
+    border-color: rgba(57,217,138,0.85);
+    animation: lockToNowPulse 1.6s ease-in-out infinite;
+  }
+
+  /* Green pulsing text -- used in the OFF FROM tile and in the summary sentence when lock-to-now
+     is active. "NOW" carries the meaning of "right this minute, live", so the word itself reads
+     the same color and rhythm as the other "active / running" indicators. */
+  @keyframes nowTextPulse {
+    0%, 100% { opacity: 0.82; }
+    50%      { opacity: 1; }
+  }
+  .is-now-text {
+    color: #39D98A;
+    text-shadow: 0 0 8px rgba(57,217,138,0.55);
+    animation: nowTextPulse 1.5s ease-in-out infinite;
+    font-weight: 800;
+  }
+
+  /* Selection FILL stays per-cell (the chosen cells brighten). The OUTLINE, however, is drawn by
+     an absolute overlay (.timeoff-sel-seg) positioned by EXACT minutes -- so the box edges land
+     precisely on the chosen time, including the green NOW mark when locked, instead of snapping to
+     the 15-min cell grid. One segment per contiguous work-run, so a range spanning the break shows
+     a gap over the break. */
   .timeoff-shift-cell.selected { opacity: 0.9; }
-  .timeoff-shift-cell.selected::after {
-    content: '';
+  .timeoff-shift-cell.selected::after { display: none; }
+
+  .timeoff-sel-seg {
     position: absolute;
-    inset: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 3;
     box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF;
+  }
+  /* Precise partial-start fill: lights only the in-range sliver of the FROM cell (locked mode),
+     in that cell's own shift color, so brightness starts exactly at the now mark. */
+  .timeoff-sel-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
     pointer-events: none;
     z-index: 2;
+    opacity: 0.9;
   }
-  .timeoff-shift-cell.is-selection-start::after {
-    box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset 2px 0 0 #FFFFFF;
+  .timeoff-sel-seg.has-left  { box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset 2px 0 0 #FFFFFF; }
+  .timeoff-sel-seg.has-right { box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset -2px 0 0 #FFFFFF; }
+  .timeoff-sel-seg.has-left.has-right {
+    box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset 2px 0 0 #FFFFFF, inset -2px 0 0 #FFFFFF;
   }
-  .timeoff-shift-cell.is-selection-end::after {
-    box-shadow: inset 0 2px 0 #FFFFFF, inset 0 -2px 0 #FFFFFF, inset -2px 0 0 #FFFFFF;
+
+  /* LOCKED-TO-NOW: instead of the white box, draw a single continuous box whose outline starts
+     thick + brand-green at the NOW edge (left) and fades to white toward the right (UNTIL). Built
+     from layered backgrounds: top bar gradient, bottom bar gradient, and a thick green left edge
+     (::before) with a glow so it pops against the dark bar. Pulse animates opacity only. */
+  @keyframes selSegPulse { 0%, 100% { opacity: 0.78; } 50% { opacity: 1; } }
+  .timeoff-shift-bar.is-locked-to-now .timeoff-sel-seg.is-gradient {
+    box-shadow: none;
+    background:
+      linear-gradient(to right, #39D98A, #FFFFFF) top    / 100% 3px no-repeat,
+      linear-gradient(to right, #39D98A, #FFFFFF) bottom / 100% 3px no-repeat;
+    animation: selSegPulse 1.6s ease-in-out infinite;
   }
-  /* Single-cell selection: outline all four sides. */
-  .timeoff-shift-cell.is-selection-start.is-selection-end::after {
-    box-shadow:
-      inset 0 2px 0 #FFFFFF,
-      inset 0 -2px 0 #FFFFFF,
-      inset 2px 0 0 #FFFFFF,
-      inset -2px 0 0 #FFFFFF;
+  .timeoff-shift-bar.is-locked-to-now .timeoff-sel-seg.is-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background: #39D98A;
+    box-shadow: 0 0 9px rgba(57,217,138,0.95);
+  }
+  .timeoff-shift-bar.is-locked-to-now .timeoff-sel-seg.is-gradient::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.85);
   }
 
   /* WHOLE DAY mode: when the selection spans the full work window, hide the per-cell outlines
@@ -2546,17 +2656,17 @@
     100% { border-color: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04); }
   }
 
-  /* CURRENT TIME button press effect + bar cyan glow (unchanged from before). */
+  /* CURRENT TIME button press effect + bar glow -- brand green (matches the locked/active state). */
   .timeoff-current-time-btn.is-pressed { animation: currentTimePressed 0.45s ease-out; }
   @keyframes currentTimePressed {
-    0%   { background: #43D9FF; color: #0F0F0F; transform: scale(0.96); border-color: #43D9FF; box-shadow: 0 0 0 0 rgba(67,217,255,0.7); }
-    45%  { background: rgba(67,217,255,0.22); color: #43D9FF; transform: scale(1.02); border-color: rgba(67,217,255,0.6); box-shadow: 0 0 14px 4px rgba(67,217,255,0.45); }
-    100% { background: rgba(255,255,255,0.05); color: rgba(230,230,230,0.85); transform: scale(1); border-color: rgba(255,255,255,0.18); box-shadow: 0 0 0 0 rgba(67,217,255,0); }
+    0%   { background: #39D98A; color: #0F0F0F; transform: scale(0.96); border-color: #39D98A; box-shadow: 0 0 0 0 rgba(57,217,138,0.7); }
+    45%  { background: rgba(57,217,138,0.22); color: #39D98A; transform: scale(1.02); border-color: rgba(57,217,138,0.6); box-shadow: 0 0 14px 4px rgba(57,217,138,0.45); }
+    100% { background: rgba(255,255,255,0.05); color: rgba(230,230,230,0.85); transform: scale(1); border-color: rgba(255,255,255,0.18); box-shadow: 0 0 0 0 rgba(57,217,138,0); }
   }
   .timeoff-shift-bar.is-jumping-to-now { animation: barJumpToNow 0.55s ease-out; }
   @keyframes barJumpToNow {
-    0%   { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 0 rgba(67,217,255,0); }
-    40%  { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 18px 4px rgba(67,217,255,0.65); }
+    0%   { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 0 rgba(57,217,138,0); }
+    40%  { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 18px 4px rgba(57,217,138,0.65); }
     100% { box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04); }
   }
 
@@ -3598,10 +3708,9 @@
     ]
   };
 
-  // Granularity of the time-off picker. 60-min slots -- after testing, sub-hour precision wasn't
-  // needed (small differences get squared up informally). Changing this to 15 or 30 re-derives the
+  // Granularity of the time-off picker. 15-min slots for precision. Changing this re-derives the
   // whole picker: bar cell count, snapping, stepper ticks, and current-time rounding all key off it.
-  const SLOT_MIN = 60;
+  const SLOT_MIN = 15;
   function slotCount() { return (WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart) * 60 / SLOT_MIN; }
 
   // Returns the multi-layer background for a shift bar layer.
@@ -3951,7 +4060,7 @@
     goal: '', blocker: { has: null, what: '', unblocker: '' },
     energyIn: 0, expectedDiff: '',
     completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
-    timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false },
+    timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false, lockedToNow: false },
     reasons: [],
     otherReason: '',
     notes: '',
@@ -4399,12 +4508,14 @@
                 const color = DAY_CHIP_COLORS[i];
                 const isToday = i === todayIdx;
                 const isPast = i < todayIdx;
+                const isFuture = i > todayIdx;
                 const isWeekend = i >= 5;
                 const dateLabel = active ? getThisWeekDateLabel(i) : (isToday ? 'TODAY' : '');
                 const cls = ['timeoff-day'];
                 if (active) cls.push('active');
                 if (isToday) cls.push('is-today');
                 if (isPast) cls.push('is-past');
+                if (isFuture) cls.push('is-future');
                 if (isWeekend) cls.push('is-weekend');
                 return '<button type="button" class="' + cls.join(' ') + '" ' +
                   'style="--day-color:' + color + '" onclick="toggleTimeOffDay(' + i + ')">' +
@@ -4440,13 +4551,13 @@
                Each tile scrolls (wheel) or steps via the left/right buttons (mobile-friendly),
                in 30-min increments. Left = earlier/less, right = later/more. -->
           <div class="timeoff-summary-grid">
-            <div class="timeoff-tile timeoff-tile-from" id="timeoff-tile-from" data-tile-field="from" title="Scroll or use the arrows to adjust by 1 hour">
+            <div class="timeoff-tile timeoff-tile-from" id="timeoff-tile-from" data-tile-field="from" title="Scroll or use the arrows to adjust by 15 minutes">
               ${buildTimeoffTileHtml('from')}
             </div>
-            <div class="timeoff-tile timeoff-tile-until" id="timeoff-tile-until" data-tile-field="until" title="Scroll or use the arrows to adjust by 1 hour">
+            <div class="timeoff-tile timeoff-tile-until" id="timeoff-tile-until" data-tile-field="until" title="Scroll or use the arrows to adjust by 15 minutes">
               ${buildTimeoffTileHtml('until')}
             </div>
-            <div class="timeoff-tile timeoff-tile-duration timeoff-tile-wide" id="timeoff-tile-duration" data-tile-field="duration" title="Scroll or use the arrows to adjust by 1 hour">
+            <div class="timeoff-tile timeoff-tile-duration timeoff-tile-wide" id="timeoff-tile-duration" data-tile-field="duration" title="Scroll or use the arrows to adjust by 15 minutes">
               ${buildTimeoffTileHtml('duration')}
             </div>
           </div>
@@ -4523,7 +4634,7 @@
     // regardless of day-pick state -- the range is required, not optional.
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -4547,6 +4658,17 @@
     return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
   }
 
+  // Shift color (rgba string) active at a given minute-of-day. Used to paint the precise
+  // partial-start fill in the cell's own color.
+  function segmentColorAt(min) {
+    const h = min / 60;
+    for (let i = 0; i < WORK_SCHEDULE.segments.length; i++) {
+      const seg = WORK_SCHEDULE.segments[i];
+      if (h >= seg.start && h < seg.end) return seg.color;
+    }
+    return WORK_SCHEDULE.segments[WORK_SCHEDULE.segments.length - 1].color;
+  }
+
   function timeToCellIndex(hhmm) {
     if (!hhmm) return -1;
     const parts = hhmm.split(':');
@@ -4555,19 +4677,132 @@
   }
 
   // Pretty "Xh Ym" / "X HOURS" / "Ym" derived from state.timeOff.from and .to.
+  // Break time is SUBTRACTED -- you can't be "off" during the break since you're not working then.
   function computeDurationStr() {
     if (!state.timeOff.from || !state.timeOff.to) return '';
     const fp = state.timeOff.from.split(':');
     const tp = state.timeOff.to.split(':');
     const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
     const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
-    const dur = tMin - fMin;
+    let dur = tMin - fMin;
+    // Subtract any overlap with BREAK segments so the duration reflects actual work time off.
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      const bStart = seg.start * 60;
+      const bEnd   = seg.end   * 60;
+      const overlap = Math.max(0, Math.min(tMin, bEnd) - Math.max(fMin, bStart));
+      dur -= overlap;
+    });
     if (dur <= 0) return '';
     const h = Math.floor(dur / 60);
     const m = dur % 60;
-    if (h > 0 && m > 0) return h + 'H ' + m + 'M';
-    if (h > 0) return h + ' HOUR' + (h === 1 ? '' : 'S');
-    return m + ' MIN';
+    if (h > 0 && m > 0) return h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h';
+    return m + 'm';
+  }
+
+  // Like computeDurationStr but returns just the integer number of WORK minutes (break excluded).
+  // Used to validate that the selection contains at least 15 min of actual work time.
+  function computeTimeoffWorkMinutes() {
+    if (!state.timeOff.from || !state.timeOff.to) return 0;
+    const fp = state.timeOff.from.split(':');
+    const tp = state.timeOff.to.split(':');
+    const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    let dur = tMin - fMin;
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      const bStart = seg.start * 60;
+      const bEnd   = seg.end   * 60;
+      dur -= Math.max(0, Math.min(tMin, bEnd) - Math.max(fMin, bStart));
+    });
+    return Math.max(0, dur);
+  }
+  function isBreakCell(i) {
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const midHour = (startMin + i * SLOT_MIN + SLOT_MIN / 2) / 60;
+    for (let s = 0; s < WORK_SCHEDULE.segments.length; s++) {
+      const seg = WORK_SCHEDULE.segments[s];
+      if (seg.name === 'BREAK' && midHour >= seg.start && midHour < seg.end) return true;
+    }
+    return false;
+  }
+
+  // After a drag completes, FROM and TO must NOT be on break cells. The user CAN drag across
+  // the break (the break in the middle is preserved visually, just not counted), but the
+  // endpoints themselves must always be actual work cells. The snap is INTENTIONALLY delayed
+  // and animated so it reads as a polished auto-adjust, not a jittery instant correction:
+  //   t=0     -- amber inset pulse fires on the old (break) edge cells ("this needs fixing")
+  //   t=250ms -- selection state updates to the snapped position; green ripple expands on the
+  //              new edge cells ("snapped here"); the affected tile flashes
+  //   t=950ms -- animation cleanup, classes removed so the effect can fire again next drag
+  function commitTimeOffSnapEdges() {
+    if (!state.timeOff.from || !state.timeOff.to) return;
+    const fromCell   = timeToCellIndex(state.timeOff.from);
+    const toCellIncl = timeToCellIndex(state.timeOff.to) - 1;
+    const needsFrom  = isBreakCell(fromCell);
+    const needsTo    = isBreakCell(toCellIncl);
+    if (!needsFrom && !needsTo) return;
+
+    const newFromCell = needsFrom ? snapAwayFromBreak(fromCell, 'right') : fromCell;
+    let   newToCellIncl = needsTo ? snapAwayFromBreak(toCellIncl, 'left') : toCellIncl;
+    if (newFromCell > newToCellIncl) newToCellIncl = newFromCell;
+
+    function cellEl(idx) { return document.querySelector('.timeoff-shift-cell[data-cell="' + idx + '"]'); }
+
+    // 180ms beat so the user briefly sees their final drag position before the snap. Then we
+    // apply the corrected state and play ONE clean green outline pulse on the new edge(s).
+    // No amber warning pulse -- it read as "error" rather than "auto-adjust".
+    setTimeout(function() {
+      const startMin = WORK_SCHEDULE.workStart * 60;
+      state.timeOff.from = minutesToHHMM(startMin + newFromCell * SLOT_MIN);
+      state.timeOff.to   = minutesToHHMM(startMin + (newToCellIncl + 1) * SLOT_MIN);
+      updateShiftBarSelection();
+      updateTimeOffSummary();
+      updateSubmitState();
+
+      function pulse(idx) {
+        const el = cellEl(idx);
+        if (!el) return;
+        el.classList.remove('is-snap-arriving');
+        void el.offsetWidth;
+        el.classList.add('is-snap-arriving');
+      }
+      if (needsFrom) pulse(newFromCell);
+      if (needsTo && newToCellIncl !== newFromCell) pulse(newToCellIncl);
+      if (needsFrom) flashTimeoffTile(document.getElementById('timeoff-tile-from'));
+      if (needsTo)   flashTimeoffTile(document.getElementById('timeoff-tile-until'));
+
+      setTimeout(function() {
+        document.querySelectorAll('.timeoff-shift-cell.is-snap-arriving')
+          .forEach(function(el) { el.classList.remove('is-snap-arriving'); });
+      }, 700);
+    }, 180);
+  }
+
+  // Returns the nearest non-break cell to `i`.
+  //   direction = 'left'    : scan toward cell 0
+  //   direction = 'right'   : scan toward the last cell
+  //   direction = 'closest' : pick whichever side is nearer
+  function snapAwayFromBreak(i, direction) {
+    if (!isBreakCell(i)) return i;
+    const total = slotCount();
+    if (direction === 'left') {
+      for (let j = i - 1; j >= 0;     j--) if (!isBreakCell(j)) return j;
+      for (let j = i + 1; j < total;  j++) if (!isBreakCell(j)) return j; // fallback if no left non-break exists
+      return i;
+    }
+    if (direction === 'right') {
+      for (let j = i + 1; j < total;  j++) if (!isBreakCell(j)) return j;
+      for (let j = i - 1; j >= 0;     j--) if (!isBreakCell(j)) return j; // fallback
+      return i;
+    }
+    // closest: walk outward in both directions, take first hit
+    for (let d = 1; d < total; d++) {
+      if (i - d >= 0    && !isBreakCell(i - d)) return i - d;
+      if (i + d < total && !isBreakCell(i + d)) return i + d;
+    }
+    return i;
   }
 
   // Render the cell row. Each cell looks up its segment color from WORK_SCHEDULE so changing
@@ -4610,6 +4845,7 @@
       const isPast      = !isNow && cellEndMin <= nowMin;
       const isFuture    = !isNow && cellStartMin > nowMin;
       const classes = ['timeoff-shift-cell'];
+      if (isBreakCell(i)) classes.push('is-break');
       if (isHourStart) classes.push('is-hour-start');
       if (isSelected)  classes.push('selected');
       if (isSelStart)  classes.push('is-selection-start');
@@ -4645,13 +4881,30 @@
     let toCellInclusive = -1;
     if (state.timeOff.from && state.timeOff.to) {
       fromCell = timeToCellIndex(state.timeOff.from);
-      toCellInclusive = timeToCellIndex(state.timeOff.to) - 1;
+      // Use ceil-1 instead of floor-1 so a mid-cell "to" (locked-to-now mode where the start
+      // is at minute precision, e.g. 12:08 -> 12:23) still highlights the cell that the range
+      // extends INTO. For 15-min-aligned 'to' values it gives the same answer as floor-1.
+      const startMin = WORK_SCHEDULE.workStart * 60;
+      const tp = state.timeOff.to.split(':');
+      const toMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1] || '0', 10);
+      toCellInclusive = Math.ceil((toMin - startMin) / SLOT_MIN) - 1;
+    }
+    // When locked, FROM is a precise minute. If it's mid-cell, that start cell is only partially
+    // in range -- leave it UN-lit here and let the precise fill overlay paint just the in-range
+    // sliver, so brightness begins exactly at the now mark instead of the cell's left edge.
+    let partialStartCell = -1;
+    if (state.timeOff.lockedToNow && state.timeOff.from) {
+      const fpx = state.timeOff.from.split(':');
+      const fromMinExact = parseInt(fpx[0], 10) * 60 + parseInt(fpx[1], 10);
+      const cellLeftMin = WORK_SCHEDULE.workStart * 60 + fromCell * SLOT_MIN;
+      if (fromMinExact > cellLeftMin) partialStartCell = fromCell;
     }
     cells.forEach(function(c, i) {
-      const sel = fromCell >= 0 && i >= fromCell && i <= toCellInclusive;
-      c.classList.toggle('selected', sel);
-      c.classList.toggle('is-selection-start', sel && i === fromCell);
-      c.classList.toggle('is-selection-end',   sel && i === toCellInclusive);
+      const inRange = fromCell >= 0 && i >= fromCell && i <= toCellInclusive;
+      const lit = inRange && i !== partialStartCell;
+      c.classList.toggle('selected', lit);
+      c.classList.toggle('is-selection-start', lit && i === fromCell);
+      c.classList.toggle('is-selection-end',   inRange && i === toCellInclusive);
     });
     // Toggle whole-day overlay on the bar element itself when the selection spans the full work day.
     const bar = document.getElementById('timeoff-shift-bar');
@@ -4663,6 +4916,95 @@
     }
     updateTimeoffSummaryRow();
     updateWholeDayBtnState();
+    updateSelectionOverlay();
+  }
+
+  // Work minutes between two arbitrary clock minutes, break excluded. (computeTimeoffWorkMinutes
+  // does the same but only for the current state.timeOff range.)
+  function timeoffWorkMinutesBetween(fromMin, toMin) {
+    let d = toMin - fromMin;
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      const bs = seg.start * 60, be = seg.end * 60;
+      d -= Math.max(0, Math.min(toMin, be) - Math.max(fromMin, bs));
+    });
+    return Math.max(0, d);
+  }
+
+  // Draw the selection OUTLINE as absolute overlay segment(s) positioned by exact minutes, so the
+  // box edges land precisely on the chosen times (in particular the green NOW mark when locked).
+  // One segment per contiguous work-run inside [from, to]; the run containing FROM gets the left
+  // edge, the run containing TO gets the right edge, and any break inside the range is a gap.
+  function updateSelectionOverlay() {
+    const bar = document.getElementById('timeoff-shift-bar');
+    if (!bar) return;
+    bar.querySelectorAll('.timeoff-sel-seg').forEach(function(el) { el.remove(); });
+    if (!state.timeOff.from || !state.timeOff.to) return;
+    // Whole-day mode draws its own single block overlay -- don't double up.
+    const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
+    const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
+    if (state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo) return;
+
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const span = endMin - startMin;
+    const fp = state.timeOff.from.split(':'); const tp = state.timeOff.to.split(':');
+    const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const toMin   = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+
+    // LOCKED: one continuous box from now -> until, drawn with a green-at-the-start gradient that
+    // fades to white at the right. The break (if spanned) shows through underneath but the outline
+    // runs continuously so the gradient reads cleanly.
+    if (state.timeOff.lockedToNow) {
+      const seg = document.createElement('div');
+      seg.className = 'timeoff-sel-seg is-gradient';
+      seg.style.left  = ((fromMin - startMin) / span * 100) + '%';
+      seg.style.width = ((toMin - fromMin) / span * 100) + '%';
+      bar.appendChild(seg);
+      // FROM is at a precise minute, so its cell is only PARTIALLY in range. The cell itself is
+      // left un-lit (see updateShiftBarSelection); we paint just the in-range sliver here, in the
+      // cell's own shift color, so the brightness starts exactly at the now mark -- not the cell edge.
+      const cellLeftMin = startMin + Math.floor((fromMin - startMin) / SLOT_MIN) * SLOT_MIN;
+      const cellRightMin = cellLeftMin + SLOT_MIN;
+      if (fromMin > cellLeftMin && fromMin < cellRightMin) {
+        const fill = document.createElement('div');
+        fill.className = 'timeoff-sel-fill';
+        fill.style.left = ((fromMin - startMin) / span * 100) + '%';
+        fill.style.width = ((Math.min(cellRightMin, toMin) - fromMin) / span * 100) + '%';
+        fill.style.background = segmentColorAt(fromMin);
+        bar.appendChild(fill);
+      }
+      return;
+    }
+
+    const breaks = WORK_SCHEDULE.segments
+      .filter(function(s) { return s.name === 'BREAK'; })
+      .map(function(s) { return { s: s.start * 60, e: s.end * 60 }; })
+      .sort(function(a, b) { return a.s - b.s; });
+
+    // Split [fromMin, toMin] into work-runs around the break(s).
+    const runs = [];
+    let cur = fromMin;
+    breaks.forEach(function(b) {
+      if (b.e <= cur || b.s >= toMin) {
+        if (b.s <= cur && b.e > cur) cur = b.e; // from started inside this break
+        return;
+      }
+      if (b.s > cur) runs.push([cur, Math.min(b.s, toMin)]);
+      cur = Math.max(cur, b.e);
+    });
+    if (cur < toMin) runs.push([cur, toMin]);
+    const valid = runs.filter(function(r) { return r[1] > r[0]; });
+
+    valid.forEach(function(r, idx) {
+      const seg = document.createElement('div');
+      seg.className = 'timeoff-sel-seg';
+      if (idx === 0) seg.classList.add('has-left');
+      if (idx === valid.length - 1) seg.classList.add('has-right');
+      seg.style.left  = ((r[0] - startMin) / span * 100) + '%';
+      seg.style.width = ((r[1] - r[0]) / span * 100) + '%';
+      bar.appendChild(seg);
+    });
   }
 
   // Refresh is-now / is-past / is-future on every cell. Cheap class flips, idempotent.
@@ -4724,7 +5066,8 @@
     bar.dataset.handlersBound = '1';
 
     let dragging = false;
-    let anchorCell = -1; // the edge that stays put during this drag
+    let anchorCell = -1;   // the edge that stays put during this drag
+    let draggingEdge = 'start'; // which edge the user grabbed: 'start' or 'end'
 
     function getCellFromPoint(x, y) {
       const el = document.elementFromPoint(x, y);
@@ -4735,9 +5078,31 @@
     }
 
     function applySelection(movingCell) {
+      const startMin = WORK_SCHEDULE.workStart * 60;
+      const endMin   = WORK_SCHEDULE.workEnd   * 60;
+      // Lock-aware: the lock only breaks when the user moves the START edge, OR drags the END
+      // back past the now mark. Dragging the END later keeps the lock and the precise FROM.
+      if (state.timeOff.lockedToNow) {
+        const nowCell = timeToCellIndex(state.timeOff.from); // FROM == precise now while locked
+        if (draggingEdge === 'end' && movingCell >= nowCell) {
+          // Keep lock: FROM stays at the exact current minute, only the END moves.
+          let toMin = startMin + (movingCell + 1) * SLOT_MIN;
+          const fp = state.timeOff.from.split(':');
+          const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+          // Guarantee >= 15 work minutes (skip across the break if needed).
+          while (toMin <= endMin && timeoffWorkMinutesBetween(fromMin, toMin) < 15) toMin += SLOT_MIN;
+          if (toMin > endMin) toMin = endMin;
+          state.timeOff.to = minutesToHHMM(toMin);
+          updateShiftBarSelection();
+          updateTimeOffSummary();
+          updateSubmitState();
+          return;
+        }
+        // Moving the start, or the end was pulled below the now mark -> user takes manual control.
+        deactivateCurrentTimeLock();
+      }
       const a = Math.min(anchorCell, movingCell);
       const b = Math.max(anchorCell, movingCell);
-      const startMin = WORK_SCHEDULE.workStart * 60;
       state.timeOff.from = minutesToHHMM(startMin + a * SLOT_MIN);
       state.timeOff.to   = minutesToHHMM(startMin + (b + 1) * SLOT_MIN);
       updateShiftBarSelection();
@@ -4751,18 +5116,21 @@
       e.preventDefault();
       try { bar.setPointerCapture(e.pointerId); } catch (_) {}
       dragging = true;
-      const tappedCell = parseInt(target.dataset.cell, 10);
+      let tappedCell = parseInt(target.dataset.cell, 10);
 
       // Pick the anchor: if there's a current selection, anchor is the FAR edge so the NEAR edge
-      // (the one closer to the tap) gets pulled to the tap point. With no selection, anchor = tap.
+      // (the one closer to the tap) gets pulled to the tap point. Record which edge is moving so
+      // the lock logic knows whether the user is dragging the START or the END.
       if (state.timeOff.from && state.timeOff.to) {
         const currentFromCell = timeToCellIndex(state.timeOff.from);
         const currentToCellIncl = timeToCellIndex(state.timeOff.to) - 1;
         const distToStart = Math.abs(tappedCell - currentFromCell);
         const distToEnd   = Math.abs(tappedCell - currentToCellIncl);
-        anchorCell = (distToStart <= distToEnd) ? currentToCellIncl : currentFromCell;
+        if (distToStart <= distToEnd) { anchorCell = currentToCellIncl; draggingEdge = 'start'; }
+        else                          { anchorCell = currentFromCell;   draggingEdge = 'end'; }
       } else {
         anchorCell = tappedCell;
+        draggingEdge = 'start';
       }
       applySelection(tappedCell);
     });
@@ -4780,6 +5148,9 @@
       if (e && e.pointerId !== undefined) {
         try { bar.releasePointerCapture(e.pointerId); } catch (_) {}
       }
+      // While locked, FROM is the precise current minute (already off the break) and TO was kept
+      // valid during the drag -- running the break-snap could round FROM back to a cell. Skip it.
+      if (!state.timeOff.lockedToNow) commitTimeOffSnapEdges();
     }
     bar.addEventListener('pointerup', endDrag);
     bar.addEventListener('pointercancel', endDrag);
@@ -4788,6 +5159,7 @@
     // Also clears _previousRange so the next Whole Day press starts fresh.
     bar.addEventListener('contextmenu', function(e) {
       e.preventDefault();
+      if (state.timeOff.lockedToNow) deactivateCurrentTimeLock();
       state.timeOff.from = '';
       state.timeOff.to = '';
       state.timeOff._previousRange = null;
@@ -4842,6 +5214,7 @@
   // The bar's .is-whole-day class (set by updateShiftBarSelection) shows the single-block
   // "WHOLE DAY OFF" overlay when whole-day mode is active.
   function selectWholeDay() {
+    if (state.timeOff.lockedToNow) deactivateCurrentTimeLock();
     const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
     const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
     const isCurrentlyWhole = state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
@@ -4871,7 +5244,7 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -4890,6 +5263,7 @@
     if (nowMin <= startMin)    cellIdx = 0;
     else if (nowMin >= endMin) cellIdx = cells - 1;
     else                       cellIdx = Math.floor((nowMin - startMin) / SLOT_MIN);
+    if (isBreakCell(cellIdx)) cellIdx = snapAwayFromBreak(cellIdx, 'closest');
     state.timeOff.from = minutesToHHMM(startMin + cellIdx * SLOT_MIN);
     state.timeOff.to   = minutesToHHMM(startMin + (cellIdx + 1) * SLOT_MIN);
     state.timeOff._previousRange = null;
@@ -4899,57 +5273,145 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
   }
 
-  // "Current Time" quick action: select the next 1-hour cell at or after now (rounding UP).
-  //   12:01 PM -> 1:00 PM
-  //   12:00 PM -> 12:00 PM (already on a boundary)
-  //   1:00 PM -> 1:00 PM (already on the hour)
-  // Outside work hours: clamps to first/last cell.
-  // Visual effect: the button pulses cyan and the bar gets a brief cyan glow halo so the
-  // "jump to now" action feels punchy and acknowledged.
+  // "Current Time" is a TOGGLE. First press activates a lock where the OFF FROM follows the
+  // actual current minute precisely (re-syncs on every clock tick). Visuals: the button, the
+  // OFF FROM tile, the bar's now-cell, and the now-line all read GREEN PULSING to signal
+  // "active / running". Second press, OR any user action that edits the OFF FROM (drag the bar,
+  // FROM stepper, FROM wheel, Whole Day, right-click clear), turns the lock off.
+  let currentTimeLockInterval = null;
+
   function selectCurrentTime() {
+    if (state.timeOff.lockedToNow) {
+      deactivateCurrentTimeLock();
+      return;
+    }
+    activateCurrentTimeLock();
+  }
+
+  function activateCurrentTimeLock() {
+    state.timeOff.lockedToNow = true;
+    syncTimeoffFromToNow(); // initial sync: FROM = now, UNTIL preserved
+    // syncTimeoffFromToNow may bail and call deactivate (e.g. too late in the day to fit 15 min).
+    // If it did, lockedToNow is already false -- don't paint lock visuals or start the interval.
+    if (!state.timeOff.lockedToNow) return;
+    applyLockToNowVisuals(true);
+    if (currentTimeLockInterval) clearInterval(currentTimeLockInterval);
+    // Re-sync every 15s so OFF FROM tracks the live clock minute.
+    currentTimeLockInterval = setInterval(function() {
+      if (!state.timeOff.lockedToNow) {
+        clearInterval(currentTimeLockInterval);
+        currentTimeLockInterval = null;
+        return;
+      }
+      syncTimeoffFromToNow();
+    }, 15000);
+  }
+
+  // Turning the lock OFF must (1) stop the interval, (2) drop the green visuals, AND (3) snap the
+  // minute-precise FROM/TO back onto the 15-min grid. Precise (off-grid) timing exists ONLY while
+  // the toggle is on; the moment it's off, the picker behaves like a normal 15-min cell picker.
+  // We also rebuild the tiles so the FROM tile stops showing "NOW".
+  function deactivateCurrentTimeLock() {
+    if (!state.timeOff.lockedToNow) return;
+    state.timeOff.lockedToNow = false;
+    if (currentTimeLockInterval) { clearInterval(currentTimeLockInterval); currentTimeLockInterval = null; }
+    snapTimeoffToGrid();        // collapse off-grid minute values to 15-min cells
+    applyLockToNowVisuals(false);
+    updateShiftBarSelection();  // rebuilds tiles (FROM stops saying "NOW") + summary
+    updateTimeOffSummary();
+    updateSubmitState();
+  }
+
+  // Snap state.timeOff.from / .to to the 15-min grid, preserving the visual selection footprint:
+  // FROM floors to the cell that contains it, TO ceils to the end of the cell it extends into.
+  // Endpoints are pushed off the break and the result is clamped to work hours with a >= 1 cell span.
+  function snapTimeoffToGrid() {
+    if (!state.timeOff.from || !state.timeOff.to) return;
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const cellCount = slotCount();
+    let fromCell = timeToCellIndex(state.timeOff.from);            // floor
+    const tp = state.timeOff.to.split(':');
+    const toMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    let toCellIncl = Math.ceil((toMin - startMin) / SLOT_MIN) - 1; // ceil-1
+    if (fromCell < 0) fromCell = 0;
+    if (toCellIncl >= cellCount) toCellIncl = cellCount - 1;
+    if (isBreakCell(fromCell))   fromCell   = snapAwayFromBreak(fromCell, 'right');
+    if (isBreakCell(toCellIncl)) toCellIncl = snapAwayFromBreak(toCellIncl, 'left');
+    if (toCellIncl < fromCell)   toCellIncl = fromCell;
+    state.timeOff.from = minutesToHHMM(startMin + fromCell * SLOT_MIN);
+    state.timeOff.to   = minutesToHHMM(startMin + (toCellIncl + 1) * SLOT_MIN);
+  }
+
+  // Set state.timeOff.from = current minute, state.timeOff.to = from + max(currentDur, 15).
+  // Clamps to work hours and skips past the break if "now" lands inside it. If clamping leaves
+  // less than 15 min of selectable time, deactivate the lock.
+  function syncTimeoffFromToNow() {
     const startMin = WORK_SCHEDULE.workStart * 60;
     const endMin   = WORK_SCHEDULE.workEnd   * 60;
-    const cellCount = (endMin - startMin) / SLOT_MIN;
     const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    let cellIdx;
-    if (nowMin <= startMin)      cellIdx = 0;
-    else if (nowMin >= endMin)   cellIdx = cellCount - 1;
-    else                         cellIdx = Math.ceil((nowMin - startMin) / SLOT_MIN);
-    if (cellIdx >= cellCount)    cellIdx = cellCount - 1;
-    state.timeOff.from = minutesToHHMM(startMin + cellIdx * SLOT_MIN);
-    state.timeOff.to   = minutesToHHMM(startMin + (cellIdx + 1) * SLOT_MIN);
-    state.timeOff._previousRange = null; // hitting Current Time defines a new baseline
+    let nowMin = now.getHours() * 60 + now.getMinutes();
+    if (nowMin < startMin) nowMin = startMin;
+    // If now is inside the break, jump FROM to end-of-break so it's always on real work time.
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name === 'BREAK') {
+        const bStart = seg.start * 60, bEnd = seg.end * 60;
+        if (nowMin >= bStart && nowMin < bEnd) nowMin = bEnd;
+      }
+    });
+    // Need at least 15 min of work time before the day ends.
+    if (nowMin > endMin - 15) { deactivateCurrentTimeLock(); return; }
+
+    // PRESERVE the existing UNTIL. Pressing Current Time (or the 15s re-sync) moves only the FROM
+    // to the live minute -- the end stays exactly where the user left it. As "now" advances, the
+    // remaining time naturally shrinks ("off from now until 4:25").
+    let toMin;
+    if (state.timeOff.to) {
+      const tp = state.timeOff.to.split(':');
+      toMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    } else {
+      toMin = nowMin + 15;
+    }
+    // Only if the existing UNTIL is now in the past (or leaves < 15 work-min after now) do we fall
+    // back to a fresh block starting now. The END snaps to a clean 15-min mark (never :07 / :25):
+    // round up to the next quarter-hour, then keep adding quarters until it holds >= 15 work min
+    // (which also carries it cleanly across the break if it lands on it).
+    if (toMin <= nowMin || timeoffWorkMinutesBetween(nowMin, toMin) < 15) {
+      toMin = Math.ceil(nowMin / SLOT_MIN) * SLOT_MIN;
+      while (toMin <= endMin && timeoffWorkMinutesBetween(nowMin, toMin) < 15) toMin += SLOT_MIN;
+    }
+    if (toMin > endMin) toMin = endMin;
+
+    state.timeOff.from = minutesToHHMM(nowMin);
+    state.timeOff.to   = minutesToHHMM(toMin);
+    state.timeOff._previousRange = null;
+    if (timeoffWorkMinutesBetween(nowMin, toMin) < 15) { deactivateCurrentTimeLock(); return; }
+
     updateShiftBarSelection();
     updateTimeOffSummary();
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
-    // Press feedback: button cyan pulse + bar cyan glow.
+  }
+
+  // Add / remove the .is-locked-to-now class on every element that should react to lock mode:
+  // the Current Time button, the OFF FROM tile, and the shift bar (whose now-cell inherits via CSS).
+  function applyLockToNowVisuals(on) {
     const btn = document.getElementById('timeoff-current-time-btn');
-    if (btn) {
-      btn.classList.remove('is-pressed');
-      void btn.offsetWidth;
-      btn.classList.add('is-pressed');
-      setTimeout(function() { btn.classList.remove('is-pressed'); }, 470);
-    }
+    if (btn) btn.classList.toggle('is-locked-to-now', on);
+    const fromTile = document.getElementById('timeoff-tile-from');
+    if (fromTile) fromTile.classList.toggle('is-locked-to-now', on);
     const bar = document.getElementById('timeoff-shift-bar');
-    if (bar) {
-      bar.classList.remove('is-jumping-to-now');
-      void bar.offsetWidth;
-      bar.classList.add('is-jumping-to-now');
-      setTimeout(function() { bar.classList.remove('is-jumping-to-now'); }, 570);
-    }
+    if (bar) bar.classList.toggle('is-locked-to-now', on);
   }
 
   // Toggles .is-active on the Whole Day button when the current selection spans the full
@@ -5001,8 +5463,15 @@
       if (field === 'from') {
         const fp = formatTime12Parts(from);
         label = 'OFF FROM';
-        valueHtml = '<span class="timeoff-tile-value-digits" style="color:' + fp.color + '">' + fp.time + '</span>' +
-                    '<span class="timeoff-tile-meridiem" style="color:' + fp.color + '">' + fp.meridiem + '</span>';
+        if (state.timeOff.lockedToNow) {
+          // Lock mode: show the actual live current time, in pulsing green. It updates as the
+          // minute advances (the 15s re-sync rebuilds this tile).
+          valueHtml = '<span class="timeoff-tile-value-digits is-now-text">' + fp.time + '</span>' +
+                      '<span class="timeoff-tile-meridiem is-now-text">' + fp.meridiem + '</span>';
+        } else {
+          valueHtml = '<span class="timeoff-tile-value-digits" style="color:' + fp.color + '">' + fp.time + '</span>' +
+                      '<span class="timeoff-tile-meridiem" style="color:' + fp.color + '">' + fp.meridiem + '</span>';
+        }
         canLeft  = fromCell > 0;            // earlier, down to workStart
         canRight = fromCell < toCellIncl;   // later, stays before UNTIL (min 1 slot)
       } else if (field === 'until') {
@@ -5058,24 +5527,49 @@
   // Returns true if the state actually changed, false if clamped against a limit.
   function adjustTimeoffField(field, direction) {
     if (!state.timeOff.from || !state.timeOff.to) return false;
+    // Any user-initiated change to OFF FROM means they're taking manual control: drop the lock.
+    if (field === 'from' && state.timeOff.lockedToNow) deactivateCurrentTimeLock();
     const startMin = WORK_SCHEDULE.workStart * 60;
-    const cellCount = slotCount();
-    const fromCell = timeToCellIndex(state.timeOff.from);
-    const toCellIncl = timeToCellIndex(state.timeOff.to) - 1;
-    let newFromCell = fromCell;
-    let newToCellIncl = toCellIncl;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const fp = state.timeOff.from.split(':');
+    const tp = state.timeOff.to.split(':');
+    const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const toMin   = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    let newFromMin = fromMin;
+    let newToMin   = toMin;
+
     if (field === 'from') {
-      newFromCell = fromCell + (direction > 0 ? 1 : -1);
-      if (newFromCell < 0) newFromCell = 0;
-      if (newFromCell > toCellIncl) newFromCell = toCellIncl; // duration >= 15 min
-    } else { // 'until' or 'duration' both move the end
-      newToCellIncl = toCellIncl + (direction > 0 ? 1 : -1);
-      if (newToCellIncl >= cellCount) newToCellIncl = cellCount - 1;
-      if (newToCellIncl < fromCell)   newToCellIncl = fromCell;
+      newFromMin = fromMin + (direction > 0 ? SLOT_MIN : -SLOT_MIN);
+      if (newFromMin < startMin) newFromMin = startMin;
+      // If the new FROM lands inside the break, skip past it in the direction of travel.
+      WORK_SCHEDULE.segments.forEach(function(seg) {
+        if (seg.name !== 'BREAK') return;
+        const bStart = seg.start * 60, bEnd = seg.end * 60;
+        if (newFromMin >= bStart && newFromMin < bEnd) {
+          newFromMin = (direction > 0) ? bEnd : (bStart - SLOT_MIN);
+        }
+      });
+      if (newFromMin >= toMin) newFromMin = toMin - SLOT_MIN; // keep >= 15 min duration
+    } else { // 'until' or 'duration' both move the END
+      newToMin = toMin + (direction > 0 ? SLOT_MIN : -SLOT_MIN);
+      if (newToMin > endMin) newToMin = endMin;
+      // If the new TO lands strictly inside the break, skip past it in the direction of travel.
+      // Boundary values (13:00 and 14:00) are OK -- they touch the break but don't extend into it.
+      WORK_SCHEDULE.segments.forEach(function(seg) {
+        if (seg.name !== 'BREAK') return;
+        const bStart = seg.start * 60, bEnd = seg.end * 60;
+        if (newToMin > bStart && newToMin < bEnd) {
+          newToMin = (direction > 0) ? bEnd : bStart;
+        }
+      });
+      if (newToMin <= fromMin) newToMin = fromMin + SLOT_MIN; // keep >= 15 min duration
     }
-    if (newFromCell === fromCell && newToCellIncl === toCellIncl) return false;
-    state.timeOff.from = minutesToHHMM(startMin + newFromCell * SLOT_MIN);
-    state.timeOff.to   = minutesToHHMM(startMin + (newToCellIncl + 1) * SLOT_MIN);
+
+    if (newFromMin === fromMin && newToMin === toMin) return false;
+    // CRITICAL: only update the side that changed. Touching the other side would round its
+    // minute-precise value (lock-to-now stores e.g. 12:08, not a 15-min boundary).
+    if (field === 'from') state.timeOff.from = minutesToHHMM(newFromMin);
+    else                  state.timeOff.to   = minutesToHHMM(newToMin);
     state.timeOff._previousRange = null; // user is defining a new range; reset Whole Day undo
     updateShiftBarSelection();
     updateTimeOffSummary();
@@ -5431,8 +5925,13 @@
   function getOffWorkMinutesPerDay() {
     const WORK_START = WORK_SCHEDULE.workStart * 60;
     const WORK_END = WORK_SCHEDULE.workEnd * 60;
+    // Whole-day default: full work span minus break.
     if (!state.timeOff.from || !state.timeOff.to) {
-      return WORK_END - WORK_START;
+      let dur = WORK_END - WORK_START;
+      WORK_SCHEDULE.segments.forEach(function(seg) {
+        if (seg.name === 'BREAK') dur -= (seg.end - seg.start) * 60;
+      });
+      return dur;
     }
     const fp = state.timeOff.from.split(':');
     const tp = state.timeOff.to.split(':');
@@ -5440,7 +5939,15 @@
     const toMin   = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
     const start = Math.max(fromMin, WORK_START);
     const end   = Math.min(toMin,   WORK_END);
-    return Math.max(0, end - start);
+    let dur = Math.max(0, end - start);
+    // Subtract break overlap so partial-day off matches the duration shown elsewhere.
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      const bStart = seg.start * 60;
+      const bEnd   = seg.end   * 60;
+      dur -= Math.max(0, Math.min(end, bEnd) - Math.max(start, bStart));
+    });
+    return Math.max(0, dur);
   }
 
   // Resolve reasons for display, substituting "Other" with the user-typed text if present.
@@ -5502,6 +6009,18 @@
     }
 
     const sortedDays = days.slice().sort(function(a,b){return a-b;});
+
+    // If days are picked and a range is set but the range is ENTIRELY inside the break, refuse:
+    // show a clear warning + leave the card not-done so submit stays blocked.
+    if (state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() < 15) {
+      body.innerHTML =
+        '<div class="timeoff-empty" style="color:#FF6B9D;border-color:rgba(255,107,157,0.5);">' +
+          '<i class="ti ti-alert-triangle"></i>' +
+          '<span>Your selection is only the break time. Pick at least 15 minutes of actual work hours.</span>' +
+        '</div>';
+      return;
+    }
+
     const dayLabels = sortedDays.map(function(i) {
       const short = TIME_OFF_DAYS[i];
       const proper = short.charAt(0) + short.slice(1).toLowerCase();
@@ -5511,7 +6030,10 @@
 
     let timePhrase;
     if (state.timeOff.from && state.timeOff.to) {
-      timePhrase = 'from ' + colorizeTime(state.timeOff.from) + ' to ' + colorizeTime(state.timeOff.to);
+      const fromPart = state.timeOff.lockedToNow
+        ? '<span class="is-now-text">' + formatTime12(state.timeOff.from) + '</span>'
+        : colorizeTime(state.timeOff.from);
+      timePhrase = 'from ' + fromPart + ' to ' + colorizeTime(state.timeOff.to);
     } else {
       timePhrase = colorizePurple('full day');
     }
@@ -5521,24 +6043,24 @@
     const allPast = sortedDays.every(function(d) { return d < todayDayIdx; });
     const verb = allPast ? 'You were off' : "You'll be off";
 
-    // Amount label: show total hours for partial-day selections; show "X day(s)" only when
-    // the time range covers the entire work day (whole-day mode).
+    // Amount label: "X day(s)" when the selection covers the whole work day, otherwise the total
+    // work time. Whole-day is detected by the RANGE (from = workStart, to = workEnd), not by
+    // work-minutes -- a full day is only 7 work hours (the 1h break is excluded), so comparing
+    // against the 8h clock span would never match.
     const perDayMin = getOffWorkMinutesPerDay();
     const totalMin = perDayMin * days.length;
-    const WORK_DAY_MIN = (WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart) * 60;
-    const isWholeDay = perDayMin >= WORK_DAY_MIN;
+    const wholeFromV = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
+    const wholeToV   = minutesToHHMM(WORK_SCHEDULE.workEnd * 60);
+    const isWholeDay = (state.timeOff.from === wholeFromV && state.timeOff.to === wholeToV);
     let amountStr;
     if (isWholeDay) {
       amountStr = days.length === 1 ? '1 day' : days.length + ' days';
     } else {
-      const totalHours = totalMin / 60;
-      if (totalMin < 60) {
-        amountStr = totalMin + ' minute' + (totalMin === 1 ? '' : 's');
-      } else if (totalMin % 60 === 0) {
-        amountStr = totalHours + ' hour' + (totalHours === 1 ? '' : 's');
-      } else {
-        amountStr = totalHours.toFixed(1) + ' hours';
-      }
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      if (h > 0 && m > 0)       amountStr = h + 'h ' + m + 'm';
+      else if (h > 0)           amountStr = h + ' hour' + (h === 1 ? '' : 's');
+      else                      amountStr = m + ' minute' + (m === 1 ? '' : 's');
     }
     const amountSpan = '<strong style="color:#FFFFFF">' + amountStr + '</strong>';
 
@@ -6485,7 +7007,7 @@
       goal: '', blocker: { has: null, what: '', unblocker: '' },
       energyIn: 0, expectedDiff: '',
       completion: '', completionReason: '', completed: [], actualDiff: 0, energyOut: 0,
-      timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false },
+      timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false, lockedToNow: false },
       reasons: [],
       otherReason: '',
       notes: '',
@@ -6836,7 +7358,7 @@
       updateBanners();
     }, 50);
     // Independent slower tick to walk the "now" cell across the shift bar as minutes pass.
-    // 15s is plenty since the smallest unit is a 60-minute cell. paintNowIndicator no-ops if
+    // 15s is plenty since the smallest unit is a 15-minute cell. paintNowIndicator no-ops if
     // the bar isn't rendered (i.e. when mode !== 'off'), so this is safe to run globally.
     setInterval(paintNowIndicator, 15000);
     requestAnimationFrame(msBarLoop);
