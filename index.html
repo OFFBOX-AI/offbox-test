@@ -2518,6 +2518,44 @@
     50%      { background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.12) 100%); }
   }
 
+  /* CUSTOM TIME: the selection is outside the 9-5 work day, so the grid can't represent it. The bar
+     becomes a non-interactive grey, dotted panel labelled CUSTOM TIME. Hours are set via the
+     OFF FROM / UNTIL / DURATION steppers only. (Mirrors the Whole Day block, but grey + dotted.) */
+  .timeoff-shift-bar.is-custom { cursor: default; }
+  .timeoff-shift-bar.is-custom .timeoff-shift-cell { opacity: 0.16; }
+  .timeoff-shift-bar.is-custom .timeoff-shift-cell::after { display: none; }
+  .timeoff-shift-bar.is-custom .shift-now-line { display: none; }
+  .timeoff-shift-bar.is-custom::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(135deg,
+        rgba(170,170,180,0.16) 0px,
+        rgba(170,170,180,0.16) 5px,
+        rgba(170,170,180,0)    5px,
+        rgba(170,170,180,0)    10px);
+    box-shadow: inset 0 0 0 2px rgba(190,190,200,0.55);
+    pointer-events: none;
+    z-index: 4;
+  }
+  .timeoff-shift-bar.is-custom::after {
+    content: 'CUSTOM TIME';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(215,215,225,0.92);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 800;
+    letter-spacing: 5px;
+    font-size: 13px;
+    text-shadow: 0 0 10px rgba(0,0,0,0.6);
+    pointer-events: none;
+    z-index: 5;
+  }
+
   .timeoff-shift-hour-labels {
     position: relative;
     height: 16px;
@@ -2594,6 +2632,55 @@
     line-height: 1;
     white-space: nowrap;
   }
+  /* OFF FROM / UNTIL / DURATION values are tappable to open the type/dropdown editor. */
+  .timeoff-tile-from .timeoff-tile-content,
+  .timeoff-tile-until .timeoff-tile-content,
+  .timeoff-tile-duration .timeoff-tile-content { cursor: pointer; }
+  .timeoff-tile-from .timeoff-tile-value,
+  .timeoff-tile-until .timeoff-tile-value,
+  .timeoff-tile-duration .timeoff-tile-value {
+    border-bottom: 1px dashed rgba(255,255,255,0.22);
+    padding-bottom: 1px;
+  }
+
+  /* Inline time editor popover (24h text input + hour dropdown). */
+  .timeoff-editor {
+    background: #1d1d1d;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 10px;
+    z-index: 9999;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .timeoff-editor-row { display: flex; align-items: center; gap: 8px; }
+  .timeoff-editor-cap {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.3px;
+    color: rgba(230,230,230,0.5);
+    width: 64px;
+    flex: 0 0 64px;
+  }
+  .timeoff-editor-input,
+  .timeoff-editor-hour {
+    flex: 1 1 auto;
+    background: #121212;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 6px;
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 7px 9px;
+    outline: none;
+  }
+  .timeoff-editor-input:focus,
+  .timeoff-editor-hour:focus { border-color: #39D98A; box-shadow: 0 0 0 2px rgba(57,217,138,0.25); }
+  .timeoff-editor-hour { cursor: pointer; }
   .timeoff-tile-value {
     font-size: 18px;
     font-weight: 800;
@@ -3615,7 +3702,7 @@
     </button>
     <button class="mode-btn mode-btn-off mode-btn-small" id="btn-off" onclick="setMode('off')">
       <i class="ti ti-calendar-off" aria-hidden="true"></i>
-      Log Off
+      Time Off
     </button>
     <button class="mode-btn mode-btn-out" id="btn-out" onclick="setMode('out')">
       <i class="ti ti-logout" aria-hidden="true"></i>
@@ -3712,6 +3799,40 @@
   // whole picker: bar cell count, snapping, stepper ticks, and current-time rounding all key off it.
   const SLOT_MIN = 15;
   function slotCount() { return (WORK_SCHEDULE.workEnd - WORK_SCHEDULE.workStart) * 60 / SLOT_MIN; }
+
+  // The shift bar's GRID covers only the standard work day (workStart..workEnd) and is where the
+  // break lives. But the steppers (OFF FROM / UNTIL / DURATION) can range across the FULL 24h day,
+  // so people on non-standard hours (evening shift, early start) can still log time off. When the
+  // selection sits entirely inside the work day it renders as the normal draggable grid; the moment
+  // any edge falls outside it, the bar flips to the grey-dotted CUSTOM TIME state (steppers only).
+  const SELECT_MIN_MIN = 0;             // 00:00 (12:00 AM) -- valid START of the day
+  const SELECT_MAX_MIN = 23 * 60 + 59;  // 23:59 (11:59 PM) -- last selectable END (last minute of the
+                                        // day). 12:00 AM is the START of the next day, never an end,
+                                        // so the picker can't produce a 24h "12 AM to 12 AM" block.
+
+  // True when the current selection is NOT fully contained in the standard work day -- i.e. it's a
+  // custom/other-hours block. In that case the break is irrelevant (the whole block counts) and the
+  // bar can't represent it spatially, so it shows the CUSTOM TIME state instead of the grid.
+  function selectionIsCustom() {
+    if (!state.timeOff.from || !state.timeOff.to) return false;
+    const fp = state.timeOff.from.split(':');
+    const tp = state.timeOff.to.split(':');
+    const f = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const t = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    return f < WORK_SCHEDULE.workStart * 60 || t > WORK_SCHEDULE.workEnd * 60;
+  }
+
+  // Break minutes that overlap [fromMin, toMin], but ONLY for an in-work-day (normal) selection.
+  // A custom block (outside 9-5) counts in full -- no break is subtracted.
+  function breakOverlapMinutes(fromMin, toMin) {
+    if (fromMin < WORK_SCHEDULE.workStart * 60 || toMin > WORK_SCHEDULE.workEnd * 60) return 0;
+    let ov = 0;
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      ov += Math.max(0, Math.min(toMin, seg.end * 60) - Math.max(fromMin, seg.start * 60));
+    });
+    return ov;
+  }
 
   // Returns the multi-layer background for a shift bar layer.
   //   - Top layer: 1px dark vertical dividers, one per hour
@@ -4153,7 +4274,7 @@
       notesTitle.textContent =
         m === 'in'  ? 'Optional Log In Notes' :
         m === 'out' ? 'Optional Log Out Notes' :
-                      'Optional Log Off Notes';
+                      'Optional Time Off Notes';
     }
     if (notesSection) {
       notesSection.classList.toggle('notes-mode-off', m === 'off');
@@ -4473,11 +4594,8 @@
   // (Removed: time range is now required and always shown when at least one day is picked.)
 
   function renderLogoff() {
-    // Seed a default time range so the FROM/UNTIL/DURATION tiles are populated and scrollable
-    // the moment the form opens. Skipped if the user explicitly cleared via right-click.
-    if ((!state.timeOff.from || !state.timeOff.to) && !state.timeOff._userCleared) {
-      seedDefaultTimeoffRange();
-    }
+    // Time range starts blank. The user sets it by interacting with the bar or the tiles.
+    // (No auto-seed on load; only seed when the user clicks a tile stepper and there's no range yet.)
     const hasRange = !!(state.timeOff.from && state.timeOff.to);
     const dayCount = state.timeOff.days.length;
     const daysDone = dayCount > 0 && hasRange;
@@ -4684,15 +4802,7 @@
     const tp = state.timeOff.to.split(':');
     const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
     const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
-    let dur = tMin - fMin;
-    // Subtract any overlap with BREAK segments so the duration reflects actual work time off.
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name !== 'BREAK') return;
-      const bStart = seg.start * 60;
-      const bEnd   = seg.end   * 60;
-      const overlap = Math.max(0, Math.min(tMin, bEnd) - Math.max(fMin, bStart));
-      dur -= overlap;
-    });
+    const dur = (tMin - fMin) - breakOverlapMinutes(fMin, tMin);
     if (dur <= 0) return '';
     const h = Math.floor(dur / 60);
     const m = dur % 60;
@@ -4709,14 +4819,7 @@
     const tp = state.timeOff.to.split(':');
     const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
     const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
-    let dur = tMin - fMin;
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name !== 'BREAK') return;
-      const bStart = seg.start * 60;
-      const bEnd   = seg.end   * 60;
-      dur -= Math.max(0, Math.min(tMin, bEnd) - Math.max(fMin, bStart));
-    });
-    return Math.max(0, dur);
+    return Math.max(0, (tMin - fMin) - breakOverlapMinutes(fMin, tMin));
   }
   function isBreakCell(i) {
     const startMin = WORK_SCHEDULE.workStart * 60;
@@ -4755,7 +4858,11 @@
     // No amber warning pulse -- it read as "error" rather than "auto-adjust".
     setTimeout(function() {
       const startMin = WORK_SCHEDULE.workStart * 60;
-      state.timeOff.from = minutesToHHMM(startMin + newFromCell * SLOT_MIN);
+      // Preserve a precise locked FROM (e.g. 10:27) -- only rewrite it to its cell if it's actually
+      // the edge that needs snapping off the break. The END is always snapped to its cell.
+      if (needsFrom || !state.timeOff.lockedToNow) {
+        state.timeOff.from = minutesToHHMM(startMin + newFromCell * SLOT_MIN);
+      }
       state.timeOff.to   = minutesToHHMM(startMin + (newToCellIncl + 1) * SLOT_MIN);
       updateShiftBarSelection();
       updateTimeOffSummary();
@@ -4899,20 +5006,25 @@
       const cellLeftMin = WORK_SCHEDULE.workStart * 60 + fromCell * SLOT_MIN;
       if (fromMinExact > cellLeftMin) partialStartCell = fromCell;
     }
+    const custom = selectionIsCustom();
     cells.forEach(function(c, i) {
-      const inRange = fromCell >= 0 && i >= fromCell && i <= toCellInclusive;
-      const lit = inRange && i !== partialStartCell;
+      // In custom mode the grid is meaningless, so no cells light up (the dotted overlay covers it).
+      // Break cells NEVER light up -- the break isn't time off, so a range that ends at or spans the
+      // break shows a gap there instead of a highlighted break block.
+      const inRange = !custom && fromCell >= 0 && i >= fromCell && i <= toCellInclusive;
+      const lit = inRange && i !== partialStartCell && !isBreakCell(i);
       c.classList.toggle('selected', lit);
       c.classList.toggle('is-selection-start', lit && i === fromCell);
-      c.classList.toggle('is-selection-end',   inRange && i === toCellInclusive);
+      c.classList.toggle('is-selection-end',   lit && i === toCellInclusive);
     });
-    // Toggle whole-day overlay on the bar element itself when the selection spans the full work day.
+    // Toggle whole-day / custom overlays on the bar element itself.
     const bar = document.getElementById('timeoff-shift-bar');
     if (bar) {
       const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
       const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
-      const isWhole = state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
+      const isWhole = !custom && state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
       bar.classList.toggle('is-whole-day', isWhole);
+      bar.classList.toggle('is-custom', custom);
     }
     updateTimeoffSummaryRow();
     updateWholeDayBtnState();
@@ -4922,13 +5034,7 @@
   // Work minutes between two arbitrary clock minutes, break excluded. (computeTimeoffWorkMinutes
   // does the same but only for the current state.timeOff range.)
   function timeoffWorkMinutesBetween(fromMin, toMin) {
-    let d = toMin - fromMin;
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name !== 'BREAK') return;
-      const bs = seg.start * 60, be = seg.end * 60;
-      d -= Math.max(0, Math.min(toMin, be) - Math.max(fromMin, bs));
-    });
-    return Math.max(0, d);
+    return Math.max(0, (toMin - fromMin) - breakOverlapMinutes(fromMin, toMin));
   }
 
   // Draw the selection OUTLINE as absolute overlay segment(s) positioned by exact minutes, so the
@@ -4939,7 +5045,10 @@
     const bar = document.getElementById('timeoff-shift-bar');
     if (!bar) return;
     bar.querySelectorAll('.timeoff-sel-seg').forEach(function(el) { el.remove(); });
+    bar.querySelectorAll('.timeoff-sel-fill').forEach(function(el) { el.remove(); });
     if (!state.timeOff.from || !state.timeOff.to) return;
+    // Custom (outside 9-5): no spatial overlay -- the grey dotted CUSTOM TIME state covers the bar.
+    if (selectionIsCustom()) return;
     // Whole-day mode draws its own single block overlay -- don't double up.
     const wholeFrom = minutesToHHMM(WORK_SCHEDULE.workStart * 60);
     const wholeTo   = minutesToHHMM(WORK_SCHEDULE.workEnd   * 60);
@@ -5114,14 +5223,21 @@
       const target = e.target.closest('.timeoff-shift-cell');
       if (!target) return;
       e.preventDefault();
+
+      // RECOVERY PATH: only when the bar is in the dotted CUSTOM state (outside 9-5) is there no
+      // grid to grab, so a touch starts a fresh in-grid selection. When the lock is on but the bar
+      // is the normal grid, we DON'T reset here -- the edge logic + applySelection keep the lock and
+      // just move the END if the user grabbed near it (so they can fine-tune the UNTIL).
+      const recovering = selectionIsCustom();
+
       try { bar.setPointerCapture(e.pointerId); } catch (_) {}
       dragging = true;
       let tappedCell = parseInt(target.dataset.cell, 10);
 
-      // Pick the anchor: if there's a current selection, anchor is the FAR edge so the NEAR edge
-      // (the one closer to the tap) gets pulled to the tap point. Record which edge is moving so
-      // the lock logic knows whether the user is dragging the START or the END.
-      if (state.timeOff.from && state.timeOff.to) {
+      // Pick the anchor: for an existing in-grid selection, anchor is the FAR edge so the NEAR edge
+      // (closer to the tap) gets pulled to the tap point. When recovering from a custom state (or
+      // with no selection), start a fresh block at the tapped cell instead of moving a stale edge.
+      if (!recovering && state.timeOff.from && state.timeOff.to) {
         const currentFromCell = timeToCellIndex(state.timeOff.from);
         const currentToCellIncl = timeToCellIndex(state.timeOff.to) - 1;
         const distToStart = Math.abs(tappedCell - currentFromCell);
@@ -5148,9 +5264,9 @@
       if (e && e.pointerId !== undefined) {
         try { bar.releasePointerCapture(e.pointerId); } catch (_) {}
       }
-      // While locked, FROM is the precise current minute (already off the break) and TO was kept
-      // valid during the drag -- running the break-snap could round FROM back to a cell. Skip it.
-      if (!state.timeOff.lockedToNow) commitTimeOffSnapEdges();
+      // Snap any edge that landed on the break off it. commitTimeOffSnapEdges preserves a precise
+      // locked FROM (only the END gets snapped when locked), so this is safe with Current Time on.
+      commitTimeOffSnapEdges();
     }
     bar.addEventListener('pointerup', endDrag);
     bar.addEventListener('pointercancel', endDrag);
@@ -5196,11 +5312,18 @@
       tile.addEventListener('click', function(e) {
         const leftBtn  = e.target.closest('.timeoff-tile-stepper-left');
         const rightBtn = e.target.closest('.timeoff-tile-stepper-right');
-        if (!leftBtn && !rightBtn) return;
-        e.stopPropagation();
-        if (!state.timeOff.from || !state.timeOff.to) { seedDefaultTimeoffRange(); flashTimeoffTile(tile); return; }
-        const direction = rightBtn ? 1 : -1;
-        if (adjustTimeoffField(field, direction)) flashTimeoffTile(tile);
+        if (leftBtn || rightBtn) {
+          e.stopPropagation();
+          if (!state.timeOff.from || !state.timeOff.to) { seedDefaultTimeoffRange(); flashTimeoffTile(tile); return; }
+          const direction = rightBtn ? 1 : -1;
+          if (adjustTimeoffField(field, direction)) flashTimeoffTile(tile);
+          return;
+        }
+        // Tap on the value area opens the editor: FROM/UNTIL = time + hour dropdown, DURATION = hours.
+        if (e.target.closest('.timeoff-tile-content')) {
+          e.stopPropagation();
+          openTimeEditor(field, tile);
+        }
       });
     });
   }
@@ -5333,6 +5456,21 @@
   // Endpoints are pushed off the break and the result is clamped to work hours with a >= 1 cell span.
   function snapTimeoffToGrid() {
     if (!state.timeOff.from || !state.timeOff.to) return;
+    // Custom (outside 9-5): there's no grid to snap to. Just round the precise minute values to the
+    // nearest 15 within the full day, keeping a >= 15-min span. Don't force them into the work day.
+    if (selectionIsCustom()) {
+      const fp = state.timeOff.from.split(':'); const tpC = state.timeOff.to.split(':');
+      let fM = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+      let tM = parseInt(tpC[0], 10) * 60 + parseInt(tpC[1], 10);
+      fM = Math.round(fM / SLOT_MIN) * SLOT_MIN;
+      tM = Math.round(tM / SLOT_MIN) * SLOT_MIN;
+      if (fM < SELECT_MIN_MIN) fM = SELECT_MIN_MIN;
+      if (tM > SELECT_MAX_MIN) tM = SELECT_MAX_MIN;
+      if (tM - fM < SLOT_MIN) tM = fM + SLOT_MIN;
+      state.timeOff.from = minutesToHHMM(fM);
+      state.timeOff.to   = minutesToHHMM(tM);
+      return;
+    }
     const startMin = WORK_SCHEDULE.workStart * 60;
     const cellCount = slotCount();
     let fromCell = timeToCellIndex(state.timeOff.from);            // floor
@@ -5352,20 +5490,19 @@
   // Clamps to work hours and skips past the break if "now" lands inside it. If clamping leaves
   // less than 15 min of selectable time, deactivate the lock.
   function syncTimeoffFromToNow() {
-    const startMin = WORK_SCHEDULE.workStart * 60;
-    const endMin   = WORK_SCHEDULE.workEnd   * 60;
     const now = new Date();
     let nowMin = now.getHours() * 60 + now.getMinutes();
-    if (nowMin < startMin) nowMin = startMin;
-    // If now is inside the break, jump FROM to end-of-break so it's always on real work time.
+    if (nowMin < SELECT_MIN_MIN) nowMin = SELECT_MIN_MIN;
+    // If now is inside the work-day break, jump FROM to end-of-break (only relevant for the 9-5 crew;
+    // an evening worker's "now" is outside the work day, so this never fires for them).
     WORK_SCHEDULE.segments.forEach(function(seg) {
       if (seg.name === 'BREAK') {
         const bStart = seg.start * 60, bEnd = seg.end * 60;
         if (nowMin >= bStart && nowMin < bEnd) nowMin = bEnd;
       }
     });
-    // Need at least 15 min of work time before the day ends.
-    if (nowMin > endMin - 15) { deactivateCurrentTimeLock(); return; }
+    // Need at least 15 min left before midnight.
+    if (nowMin > SELECT_MAX_MIN - 15) { deactivateCurrentTimeLock(); return; }
 
     // PRESERVE the existing UNTIL. Pressing Current Time (or the 15s re-sync) moves only the FROM
     // to the live minute -- the end stays exactly where the user left it. As "now" advances, the
@@ -5378,14 +5515,12 @@
       toMin = nowMin + 15;
     }
     // Only if the existing UNTIL is now in the past (or leaves < 15 work-min after now) do we fall
-    // back to a fresh block starting now. The END snaps to a clean 15-min mark (never :07 / :25):
-    // round up to the next quarter-hour, then keep adding quarters until it holds >= 15 work min
-    // (which also carries it cleanly across the break if it lands on it).
+    // back to a fresh block starting now. The END snaps to a clean 15-min mark (never :07 / :25).
     if (toMin <= nowMin || timeoffWorkMinutesBetween(nowMin, toMin) < 15) {
       toMin = Math.ceil(nowMin / SLOT_MIN) * SLOT_MIN;
-      while (toMin <= endMin && timeoffWorkMinutesBetween(nowMin, toMin) < 15) toMin += SLOT_MIN;
+      while (toMin <= SELECT_MAX_MIN && timeoffWorkMinutesBetween(nowMin, toMin) < 15) toMin += SLOT_MIN;
     }
-    if (toMin > endMin) toMin = endMin;
+    if (toMin > SELECT_MAX_MIN) toMin = SELECT_MAX_MIN;
 
     state.timeOff.from = minutesToHHMM(nowMin);
     state.timeOff.to   = minutesToHHMM(toMin);
@@ -5432,8 +5567,8 @@
     const parts = hhmm.split(':');
     let h = parseInt(parts[0], 10);
     const m = parts[1];
-    const isPM = h >= 12;
-    if (h === 0) h = 12;
+    const isPM = h >= 12 && h < 24;   // 24:00 is midnight -> AM
+    if (h === 24 || h === 0) h = 12;  // midnight (end-of-day or start) shows as 12 AM
     else if (h > 12) h -= 12;
     return {
       time: h + ':' + m,
@@ -5457,9 +5592,9 @@
       canLeft = false;
       canRight = false;
     } else {
-      const cellCount = slotCount();
-      const fromCell = timeToCellIndex(from);
-      const toCellIncl = timeToCellIndex(to) - 1;
+      const fpx = from.split(':'); const tpx = to.split(':');
+      const fromMinV = parseInt(fpx[0], 10) * 60 + parseInt(fpx[1], 10);
+      const toMinV   = parseInt(tpx[0], 10) * 60 + parseInt(tpx[1], 10);
       if (field === 'from') {
         const fp = formatTime12Parts(from);
         label = 'OFF FROM';
@@ -5472,20 +5607,20 @@
           valueHtml = '<span class="timeoff-tile-value-digits" style="color:' + fp.color + '">' + fp.time + '</span>' +
                       '<span class="timeoff-tile-meridiem" style="color:' + fp.color + '">' + fp.meridiem + '</span>';
         }
-        canLeft  = fromCell > 0;            // earlier, down to workStart
-        canRight = fromCell < toCellIncl;   // later, stays before UNTIL (min 1 slot)
+        canLeft  = fromMinV > SELECT_MIN_MIN;          // earlier, down to 00:00
+        canRight = fromMinV < toMinV - SLOT_MIN;       // later, stays before UNTIL (min 1 slot)
       } else if (field === 'until') {
         const tp = formatTime12Parts(to);
         label = 'UNTIL';
         valueHtml = '<span class="timeoff-tile-value-digits" style="color:' + tp.color + '">' + tp.time + '</span>' +
                     '<span class="timeoff-tile-meridiem" style="color:' + tp.color + '">' + tp.meridiem + '</span>';
-        canLeft  = toCellIncl > fromCell;       // earlier, down to FROM + 1 slot
-        canRight = toCellIncl < cellCount - 1;  // later, up to workEnd
+        canLeft  = toMinV > fromMinV + SLOT_MIN;       // earlier, down to FROM + 1 slot
+        canRight = toMinV < SELECT_MAX_MIN;            // later, up to 11:59 PM
       } else { // duration
         label = 'DURATION';
         valueHtml = '<span class="timeoff-tile-value-digits">' + computeDurationStr() + '</span>';
-        canLeft  = toCellIncl > fromCell;       // less
-        canRight = toCellIncl < cellCount - 1;  // more
+        canLeft  = toMinV > fromMinV + SLOT_MIN;       // less
+        canRight = toMinV < SELECT_MAX_MIN;            // more
       }
     }
 
@@ -5529,8 +5664,8 @@
     if (!state.timeOff.from || !state.timeOff.to) return false;
     // Any user-initiated change to OFF FROM means they're taking manual control: drop the lock.
     if (field === 'from' && state.timeOff.lockedToNow) deactivateCurrentTimeLock();
-    const startMin = WORK_SCHEDULE.workStart * 60;
-    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const wStart = WORK_SCHEDULE.workStart * 60;
+    const wEnd   = WORK_SCHEDULE.workEnd   * 60;
     const fp = state.timeOff.from.split(':');
     const tp = state.timeOff.to.split(':');
     const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
@@ -5540,29 +5675,44 @@
 
     if (field === 'from') {
       newFromMin = fromMin + (direction > 0 ? SLOT_MIN : -SLOT_MIN);
-      if (newFromMin < startMin) newFromMin = startMin;
-      // If the new FROM lands inside the break, skip past it in the direction of travel.
-      WORK_SCHEDULE.segments.forEach(function(seg) {
-        if (seg.name !== 'BREAK') return;
-        const bStart = seg.start * 60, bEnd = seg.end * 60;
-        if (newFromMin >= bStart && newFromMin < bEnd) {
-          newFromMin = (direction > 0) ? bEnd : (bStart - SLOT_MIN);
-        }
-      });
+      if (newFromMin < SELECT_MIN_MIN) newFromMin = SELECT_MIN_MIN;
+      // Break-skip ONLY while inside the work day. Once FROM steps outside 9-5 it's a custom block,
+      // where the break is irrelevant and the time is free to land anywhere.
+      if (newFromMin >= wStart && newFromMin < wEnd) {
+        WORK_SCHEDULE.segments.forEach(function(seg) {
+          if (seg.name !== 'BREAK') return;
+          const bStart = seg.start * 60, bEnd = seg.end * 60;
+          if (newFromMin >= bStart && newFromMin < bEnd) {
+            newFromMin = (direction > 0) ? bEnd : (bStart - SLOT_MIN);
+          }
+        });
+      }
       if (newFromMin >= toMin) newFromMin = toMin - SLOT_MIN; // keep >= 15 min duration
+      if (newFromMin < SELECT_MIN_MIN) newFromMin = SELECT_MIN_MIN;
     } else { // 'until' or 'duration' both move the END
-      newToMin = toMin + (direction > 0 ? SLOT_MIN : -SLOT_MIN);
-      if (newToMin > endMin) newToMin = endMin;
-      // If the new TO lands strictly inside the break, skip past it in the direction of travel.
-      // Boundary values (13:00 and 14:00) are OK -- they touch the break but don't extend into it.
-      WORK_SCHEDULE.segments.forEach(function(seg) {
-        if (seg.name !== 'BREAK') return;
-        const bStart = seg.start * 60, bEnd = seg.end * 60;
-        if (newToMin > bStart && newToMin < bEnd) {
-          newToMin = (direction > 0) ? bEnd : bStart;
-        }
-      });
+      if (direction > 0) {
+        newToMin = toMin + SLOT_MIN;
+        if (newToMin > SELECT_MAX_MIN) newToMin = SELECT_MAX_MIN; // last step lands on 11:59 PM
+      } else {
+        // Stepping down: if the END is off the 15-min grid (e.g. the 11:59 PM ceiling), snap to the
+        // grid value just below it; otherwise step down one slot.
+        newToMin = (toMin % SLOT_MIN !== 0) ? Math.floor(toMin / SLOT_MIN) * SLOT_MIN : toMin - SLOT_MIN;
+      }
+      if (newToMin > wStart && newToMin < wEnd) {
+        WORK_SCHEDULE.segments.forEach(function(seg) {
+          if (seg.name !== 'BREAK') return;
+          const bStart = seg.start * 60, bEnd = seg.end * 60;
+          // The break + its end boundary (e.g. 13:00 < t <= 14:00) is a dead zone for the END:
+          // ending at 14:00 is work-equivalent to ending at 13:00 (1-2pm is break either way) and
+          // would visually light the break. So going UP skips to the first afternoon slot end
+          // (14:15); going DOWN drops to the morning end (13:00).
+          if (newToMin > bStart && newToMin <= bEnd) {
+            newToMin = (direction > 0) ? (bEnd + SLOT_MIN) : bStart;
+          }
+        });
+      }
       if (newToMin <= fromMin) newToMin = fromMin + SLOT_MIN; // keep >= 15 min duration
+      if (newToMin > SELECT_MAX_MIN) newToMin = SELECT_MAX_MIN;
     }
 
     if (newFromMin === fromMin && newToMin === toMin) return false;
@@ -5575,6 +5725,227 @@
     updateTimeOffSummary();
     updateSubmitState();
     return true;
+  }
+
+  // ----- Typed / dropdown time entry for the OFF FROM and UNTIL tiles -----
+
+  // 24h hour -> 12h label, e.g. 0 -> "12 AM", 13 -> "1 PM".
+  function hourLabel12(h) {
+    const isPM = h >= 12;
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return h12 + (isPM ? ' PM' : ' AM');
+  }
+
+  // Parse free-typed 24h text into minutes-of-day. Accepts "18:30", "1830", "18", "8:5", etc.
+  // Returns null if unparseable. Minutes snap to the nearest 15 (the tool's granularity).
+  function parseTypedTime(str) {
+    if (str == null) return null;
+    str = String(str).trim().replace(/[^\d:]/g, '');
+    if (!str) return null;
+    let h, m;
+    if (str.indexOf(':') >= 0) {
+      const p = str.split(':');
+      h = parseInt(p[0], 10);
+      m = parseInt(p[1] || '0', 10);
+    } else if (str.length <= 2) {
+      h = parseInt(str, 10); m = 0;
+    } else if (str.length === 3) {
+      h = parseInt(str.slice(0, 1), 10); m = parseInt(str.slice(1), 10);
+    } else {
+      h = parseInt(str.slice(0, 2), 10); m = parseInt(str.slice(2, 4), 10);
+    }
+    if (isNaN(h) || isNaN(m)) return null;
+    if (h < 0) h = 0; if (h > 23) h = 23;
+    if (m < 0) m = 0; if (m > 59) m = 59;
+    let total = h * 60 + Math.round(m / SLOT_MIN) * SLOT_MIN; // snap minutes to 15
+    if (total > SELECT_MAX_MIN) total = SELECT_MAX_MIN;
+    return total;
+  }
+
+  // Set one field to an exact minute value (from typing or the dropdown), creating or clamping the
+  // range as needed so FROM < UNTIL with a >= 15-min gap, within [00:00, 11:59 PM].
+  function setTimeoffFieldExact(field, targetMin) {
+    if (targetMin == null) return false;
+    // Only changing the START (FROM) means the user is overriding "now" -- drop the lock. Changing
+    // the END (UNTIL) keeps Current Time on, same as the UNTIL stepper.
+    if (field === 'from' && state.timeOff.lockedToNow) deactivateCurrentTimeLock();
+    let fromMin = null, toMin = null;
+    if (state.timeOff.from) { const p = state.timeOff.from.split(':'); fromMin = +p[0] * 60 + +p[1]; }
+    if (state.timeOff.to)   { const p = state.timeOff.to.split(':');   toMin   = +p[0] * 60 + +p[1]; }
+
+    if (field === 'from') {
+      let nf = Math.max(SELECT_MIN_MIN, Math.min(targetMin, SELECT_MAX_MIN - SLOT_MIN));
+      let nt = (toMin != null) ? toMin : nf + 60;       // default 1h block if no UNTIL yet
+      if (nt <= nf) nt = nf + SLOT_MIN;                 // keep >= 15 min
+      if (nt > SELECT_MAX_MIN) nt = SELECT_MAX_MIN;
+      if (nf >= nt) nf = nt - SLOT_MIN;
+      state.timeOff.from = minutesToHHMM(nf);
+      state.timeOff.to   = minutesToHHMM(nt);
+    } else { // until
+      let nt = Math.max(SELECT_MIN_MIN + SLOT_MIN, Math.min(targetMin, SELECT_MAX_MIN));
+      let nf = (fromMin != null) ? fromMin : nt - 60;   // default 1h block if no FROM yet
+      if (nf < SELECT_MIN_MIN) nf = SELECT_MIN_MIN;
+      if (nf >= nt) nf = nt - SLOT_MIN;
+      if (nf < SELECT_MIN_MIN) { nf = SELECT_MIN_MIN; if (nt <= nf) nt = nf + SLOT_MIN; }
+      state.timeOff.from = minutesToHHMM(nf);
+      state.timeOff.to   = minutesToHHMM(nt);
+    }
+    state.timeOff._previousRange = null;
+    updateShiftBarSelection();
+    updateTimeOffSummary();
+    updateSubmitState();
+    const card = document.getElementById('card-timeoff');
+    if (card) {
+      const isDone = state.timeOff.days.length > 0 && state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
+    return true;
+  }
+
+  // Parse a typed duration in HOURS (e.g. "2", "1.5", "2h") into work-minutes, snapped to 15.
+  function parseTypedHours(str) {
+    if (str == null) return null;
+    str = String(str).trim().replace(/[^\d.]/g, '');
+    if (!str) return null;
+    const hrs = parseFloat(str);
+    if (isNaN(hrs)) return null;
+    let min = Math.round((hrs * 60) / SLOT_MIN) * SLOT_MIN;
+    if (min < SLOT_MIN) min = SLOT_MIN;
+    return min;
+  }
+
+  // Set the time-off block to a given WORK duration (minutes). Keeps FROM (defaults to workStart if
+  // none yet) and pushes UNTIL out by the duration, extending across the lunch break so the WORK
+  // time equals what was asked. Clamps at 11:59 PM.
+  function setTimeoffDurationExact(durMin) {
+    if (durMin == null) return false;
+    durMin = Math.max(SLOT_MIN, Math.round(durMin / SLOT_MIN) * SLOT_MIN);
+    // Changing the duration moves the UNTIL only -- FROM stays put, and if Current Time is on it
+    // stays on (FROM keeps tracking the live minute, UNTIL = FROM + duration).
+    let fromMin;
+    if (state.timeOff.from) { const p = state.timeOff.from.split(':'); fromMin = +p[0] * 60 + +p[1]; }
+    else { fromMin = WORK_SCHEDULE.workStart * 60; }
+    let toMin = fromMin + durMin;
+    // Extend past the break so the requested duration is all WORK time (only for in-work-day blocks).
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      const bs = seg.start * 60, be = seg.end * 60;
+      if (fromMin < bs && toMin > bs && fromMin >= WORK_SCHEDULE.workStart * 60 && fromMin < WORK_SCHEDULE.workEnd * 60) {
+        toMin += (be - bs);
+      }
+    });
+    if (toMin > SELECT_MAX_MIN) toMin = SELECT_MAX_MIN;
+    if (toMin <= fromMin) toMin = fromMin + SLOT_MIN;
+    state.timeOff.from = minutesToHHMM(fromMin);
+    state.timeOff.to   = minutesToHHMM(toMin);
+    state.timeOff._previousRange = null;
+    updateShiftBarSelection();
+    updateTimeOffSummary();
+    updateSubmitState();
+    const card = document.getElementById('card-timeoff');
+    if (card) {
+      const isDone = state.timeOff.days.length > 0 && state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      card.classList.toggle('done', isDone);
+      if (isDone) card.classList.remove('missing');
+    }
+    return true;
+  }
+
+  let openTimeEditorEl = null;
+  function closeTimeEditor() {
+    if (openTimeEditorEl) { openTimeEditorEl.remove(); openTimeEditorEl = null; }
+    document.removeEventListener('pointerdown', onEditorOutside, true);
+  }
+  function onEditorOutside(e) {
+    if (openTimeEditorEl && !openTimeEditorEl.contains(e.target)) closeTimeEditor();
+  }
+
+  // Open the inline editor under a tile. FROM/UNTIL: a 24h text input + an hour dropdown.
+  // DURATION: a single HOURS field.
+  function openTimeEditor(field, tile) {
+    closeTimeEditor();
+    const ed = document.createElement('div');
+    ed.className = 'timeoff-editor';
+
+    if (field === 'duration') {
+      const curMin = computeTimeoffWorkMinutes();
+      const curHrs = curMin > 0 ? (Math.round((curMin / 60) * 100) / 100) : '';
+      ed.innerHTML =
+        '<div class="timeoff-editor-row">' +
+          '<label class="timeoff-editor-cap">HOURS</label>' +
+          '<input type="text" inputmode="decimal" class="timeoff-editor-input" placeholder="e.g. 2" value="' + curHrs + '" />' +
+        '</div>';
+      document.body.appendChild(ed);
+      openTimeEditorEl = ed;
+      const r = tile.getBoundingClientRect();
+      ed.style.position = 'fixed';
+      ed.style.left = Math.round(r.left) + 'px';
+      ed.style.top  = Math.round(r.bottom + 6) + 'px';
+      ed.style.minWidth = Math.round(Math.min(r.width, 220)) + 'px';
+      const input = ed.querySelector('.timeoff-editor-input');
+      function commitDur() { const d = parseTypedHours(input.value); if (d != null) setTimeoffDurationExact(d); }
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { commitDur(); closeTimeEditor(); }
+        else if (e.key === 'Escape') { closeTimeEditor(); }
+      });
+      setTimeout(function() { input.focus(); input.select(); document.addEventListener('pointerdown', onEditorOutside, true); }, 0);
+      return;
+    }
+
+    const current = field === 'from' ? state.timeOff.from : state.timeOff.to;
+    const curMin = current ? (function(){ const p = current.split(':'); return +p[0]*60 + +p[1]; })() : null;
+    const curHour = curMin != null ? Math.floor(curMin / 60) : 9;
+    const curMm   = curMin != null ? curMin % 60 : 0;
+
+    let opts = '';
+    for (let h = 0; h <= 23; h++) {
+      opts += '<option value="' + h + '"' + (h === curHour ? ' selected' : '') + '>' + hourLabel12(h) + '</option>';
+    }
+    ed.innerHTML =
+      '<div class="timeoff-editor-row">' +
+        '<label class="timeoff-editor-cap">TYPE (24H)</label>' +
+        '<input type="text" inputmode="numeric" class="timeoff-editor-input" placeholder="HH:MM" ' +
+          'value="' + (current ? current : '') + '" />' +
+      '</div>' +
+      '<div class="timeoff-editor-row">' +
+        '<label class="timeoff-editor-cap">HOUR</label>' +
+        '<select class="timeoff-editor-hour">' + opts + '</select>' +
+      '</div>';
+
+    document.body.appendChild(ed);
+    openTimeEditorEl = ed;
+    const r = tile.getBoundingClientRect();
+    ed.style.position = 'fixed';
+    ed.style.left = Math.round(r.left) + 'px';
+    ed.style.top  = Math.round(r.bottom + 6) + 'px';
+    ed.style.minWidth = Math.round(r.width) + 'px';
+
+    const input = ed.querySelector('.timeoff-editor-input');
+    const sel   = ed.querySelector('.timeoff-editor-hour');
+
+    function commitInput() {
+      const t = parseTypedTime(input.value);
+      if (t != null) setTimeoffFieldExact(field, t);
+    }
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { commitInput(); closeTimeEditor(); }
+      else if (e.key === 'Escape') { closeTimeEditor(); }
+    });
+    sel.addEventListener('change', function() {
+      const h = parseInt(sel.value, 10);
+      const typed = parseTypedTime(input.value);
+      const mm = (typed != null) ? typed % 60 : curMm;
+      input.value = minutesToHHMM(Math.min(h * 60 + mm, SELECT_MAX_MIN));
+      setTimeoffFieldExact(field, h * 60 + mm);
+    });
+
+    setTimeout(function() {
+      input.focus();
+      input.select();
+      document.addEventListener('pointerdown', onEditorOutside, true);
+    }, 0);
   }
 
   // Current local time as "HH:MM" (24h).
@@ -5901,7 +6272,7 @@
     const parts = hhmm.split(':');
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
-    const period = h < 12 ? 'AM' : 'PM';
+    const period = (h < 12 || h === 24) ? 'AM' : 'PM';   // 24:00 = midnight
     let h12 = h % 12;
     if (h12 === 0) h12 = 12;
     return h12 + ':' + String(m).padStart(2, '0') + ' ' + period;
@@ -5925,7 +6296,7 @@
   function getOffWorkMinutesPerDay() {
     const WORK_START = WORK_SCHEDULE.workStart * 60;
     const WORK_END = WORK_SCHEDULE.workEnd * 60;
-    // Whole-day default: full work span minus break.
+    // Whole-day default (no explicit range yet): full work span minus break.
     if (!state.timeOff.from || !state.timeOff.to) {
       let dur = WORK_END - WORK_START;
       WORK_SCHEDULE.segments.forEach(function(seg) {
@@ -5933,21 +6304,13 @@
       });
       return dur;
     }
+    // Otherwise count the actual selected block. breakOverlapMinutes subtracts the lunch break only
+    // for an in-work-day (normal) selection; a custom block outside 9-5 counts in full.
     const fp = state.timeOff.from.split(':');
     const tp = state.timeOff.to.split(':');
     const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
     const toMin   = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
-    const start = Math.max(fromMin, WORK_START);
-    const end   = Math.min(toMin,   WORK_END);
-    let dur = Math.max(0, end - start);
-    // Subtract break overlap so partial-day off matches the duration shown elsewhere.
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name !== 'BREAK') return;
-      const bStart = seg.start * 60;
-      const bEnd   = seg.end   * 60;
-      dur -= Math.max(0, Math.min(end, bEnd) - Math.max(start, bStart));
-    });
-    return Math.max(0, dur);
+    return Math.max(0, (toMin - fromMin) - breakOverlapMinutes(fromMin, toMin));
   }
 
   // Resolve reasons for display, substituting "Other" with the user-typed text if present.
@@ -5977,7 +6340,7 @@
   function colorizeTime(hhmm) {
     const h = parseInt(hhmm.split(':')[0], 10);
     // AM/PM determined purely by 12-hour boundary (matches the time-block AM/PM theme)
-    const color = h < 12 ? '#43D9FF' : '#FFB800';
+    const color = (h < 12 || h === 24) ? '#43D9FF' : '#FFB800';
     return '<strong style="color:' + color + '">' + formatTime12(hhmm) + '</strong>';
   }
   function colorizeReason(text) {
