@@ -6003,14 +6003,10 @@
     const now = new Date();
     let nowMin = now.getHours() * 60 + now.getMinutes();
     if (nowMin < SELECT_MIN_MIN) nowMin = SELECT_MIN_MIN;
-    // If now is inside the work-day break, jump FROM to end-of-break (only relevant for the 9-5 crew;
-    // an evening worker's "now" is outside the work day, so this never fires for them).
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name === 'BREAK') {
-        const bStart = seg.start * 60, bEnd = seg.end * 60;
-        if (nowMin >= bStart && nowMin < bEnd) nowMin = bEnd;
-      }
-    });
+    // IMPORTANT: do NOT push FROM past the break. "Current time" must land on the REAL current minute,
+    // even when that minute is inside the 1-2pm break. The break is only excluded from the counted
+    // work duration below, never from where the marker sits.
+
     // Need at least 15 min left before midnight.
     if (nowMin > SELECT_MAX_MIN - 15) { deactivateCurrentTimeLock(); return; }
 
@@ -6024,13 +6020,22 @@
     } else {
       durMin = 60;
     }
-    // Build UNTIL so the WORK time from now equals durMin, extending past the break if the span
+    // The duration counts WORK minutes. If now sits inside the break, the counted work starts at the
+    // break end (so the held duration is preserved), but FROM still shows the real current time.
+    let workStartMin = nowMin;
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name === 'BREAK') {
+        const bStart = seg.start * 60, bEnd = seg.end * 60;
+        if (nowMin >= bStart && nowMin < bEnd) workStartMin = bEnd;
+      }
+    });
+    // Build UNTIL so the WORK time from workStart equals durMin, extending past the break if the span
     // crosses it (so the break never eats into the held duration).
-    let toMin = nowMin + durMin;
+    let toMin = workStartMin + durMin;
     WORK_SCHEDULE.segments.forEach(function(seg) {
       if (seg.name !== 'BREAK') return;
       const bs = seg.start * 60, be = seg.end * 60;
-      if (nowMin < bs && toMin > bs && nowMin >= WORK_SCHEDULE.workStart * 60 && nowMin < WORK_SCHEDULE.workEnd * 60) {
+      if (workStartMin < bs && toMin > bs && workStartMin >= WORK_SCHEDULE.workStart * 60 && workStartMin < WORK_SCHEDULE.workEnd * 60) {
         toMin += (be - bs);
       }
     });
