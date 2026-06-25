@@ -2080,32 +2080,348 @@
 
   /* --- Time-range block: ADD button collapses to wheel panel on click --- */
   /* "Other" specify input — appears under the reason picker when "Other" is selected. */
-  .reason-other-wrap {
-    margin-top: 8px;
+  /* The Other "tile" is one box that is ALWAYS the full row width and a FIXED 38px tall (same as a
+     tile), so the page height never changes. Closed: the toggle fills the left half, the input is
+     collapsed to zero width. Open: the toggle shrinks and the input box slides/grows in from the
+     right. The selected border is drawn with an inset box-shadow (no layout box), so opening never
+     changes height by even a pixel. */
+  .reason-other-cell {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    height: 38px;
+    min-height: 38px;
+    transition: box-shadow 0.3s ease, background-color 0.3s ease;
   }
+  .reason-other-cell.is-open {
+    box-shadow: inset 0 0 0 1px #A78BFA;
+    background: color-mix(in srgb, #A78BFA 13%, transparent);
+  }
+  /* Toggle = the Other tile button. Half width closed; shrinks to make room when open. */
+  .reason-other-toggle {
+    flex: 0 0 50%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    transition: flex-basis 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+  }
+  .reason-other-cell.is-open .reason-other-toggle {
+    flex-basis: 116px;
+    border-color: transparent;
+    background: transparent;
+  }
+  .reason-other-cell.is-open .reason-other-toggle .reason-tile-check { display: none; }
+  .reason-other-cell.is-open .reason-other-toggle .reason-tile-label { flex: 0 0 auto; }
+  /* Entry = the input box + counter. Collapsed (zero width, transparent) until open, then expands. */
+  .reason-other-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 100%;
+    flex: 1 1 0;
+    max-width: 0;
+    min-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    padding: 0;
+    transition: max-width 0.32s ease, opacity 0.26s ease, padding 0.32s ease;
+  }
+  .reason-other-cell.is-open .reason-other-entry {
+    max-width: 100%;
+    opacity: 1;
+    pointer-events: auto;
+    padding: 0 9px 0 2px;
+  }
+  /* The input is its own inset box, shorter than the row so it has margin top and bottom. */
   .reason-other-input {
-    width: 100%;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,184,0,0.35);
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 26px;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(167,139,250,0.32);
+    border-radius: 5px;
     color: #FFFFFF;
-    padding: 8px 12px;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    transition: border-color 0.2s, background 0.2s;
+    font-size: 13px;
+    padding: 0 9px;
     outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
   }
-  .reason-other-input::placeholder { color: rgba(230,230,230,0.35); font-style: italic; }
-  .reason-other-input:focus { border-color: #FFB800; background: rgba(0,0,0,0.45); }
-  /* Other is picked but the specify field is blank: flag it as required with a pulsing amber outline. */
-  .reason-other-input.required-empty {
-    border-color: #FFB800;
-    box-shadow: 0 0 0 1px rgba(255,184,0,0.5);
-    animation: otherRequiredPulse 1.6s ease-in-out infinite;
+  .reason-other-input::placeholder { color: rgba(230,230,230,0.4); }
+  .reason-other-input:focus { border-color: #A78BFA; box-shadow: 0 0 0 2px rgba(167,139,250,0.2); }
+  .reason-other-count {
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: rgba(255,184,0,0.85);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
-  .reason-other-input.required-empty::placeholder { color: rgba(255,184,0,0.7); font-style: normal; }
+  .reason-other-cell.is-filled .reason-other-count { color: rgba(57,217,138,0.9); }
+
+  /* Transient validation toast (pinned to viewport bottom, never affects form layout). */
+  .form-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%) translateY(14px);
+    max-width: 340px;
+    width: calc(100% - 36px);
+    background: #1d1320;
+    border: 1px solid #FF6B9D;
+    border-left: 3px solid #FF6B9D;
+    color: #FFFFFF;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    padding: 11px 14px;
+    border-radius: 9px;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.55);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10000;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .form-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* System notice in the Reason card: subtle, small, integrated. */
+  .reason-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: rgba(230,230,230,0.62);
+    margin: 0 0 11px 0;
+    padding: 6px 9px;
+    background: rgba(67,217,255,0.06);
+    border-left: 2px solid rgba(67,217,255,0.55);
+  }
+  .reason-notice i { color: #43D9FF; font-size: 12px; margin-top: 1px; flex: 0 0 auto; }
+
+  /* Per-reason helper lines under the grid, color-coded by status. */
+  .reason-helper { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 0 0; }
+  .reason-helper:empty { margin: 0; }
+  .reason-helper-line {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 10px;
+    line-height: 1.45;
+    color: rgba(230,230,230,0.68);
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid rgba(255,255,255,0.18);
+  }
+  .reason-helper-line .rh-dot { width: 6px; height: 6px; flex: 0 0 auto; align-self: center; }
+  .reason-helper-line .rh-label { font-weight: 700; color: #FFFFFF; }
+  .reason-helper-line.rh-review { border-left-color: #FF6B9D; }
+  .reason-helper-line.rh-review .rh-dot { background: #FF6B9D; }
+  .reason-helper-line.rh-deduct { border-left-color: #FFB800; }
+  .reason-helper-line.rh-deduct .rh-dot { background: #FFB800; }
+  .reason-helper-line.rh-normal { border-left-color: #39D98A; }
+  .reason-helper-line.rh-normal .rh-dot { background: #39D98A; }
+
+  /* Small explanatory notes under the helper line (over-cap, always-review, attachment). */
+  .reason-helper-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 9.5px;
+    line-height: 1.45;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.025);
+    border-left: 2px solid rgba(255,255,255,0.18);
+    color: rgba(230,230,230,0.66);
+  }
+  .reason-helper-note i { font-size: 11px; margin-top: 1px; flex: 0 0 auto; }
+  .reason-helper-note.rh-warn { border-left-color: #FFB800; color: rgba(255,209,128,0.92); }
+  .reason-helper-note.rh-warn i { color: #FFB800; }
+  .reason-helper-note.rh-file { border-left-color: #A78BFA; color: rgba(196,181,253,0.92); }
+  .reason-helper-note.rh-file i { color: #A78BFA; }
+  .reason-helper-note.rh-ok { border-left-color: #39D98A; color: rgba(120,230,170,0.92); }
+  .reason-helper-note.rh-ok i { color: #39D98A; }
+
+  /* Attachment zone (required for Medical / Government). */
+  .reason-attach:empty { margin: 0; }
+  .reason-attach { margin-top: 9px; }
+  .attach-box {
+    border: 1px solid rgba(167,139,250,0.4);
+    border-left: 3px solid #A78BFA;
+    background: rgba(167,139,250,0.06);
+    padding: 10px;
+  }
+  .attach-head {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    color: #C4B5FD; margin-bottom: 9px;
+  }
+  .attach-head i { font-size: 13px; }
+  .attach-req {
+    margin-left: auto;
+    font-size: 8.5px; letter-spacing: 0.5px;
+    color: #191919; background: #FFB800; padding: 1px 6px;
+  }
+  .attach-drop {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 14px 10px;
+    border: 1px dashed rgba(167,139,250,0.5);
+    background: rgba(0,0,0,0.2);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.18s, background 0.18s;
+  }
+  .attach-drop:hover { border-color: #A78BFA; background: rgba(167,139,250,0.08); }
+  .attach-input { display: none; }
+  .attach-drop-ic { font-size: 22px; color: #A78BFA; }
+  .attach-drop-main { font-size: 12px; font-weight: 700; color: #FFFFFF; }
+  .attach-drop-sub { font-size: 9.5px; color: rgba(230,230,230,0.5); }
+  .attach-file {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(57,217,138,0.4);
+    padding: 8px 10px;
+  }
+  .attach-file-ic { font-size: 16px; color: #39D98A; flex: 0 0 auto; }
+  .attach-file-name {
+    flex: 1 1 auto; min-width: 0;
+    font-size: 11.5px; color: #FFFFFF;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .attach-file-size { flex: 0 0 auto; font-size: 9.5px; color: rgba(230,230,230,0.5); font-variant-numeric: tabular-nums; }
+  .attach-remove {
+    flex: 0 0 auto;
+    background: transparent; border: none; cursor: pointer;
+    color: rgba(255,107,157,0.85); font-size: 14px; padding: 2px;
+    display: flex; align-items: center;
+  }
+  .attach-remove:hover { color: #FF6B9D; }
+
+  /* Verification + status lines in the Time Off summary. */
+  .timeoff-verify {
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .timeoff-verify .tv-line {
+    font-size: 10px;
+    color: rgba(230,230,230,0.6);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .timeoff-verify .tv-line i { color: #43D9FF; font-size: 12px; }
+  .timeoff-verify .tv-status {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 8px;
+    width: fit-content;
+  }
+  .timeoff-verify .tv-status i { font-size: 12px; }
+  .tv-status.tv-review { color: #FF6B9D; background: rgba(255,107,157,0.10); }
+  .tv-status.tv-deduct { color: #FFB800; background: rgba(255,184,0,0.10); }
+  .tv-status.tv-normal { color: #39D98A; background: rgba(57,217,138,0.10); }
+
+  /* Single consolidated reason/cap status line under the Duration tile. */
+  .timeoff-cap-status:empty { margin: 0; }
+  .timeoff-cap-status { margin-top: 8px; }
+  .cap-status-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    font-size: 10.5px;
+    line-height: 1.45;
+    padding: 7px 9px;
+  }
+  .cap-status-line i { font-size: 13px; margin-top: 1px; flex: 0 0 auto; }
+  .cap-status-line.is-ok {
+    color: rgba(120,230,170,0.92);
+    background: rgba(57,217,138,0.07);
+    border-left: 2px solid #39D98A;
+  }
+  .cap-status-line.is-ok i { color: #39D98A; }
+  /* Flagged = yellow effect: amber text, amber border, soft amber glow that gently pulses. */
+  .cap-status-line.is-flagged {
+    color: #FFD980;
+    background: rgba(255,184,0,0.10);
+    border-left: 3px solid #FFB800;
+    animation: capFlagPulse 1.9s ease-in-out infinite;
+  }
+  .cap-status-line.is-flagged i { color: #FFB800; }
+  @keyframes capFlagPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,184,0,0.0); }
+    50%      { box-shadow: 0 0 10px 0 rgba(255,184,0,0.28); }
+  }
+
+  /* Over-cap band on the shift bar: amber diagonal stripes + a small flag. */
+  .timeoff-overcap-seg {
+    position: absolute;
+    top: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 6;
+    background: repeating-linear-gradient(45deg,
+      rgba(255,184,0,0.0) 0, rgba(255,184,0,0.0) 4px,
+      rgba(255,184,0,0.35) 4px, rgba(255,184,0,0.35) 8px);
+    box-shadow: inset 0 2px 0 #FFB800, inset 0 -2px 0 #FFB800;
+  }
+  .timeoff-overcap-flag {
+    position: absolute;
+    top: -16px;
+    transform: translateX(-2px);
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #191919;
+    background: #FFB800;
+    padding: 1px 5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 7;
+  }
+
+  /* Inline submit confirmation for risky / over-cap Time Off entries. */
+  .timeoff-confirm {
+    margin: 0 0 12px 0;
+    padding: 12px;
+    background: #241a07;
+    border: 1px solid #FFB800;
+    border-left: 3px solid #FFB800;
+  }
+  .timeoff-confirm .tc-msg {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: #FFFFFF;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+  .timeoff-confirm .tc-msg i { color: #FFB800; font-size: 14px; margin-top: 1px; flex: 0 0 auto; }
+  .timeoff-confirm .tc-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .timeoff-confirm button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .timeoff-confirm .tc-cancel { background: transparent; border-color: rgba(255,255,255,0.25); color: rgba(230,230,230,0.8); }
+  .timeoff-confirm .tc-cancel:hover { border-color: rgba(255,255,255,0.5); color: #FFFFFF; }
+  .timeoff-confirm .tc-go { background: #FFB800; color: #191919; }
+  .timeoff-confirm .tc-go:hover { opacity: 0.9; }
   @keyframes otherRequiredPulse {
-    0%, 100% { box-shadow: 0 0 0 1px rgba(255,184,0,0.4); }
-    50%      { box-shadow: 0 0 0 3px rgba(255,184,0,0.22); }
+    0%, 100% { border-color: rgba(167,139,250,0.35); box-shadow: 0 0 0 1px rgba(255,184,0,0.0); }
+    50%      { border-color: rgba(255,184,0,0.55);   box-shadow: 0 0 0 2px rgba(255,184,0,0.18); }
   }
 
   .time-wheel-row {
@@ -3244,6 +3560,21 @@
     transition: opacity 0.18s ease, transform 0.18s ease;
   }
   .reason-tile-check i { font-size: 9px; line-height: 1; }
+  /* Small document indicator at the BOTTOM-RIGHT of any reason that requires an attachment. */
+  .reason-tile-doc {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--reason-color);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .reason-tile-doc i { font-size: 11px; line-height: 1; }
+  .reason-tile.needs-doc { padding-bottom: 9px; }
+  .reason-tile.needs-doc.selected .reason-tile-doc { opacity: 1; }
   .reason-tile.selected {
     background: color-mix(in srgb, var(--reason-color) 16%, transparent);
     border-color: var(--reason-color);
@@ -4184,6 +4515,7 @@
     timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false, lockedToNow: false },
     reasons: [],
     otherReason: '',
+    attachment: null,
     notes: '',
     submissionId: genSubmissionId()
   };
@@ -4552,26 +4884,102 @@
   const REASON_GROUPS = {
     health:   { label: 'Health & Wellbeing',  color: '#FF6B9D' },
     personal: { label: 'Family & Personal',   color: '#43D9FF' },
-    work:     { label: 'Work & Travel',       color: '#FFB800' },
-    other:    { label: 'Obligations & Other', color: '#A78BFA' }
+    work:     { label: 'Work & Admin',        color: '#FFB800' },
+    other:    { label: 'Other',               color: '#A78BFA' }
   };
 
   // Each reason: label (also the stored/submitted value), a Tabler icon, and its group.
   // IMPORTANT: the labels must stay byte-for-byte identical to the Apps Script REASON_TO_FIELD map.
   const REASON_OPTIONS = [
-    { label: 'Medical / Doctor visit', icon: 'stethoscope',     group: 'health' },
-    { label: 'Mental health',          icon: 'brain',           group: 'health' },
-    { label: 'Personal matter',        icon: 'user',            group: 'personal' },
-    { label: 'Family commitment',      icon: 'users',           group: 'personal' },
-    { label: 'School / Childcare',     icon: 'school',          group: 'personal' },
-    { label: 'Bereavement',            icon: 'flower',          group: 'personal' },
-    { label: 'Travel',                 icon: 'plane',           group: 'work' },
-    { label: 'Conference / Event',     icon: 'calendar-event',  group: 'work' },
-    { label: 'Religious observance',   icon: 'building-mosque', group: 'other' },
-    { label: 'Government appointment', icon: 'building-bank',   group: 'other' },
-    { label: 'Home emergency',         icon: 'alert-triangle',  group: 'other' },
-    { label: 'Other',                  icon: 'dots',            group: 'other' }
+    { label: 'Medical / Doctor visit',   icon: 'stethoscope',     group: 'health'   },
+    { label: 'Sick / Unwell',            icon: 'mood-sick',       group: 'health'   },
+    { label: 'Family commitment',        icon: 'users',           group: 'personal' },
+    { label: 'School / Childcare',       icon: 'school',          group: 'personal' },
+    { label: 'Coffee break',             icon: 'coffee',          group: 'personal' },
+    { label: 'Religious observance',     icon: 'building-mosque', group: 'personal' },
+    { label: 'Work Meeting',             icon: 'calendar-event',  group: 'work'     },
+    { label: 'Government appointment',   icon: 'building-bank',   group: 'work'     },
+    { label: 'Home emergency',           icon: 'alert-triangle',  group: 'work'     },
+    { label: 'Other',                    icon: 'dots',            group: 'other'    }
   ];
+
+  // Per-reason rules. This system only LOGS and VISUALIZES; it never deducts (pay is separate).
+  //   capMin       = the usual soft limit in minutes. Over it, the entry is flagged for review and
+  //                  the shift bar shows caution stripes on the slice past the cap.
+  //   alwaysReview = the whole entry is flagged for review (caution stripes cover the full selection).
+  //   requiresFile = a document must be attached before submit (and the tile shows a doc icon).
+  //   risky        = show the submit confirmation panel.
+  const REASON_META = {
+    'Medical / Doctor visit': { capMin: 240, requiresFile: true },
+    'Sick / Unwell':          { alwaysReview: true, requiresFile: true, risky: true },
+    'Family commitment':      { capMin: 60 },
+    'School / Childcare':     { capMin: 60 },
+    'Coffee break':           { capMin: 15 },
+    'Religious observance':   { capMin: 30 },
+    'Work Meeting':           { alwaysReview: true, risky: true },
+    'Government appointment':  { capMin: 240, requiresFile: true },
+    'Home emergency':         { alwaysReview: true, risky: true },
+    'Other':                  { alwaysReview: true, risky: true }
+  };
+
+  // Status strings: visualization only, never a payroll action. Two states.
+  const STATUS_REVIEW = 'Flagged for review';
+  const STATUS_NORMAL = 'Within the usual range';
+
+  // Status for one reason given the selected work-minutes.
+  function reasonStatus(label, durMin) {
+    const m = REASON_META[label];
+    if (!m) return STATUS_NORMAL;
+    if (m.alwaysReview) return STATUS_REVIEW;
+    if (m.capMin != null && durMin > m.capMin) return STATUS_REVIEW;
+    return STATUS_NORMAL;
+  }
+
+  // One primary reason only, so the status is just that reason's status.
+  function overallTimeoffStatus() {
+    if (state.reasons.length === 0) return STATUS_NORMAL;
+    return reasonStatus(state.reasons[0], computeTimeoffWorkMinutes());
+  }
+
+  // Minutes of the current selection beyond the selected reason's usual cap. Drives the bar marker.
+  function overCapMinutes() {
+    if (state.reasons.length === 0) return 0;
+    const m = REASON_META[state.reasons[0]];
+    if (!m || m.capMin == null) return 0;
+    return Math.max(0, computeTimeoffWorkMinutes() - m.capMin);
+  }
+
+  // The selected reason's cap, or null.
+  function selectedReasonCap() {
+    if (state.reasons.length === 0) return null;
+    const m = REASON_META[state.reasons[0]];
+    return (m && m.capMin != null) ? m.capMin : null;
+  }
+
+  // Does the selected reason require a document attachment (Medical / Government)?
+  function selectedReasonRequiresFile() {
+    if (state.reasons.length === 0) return false;
+    const m = REASON_META[state.reasons[0]];
+    return !!(m && m.requiresFile);
+  }
+
+  // Short minutes formatter for the helper notes ("2h", "45m", "1h 30m").
+  function fmtMinShort(min) {
+    const h = Math.floor(min / 60), m = min % 60;
+    if (h > 0 && m > 0) return h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h';
+    return m + 'm';
+  }
+
+  // Should the submit confirmation show? Always-reviewed reason, or a selection over its cap.
+  function timeoffNeedsConfirm() {
+    if (state.reasons.length === 0) return false;
+    const m = REASON_META[state.reasons[0]];
+    if (!m) return false;
+    if (m.risky) return true;
+    if (m.capMin != null && computeTimeoffWorkMinutes() > m.capMin) return true;
+    return false;
+  }
 
   // Group color for a given reason label (used by tiles + selected chips).
   function getReasonColor(label) {
@@ -4679,6 +5087,7 @@
               ${buildTimeoffTileHtml('duration')}
             </div>
           </div>
+          <div class="timeoff-cap-status" id="timeoff-cap-status">${renderCapStatusHtml()}</div>
         </div>
       </div>
 
@@ -4687,10 +5096,10 @@
           <div class="num">2</div>
           <i class="ti ti-question-mark q-icon" aria-hidden="true"></i>
           <div class="title">Reason</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Tap reasons to add. Pick one or more. The team only needs the category, not the details."></i>
+          <i class="ti ti-info-circle info-icon" data-tip="Tap the one main reason you're away. Pick the closest single category. The team only needs the category, not the details."></i>
         </div>
         <div class="q-content active${reasonsDone ? ' done' : ''}">
-          <div class="q-prompt">Why are you unavailable? <span class="q-prompt-hint">Pick one or more</span></div>
+          <div class="q-prompt">Why are you unavailable? <span class="q-prompt-hint">Pick one</span></div>
 
           <div class="reason-groups">
             ${Object.keys(REASON_GROUPS).map(function(gk) {
@@ -4702,27 +5111,45 @@
                   g.label +
                 '</div>' +
                 '<div class="reason-group-grid">' +
-                  items.map(function(o) {
-                    const sel = state.reasons.indexOf(o.label) >= 0;
-                    return '<button type="button" class="reason-tile' + (sel ? ' selected' : '') + '" ' +
-                      'data-reason="' + escapeHtml(o.label) + '" style="--reason-color:' + g.color + '" ' +
-                      'onclick="addReason(this)">' +
-                      '<span class="reason-tile-check"><i class="ti ti-check"></i></span>' +
-                      '<span class="reason-tile-icon"><i class="ti ti-' + o.icon + '"></i></span>' +
-                      '<span class="reason-tile-label">' + escapeHtml(o.label) + '</span>' +
-                    '</button>';
-                  }).join('') +
+                  (gk === 'other'
+                    // The Other "tile" is one box: a toggle on the left + the detail input. When
+                    // selected the SAME box stretches across both columns so the input has room.
+                    // No extra column, no extra row.
+                    ? '<div class="reason-other-cell' + (hasOther ? ' is-open' : '') +
+                        (hasOther && validateOtherReason(state.otherReason).valid ? ' is-filled' : '') + '" id="reason-other-wrap">' +
+                        '<button type="button" class="reason-tile reason-other-toggle' + (hasOther ? ' selected' : '') + '" ' +
+                          'data-reason="Other" style="--reason-color:' + g.color + '" onclick="addReason(this)">' +
+                          '<span class="reason-tile-check"><i class="ti ti-check"></i></span>' +
+                          '<span class="reason-tile-icon"><i class="ti ti-dots"></i></span>' +
+                          '<span class="reason-tile-label">Other</span>' +
+                        '</button>' +
+                        '<div class="reason-other-entry">' +
+                          '<input type="text" class="reason-other-input" id="reason-other-input" ' +
+                            'placeholder="2 to 3 words" maxlength="80" ' +
+                            'value="' + escapeHtml(state.otherReason || '') + '" ' +
+                            'oninput="onOtherReasonInput(this)">' +
+                          '<span class="reason-other-count" id="reason-other-count">0/5</span>' +
+                        '</div>' +
+                      '</div>'
+                    : items.map(function(o) {
+                        const sel = state.reasons.indexOf(o.label) >= 0;
+                        const needsDoc = !!(REASON_META[o.label] && REASON_META[o.label].requiresFile);
+                        return '<button type="button" class="reason-tile' + (sel ? ' selected' : '') + (needsDoc ? ' needs-doc' : '') + '" ' +
+                          'data-reason="' + escapeHtml(o.label) + '" style="--reason-color:' + g.color + '" ' +
+                          'onclick="addReason(this)">' +
+                          '<span class="reason-tile-check"><i class="ti ti-check"></i></span>' +
+                          '<span class="reason-tile-icon"><i class="ti ti-' + o.icon + '"></i></span>' +
+                          '<span class="reason-tile-label">' + escapeHtml(o.label) + '</span>' +
+                          (needsDoc ? '<span class="reason-tile-doc" title="A document is required for this reason"><i class="ti ti-file-text"></i></span>' : '') +
+                        '</button>';
+                      }).join('')
+                  ) +
                 '</div>' +
               '</div>';
             }).join('')}
           </div>
 
-          <div class="reason-other-wrap" id="reason-other-wrap" style="display:${hasOther ? 'block' : 'none'}">
-            <input type="text" class="reason-other-input" id="reason-other-input"
-              placeholder="Specify your reason (required)..."
-              value="${escapeHtml(state.otherReason || '')}"
-              oninput="state.otherReason = this.value; refreshReasonUI(); updateReasonChips(); updateTimeOffSummary(); updateSubmitState();">
-          </div>
+          <div class="reason-attach" id="reason-attach">${renderAttachHtml()}</div>
 
           <div class="reason-selected${state.reasons.length === 0 ? ' empty' : ''}" id="reason-selected">
             ${renderReasonChipsHtml()}
@@ -5029,6 +5456,89 @@
     updateTimeoffSummaryRow();
     updateWholeDayBtnState();
     updateSelectionOverlay();
+    updateOverCapMarker();
+    updateCapStatus();
+  }
+
+  // Clock minute at which cumulative WORK time from fromMin first exceeds capWork (break excluded).
+  function overCapStartMinute(fromMin, toMin, capWork) {
+    let counted = 0, c = fromMin;
+    while (c < toMin) {
+      if (!isMinuteInBreak(c)) {
+        if (counted >= capWork) break;
+        counted++;
+      }
+      c++;
+    }
+    return c;
+  }
+  function isMinuteInBreak(min) {
+    return WORK_SCHEDULE.segments.some(function(s) {
+      return s.name === 'BREAK' && min >= s.start * 60 && min < s.end * 60;
+    });
+  }
+
+  // Paint the portion of the selection that exceeds the selected reason's soft cap, as an amber
+  // striped band on the shift bar with a "+Xm over" flag, so the extra time is visible at a glance.
+  function updateOverCapMarker() {
+    const bar = document.getElementById('timeoff-shift-bar');
+    if (!bar) return;
+    bar.querySelectorAll('.timeoff-overcap-seg, .timeoff-overcap-flag').forEach(function(el) { el.remove(); });
+    if (!state.timeOff.from || !state.timeOff.to) return;
+    if (selectionIsCustom()) return; // dotted custom bar has no grid to mark; the status text covers it
+    if (state.reasons.length === 0) return;
+    const m = REASON_META[state.reasons[0]];
+    if (!m) return;
+
+    const startMin = WORK_SCHEDULE.workStart * 60;
+    const endMin   = WORK_SCHEDULE.workEnd   * 60;
+    const span = endMin - startMin;
+    const fp = state.timeOff.from.split(':'); const tp = state.timeOff.to.split(':');
+    const fromMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
+    const toMin   = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+
+    // Where the caution stripes start, and the flag label:
+    //  - always-reviewed reason  -> the WHOLE selection is cautioned (band from FROM), label "review"
+    //  - capped reason over cap  -> only the slice past the cap, label "+Xm over"
+    //  - otherwise               -> no band
+    let bandStart, flagLabel;
+    if (m.alwaysReview) {
+      bandStart = fromMin;
+      flagLabel = 'review';
+    } else if (m.capMin != null && computeTimeoffWorkMinutes() > m.capMin) {
+      bandStart = overCapStartMinute(fromMin, toMin, m.capMin);
+      flagLabel = '+' + fmtMinShort(overCapMinutes()) + ' over';
+    } else {
+      return;
+    }
+
+    // Split [bandStart, toMin] into work-runs around the break, draw a striped band per run.
+    const breaks = WORK_SCHEDULE.segments.filter(function(s){ return s.name === 'BREAK'; })
+      .map(function(s){ return { s: s.start*60, e: s.end*60 }; }).sort(function(a,b){ return a.s-b.s; });
+    const runs = [];
+    let cur = bandStart;
+    breaks.forEach(function(b) {
+      if (b.e <= cur || b.s >= toMin) { if (b.s <= cur && b.e > cur) cur = b.e; return; }
+      if (b.s > cur) runs.push([cur, Math.min(b.s, toMin)]);
+      cur = Math.max(cur, b.e);
+    });
+    if (cur < toMin) runs.push([cur, toMin]);
+    const valid = runs.filter(function(r){ return r[1] > r[0]; });
+
+    valid.forEach(function(r) {
+      const seg = document.createElement('div');
+      seg.className = 'timeoff-overcap-seg';
+      seg.style.left  = ((r[0] - startMin) / span * 100) + '%';
+      seg.style.width = ((r[1] - r[0]) / span * 100) + '%';
+      bar.appendChild(seg);
+    });
+    if (valid.length) {
+      const flag = document.createElement('div');
+      flag.className = 'timeoff-overcap-flag';
+      flag.textContent = flagLabel;
+      flag.style.left = ((valid[0][0] - startMin) / span * 100) + '%';
+      bar.appendChild(flag);
+    }
   }
 
   // Work minutes between two arbitrary clock minutes, break excluded. (computeTimeoffWorkMinutes
@@ -5419,7 +5929,7 @@
 
   function activateCurrentTimeLock() {
     state.timeOff.lockedToNow = true;
-    syncTimeoffFromToNow(); // initial sync: FROM = now, UNTIL preserved
+    syncTimeoffFromToNow(); // initial sync: FROM = now, UNTIL = now + duration (duration held)
     // syncTimeoffFromToNow may bail and call deactivate (e.g. too late in the day to fit 15 min).
     // If it did, lockedToNow is already false -- don't paint lock visuals or start the interval.
     if (!state.timeOff.lockedToNow) return;
@@ -5486,9 +5996,9 @@
     state.timeOff.to   = minutesToHHMM(startMin + (toCellIncl + 1) * SLOT_MIN);
   }
 
-  // Set state.timeOff.from = current minute, state.timeOff.to = from + max(currentDur, 15).
-  // Clamps to work hours and skips past the break if "now" lands inside it. If clamping leaves
-  // less than 15 min of selectable time, deactivate the lock.
+  // Lock re-sync: FROM = current minute, UNTIL = FROM + held duration (so the block slides forward
+  // with the clock keeping its length). Skips past the break and clamps to 11:59 PM; if there isn't
+  // 15 min left before midnight, the lock turns off.
   function syncTimeoffFromToNow() {
     const now = new Date();
     let nowMin = now.getHours() * 60 + now.getMinutes();
@@ -5504,23 +6014,27 @@
     // Need at least 15 min left before midnight.
     if (nowMin > SELECT_MAX_MIN - 15) { deactivateCurrentTimeLock(); return; }
 
-    // PRESERVE the existing UNTIL. Pressing Current Time (or the 15s re-sync) moves only the FROM
-    // to the live minute -- the end stays exactly where the user left it. As "now" advances, the
-    // remaining time naturally shrinks ("off from now until 4:25").
-    let toMin;
-    if (state.timeOff.to) {
-      const tp = state.timeOff.to.split(':');
-      toMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
+    // HOLD THE DURATION CONSTANT. FROM tracks the live minute and UNTIL = FROM + duration, so both
+    // edges ride forward together as time passes (set 1h, it stays 1h). The duration is whatever the
+    // current block is; default 1h on a fresh lock with no range yet.
+    let durMin;
+    if (state.timeOff.from && state.timeOff.to) {
+      durMin = computeTimeoffWorkMinutes();
+      if (durMin < SLOT_MIN) durMin = 60;
     } else {
-      toMin = nowMin + 15;
+      durMin = 60;
     }
-    // Only if the existing UNTIL is now in the past (or leaves < 15 work-min after now) do we fall
-    // back to a fresh block starting now. The END snaps to a clean 15-min mark (never :07 / :25).
-    if (toMin <= nowMin || timeoffWorkMinutesBetween(nowMin, toMin) < 15) {
-      toMin = Math.ceil(nowMin / SLOT_MIN) * SLOT_MIN;
-      while (toMin <= SELECT_MAX_MIN && timeoffWorkMinutesBetween(nowMin, toMin) < 15) toMin += SLOT_MIN;
-    }
-    if (toMin > SELECT_MAX_MIN) toMin = SELECT_MAX_MIN;
+    // Build UNTIL so the WORK time from now equals durMin, extending past the break if the span
+    // crosses it (so the break never eats into the held duration).
+    let toMin = nowMin + durMin;
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name !== 'BREAK') return;
+      const bs = seg.start * 60, be = seg.end * 60;
+      if (nowMin < bs && toMin > bs && nowMin >= WORK_SCHEDULE.workStart * 60 && nowMin < WORK_SCHEDULE.workEnd * 60) {
+        toMin += (be - bs);
+      }
+    });
+    if (toMin > SELECT_MAX_MIN) toMin = SELECT_MAX_MIN; // near midnight the held duration may shrink
 
     state.timeOff.from = minutesToHHMM(nowMin);
     state.timeOff.to   = minutesToHHMM(toMin);
@@ -6194,9 +6708,118 @@
 
   // Build the chips HTML for the "selected reasons" row. If "Other" is picked and the user has
   // typed something into the Other input, the chip shows that text instead of the bare label.
+  // ONE consolidated status line, shown under the Duration tile. Yellow when the entry is flagged
+  // for review (over the usual cap, or an always-reviewed reason); subtle green when within range.
+  function renderCapStatusHtml() {
+    if (state.reasons.length === 0) return '';
+    const r = state.reasons[0];
+    const m = REASON_META[r];
+    if (!m) return '';
+    const durMin = computeTimeoffWorkMinutes();
+    const flagged = reasonStatus(r, durMin) === STATUS_REVIEW;
+    let text;
+    if (m.capMin != null) {
+      const over = Math.max(0, durMin - m.capMin);
+      if (over > 0) {
+        text = r + ': usually up to ' + fmtMinShort(m.capMin) + '. You set ' + fmtMinShort(durMin) +
+          ', so ' + fmtMinShort(over) + ' is over and will be flagged for review.';
+      } else {
+        text = r + ': within the usual ' + fmtMinShort(m.capMin) + '. Pending verification.';
+      }
+    } else {
+      text = r + ' is always logged and flagged for review.';
+    }
+    const icon = flagged ? 'alert-triangle' : 'circle-check';
+    return '<div class="cap-status-line ' + (flagged ? 'is-flagged' : 'is-ok') + '">' +
+      '<i class="ti ti-' + icon + '" aria-hidden="true"></i><span>' + escapeHtml(text) + '</span>' +
+    '</div>';
+  }
+  function updateCapStatus() {
+    const el = document.getElementById('timeoff-cap-status');
+    if (el) el.innerHTML = renderCapStatusHtml();
+  }
+  function updateReasonHelper() {
+    // Reason status now lives under the Duration tile; here we just keep that + the attach zone fresh.
+    updateCapStatus();
+    updateAttachUI();
+  }
+
+  // ----- Document attachment (required for Medical / Government appointment) -----
+  // Accepts images, PDF, and Word docs. The file is read to base64 and sent with the submission;
+  // the Apps Script saves it to the OFF BOX Team Drive folder and writes the link to the sheet.
+  const ATTACH_ACCEPT = 'image/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const ATTACH_MAX_BYTES = 10 * 1024 * 1024; // 10 MB cap (keeps the POST within limits)
+
+  function renderAttachHtml() {
+    if (!selectedReasonRequiresFile()) return '';
+    const a = state.attachment;
+    if (a && a.data) {
+      const kb = a.size < 1024 * 1024 ? Math.round(a.size / 1024) + ' KB' : (a.size / 1024 / 1024).toFixed(1) + ' MB';
+      return '<div class="attach-box has-file">' +
+        '<div class="attach-head"><i class="ti ti-paperclip"></i> Attached document <span class="attach-req">required</span></div>' +
+        '<div class="attach-file">' +
+          '<i class="ti ti-file-check attach-file-ic"></i>' +
+          '<span class="attach-file-name">' + escapeHtml(a.name) + '</span>' +
+          '<span class="attach-file-size">' + kb + '</span>' +
+          '<button type="button" class="attach-remove" onclick="clearAttachment(); refreshAttach();" aria-label="remove"><i class="ti ti-x"></i></button>' +
+        '</div>' +
+      '</div>';
+    }
+    return '<div class="attach-box">' +
+      '<div class="attach-head"><i class="ti ti-paperclip"></i> Attach a document <span class="attach-req">required</span></div>' +
+      '<label class="attach-drop">' +
+        '<input type="file" class="attach-input" accept="' + ATTACH_ACCEPT + '" onchange="handleAttachFile(this)">' +
+        '<i class="ti ti-upload attach-drop-ic"></i>' +
+        '<span class="attach-drop-main">Tap to choose a file</span>' +
+        '<span class="attach-drop-sub">Image, PDF, or Word. Up to 10 MB.</span>' +
+      '</label>' +
+    '</div>';
+  }
+  function refreshAttach() {
+    const el = document.getElementById('reason-attach');
+    if (el) el.innerHTML = renderAttachHtml();
+    updateReasonHelper();
+    updateSubmitState();
+  }
+  function updateAttachUI() {
+    const el = document.getElementById('reason-attach');
+    if (!el) return;
+    // Only re-render if the required-ness changed shape (avoid clobbering an open file dialog mid-pick).
+    const shouldShow = selectedReasonRequiresFile();
+    const isShowing = el.children.length > 0;
+    if (shouldShow !== isShowing) el.innerHTML = renderAttachHtml();
+  }
+  function handleAttachFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > ATTACH_MAX_BYTES) {
+      showFormToast('That file is over 10 MB. Please attach a smaller document.');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function() {
+      // reader.result is a data URL: "data:<mime>;base64,<data>". Keep just the base64 part.
+      const res = String(reader.result || '');
+      const comma = res.indexOf(',');
+      state.attachment = {
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        data: comma >= 0 ? res.slice(comma + 1) : ''
+      };
+      refreshAttach();
+    };
+    reader.onerror = function() { showFormToast('Could not read that file. Try another.'); };
+    reader.readAsDataURL(file);
+  }
+  function clearAttachment() {
+    state.attachment = null;
+  }
+
   function renderReasonChipsHtml() {
     if (state.reasons.length === 0) {
-      return '<span class="reason-selected-empty">Nothing selected yet. Tap above to add</span>';
+      return '<span class="reason-selected-empty">No reason picked yet. Tap one above</span>';
     }
     return state.reasons.map(function(r) {
       const display = (r === 'Other' && state.otherReason && state.otherReason.trim())
@@ -6218,28 +6841,70 @@
     sel.innerHTML = renderReasonChipsHtml();
   }
 
-  // ---- Reason picker: tap to add ----
+  // ---- Reason picker: ONE primary reason only (tap to set, tap the same to clear) ----
   function addReason(btn) {
     const val = btn.dataset.reason;
-    const i = state.reasons.indexOf(val);
-    if (i >= 0) state.reasons.splice(i, 1);
-    else state.reasons.push(val);
-    refreshReasonUI();
-    // Show/hide the "Other" specify input
-    const otherWrap = document.getElementById('reason-other-wrap');
-    if (otherWrap) otherWrap.style.display = state.reasons.indexOf('Other') >= 0 ? 'block' : 'none';
-    // If Other was unchecked, also clear its text so submission doesn't carry stale data
+    if (state.reasons.length === 1 && state.reasons[0] === val) {
+      state.reasons = []; // tapping the selected reason again clears it
+    } else {
+      state.reasons = [val]; // single primary reason
+    }
+    timeoffConfirmed = false; // selection changed; re-confirm if still risky
     if (state.reasons.indexOf('Other') < 0) state.otherReason = '';
+    if (!selectedReasonRequiresFile()) clearAttachment();
+    refreshReasonUI();
+    updateShiftBarSelection(); // recolor the timeline (yellow when the reason is always-reviewed)
+    // Show/hide + focus the "Other" detail panel
+    syncOtherPanel({ focus: true });
     updateTimeOffSummary();
     updateSubmitState();
   }
   function removeReason(val) {
     const i = state.reasons.indexOf(val);
     if (i >= 0) state.reasons.splice(i, 1);
+    timeoffConfirmed = false;
     refreshReasonUI();
-    const otherWrap = document.getElementById('reason-other-wrap');
-    if (otherWrap) otherWrap.style.display = state.reasons.indexOf('Other') >= 0 ? 'block' : 'none';
-    if (state.reasons.indexOf('Other') < 0) state.otherReason = '';
+    syncOtherPanel();
+    updateTimeOffSummary();
+    updateSubmitState();
+  }
+
+  // Keep the "Other" detail box in sync: open/close, valid state (green), live word counter (max 5).
+  function syncOtherPanel(opts) {
+    const wrap = document.getElementById('reason-other-wrap');
+    if (!wrap) return;
+    const picked = state.reasons.indexOf('Other') >= 0;
+    const words = (state.otherReason || '').trim().split(/\s+/).filter(Boolean);
+    const valid = picked && validateOtherReason(state.otherReason).valid;
+    if (!picked) state.otherReason = ''; // clear stale text when Other is unchecked
+    wrap.classList.toggle('is-open', picked);
+    wrap.classList.toggle('is-filled', valid); // green counter only when the whole rule set passes
+    const count = document.getElementById('reason-other-count');
+    if (count) count.textContent = Math.min(words.length, 5) + '/5';
+    if (picked && opts && opts.focus) {
+      const input = document.getElementById('reason-other-input');
+      if (input) setTimeout(function() { input.focus(); }, 80);
+    }
+  }
+
+  // Typing in the Other detail box: cap at 5 words, store it, refresh panel + chips + summary + gate.
+  function onOtherReasonInput(el) {
+    const words = el.value.split(/\s+/).filter(Boolean);
+    if (words.length > 5) {
+      el.value = words.slice(0, 5).join(' '); // hard cap at 5 words
+    }
+    // Capitalize the first letter in place (e.g. "bathroom" -> "Bathroom"). Same length, so the
+    // caret stays put; we just restore it to be safe.
+    const capped = el.value.charAt(0).toUpperCase() + el.value.slice(1);
+    if (capped !== el.value) {
+      const pos = el.selectionStart;
+      el.value = capped;
+      try { el.setSelectionRange(pos, pos); } catch (e) {}
+    }
+    state.otherReason = el.value;
+    syncOtherPanel();
+    refreshReasonUI();
+    updateReasonChips();
     updateTimeOffSummary();
     updateSubmitState();
   }
@@ -6253,12 +6918,9 @@
     document.querySelectorAll('.reason-tile').forEach(function(tile) {
       tile.classList.toggle('selected', state.reasons.indexOf(tile.dataset.reason) >= 0);
     });
-    // "Other" specify field: mark required-empty (amber outline) when Other is picked but blank.
-    const otherInput = document.getElementById('reason-other-input');
-    const otherPicked = state.reasons.indexOf('Other') >= 0;
-    if (otherInput) {
-      otherInput.classList.toggle('required-empty', otherPicked && !(state.otherReason || '').trim());
-    }
+    // "Other" detail panel: open/close, filled state, counter and hint all handled here.
+    syncOtherPanel();
+    updateReasonHelper();
     const card = document.getElementById('card-reason');
     if (card) {
       const done = reasonsComplete();
@@ -6443,6 +7105,11 @@
       reasonsSentence = ' <span class="timeoff-pending">Pick a reason above to complete the summary.</span>';
     }
 
+    let verifyHtml =
+      '<div class="timeoff-verify">' +
+        '<div class="tv-line"><i class="ti ti-checks" aria-hidden="true"></i> Verification: this entry is checked against Discord activity logs.</div>' +
+      '</div>';
+
     body.innerHTML =
       '<div class="timeoff-summary-text">' +
         verb + ' ' + amountSpan + ': ' + daysStr + ' ' + timePhrase + '.' + reasonsSentence +
@@ -6450,7 +7117,13 @@
       '<div class="timeoff-summary-total">' +
         '<span>Total time off of work</span>' +
         '<span class="timeoff-summary-total-value">' + formatDurationMin(totalMin) + '</span>' +
-      '</div>';
+      '</div>' +
+      verifyHtml;
+
+    // The per-reason helper status depends on duration, so refresh it here too, and repaint the
+    // over-cap marker on the shift bar.
+    updateReasonHelper();
+    updateOverCapMarker();
   }
 
   function attachCompletedHandlers() {
@@ -6939,9 +7612,46 @@
 
   // Reasons count as complete when at least one is picked AND, if "Other" is among them, the
   // free-text "specify" field is filled. This gates both the done state and the submit count.
+  // Validation for the "Other" detail field. Rules: 2 to 5 words; at least 6 non-space characters;
+  // at least one real letter (English or Arabic); not only numbers; not only symbols; not the same
+  // word repeated; not a common filler word. Returns { valid, msg }.
+  var OTHER_REASON_ERR = 'Write a clear reason in 2 to 5 words. Example: Phone alarm failed.';
+  var OTHER_FILLER = ['a','aa','aaa','x','xx','xxx','ok','okay','no','hi','hey','brb','back','test','asdf','qwerty','lol','haha','idk','none','nothing'];
+  function validateOtherReason(raw) {
+    const text = (raw || '').trim().replace(/\s+/g, ' ');
+    if (!text) return { valid: false, msg: OTHER_REASON_ERR };
+    const words = text.split(' ').filter(Boolean);
+    if (words.length < 2 || words.length > 5) return { valid: false, msg: OTHER_REASON_ERR }; // 2-5 words
+    if (text.replace(/\s/g, '').length < 6) return { valid: false, msg: OTHER_REASON_ERR };   // >= 6 non-space chars
+    if (!/[A-Za-z\u0600-\u06FF]/.test(text)) return { valid: false, msg: OTHER_REASON_ERR };  // needs a real letter (covers "only numbers"/"only symbols")
+    if (/^[0-9\s]+$/.test(text)) return { valid: false, msg: OTHER_REASON_ERR };              // not only numbers
+    const lower = words.map(function(w) { return w.toLowerCase(); });
+    if (lower.every(function(w) { return w === lower[0]; })) return { valid: false, msg: OTHER_REASON_ERR }; // same word repeated
+    const cleaned = text.toLowerCase().replace(/[^a-z0-9\u0600-\u06FF ]/g, '').trim();
+    if (OTHER_FILLER.indexOf(cleaned) >= 0) return { valid: false, msg: OTHER_REASON_ERR };   // filler blocklist
+    return { valid: true, msg: '' };
+  }
+
+  // Lightweight transient toast pinned to the viewport, so a validation message never grows the form.
+  let formToastTimer = null;
+  function showFormToast(msg) {
+    let t = document.getElementById('form-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'form-toast';
+      t.className = 'form-toast';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    requestAnimationFrame(function() { t.classList.add('show'); });
+    if (formToastTimer) clearTimeout(formToastTimer);
+    formToastTimer = setTimeout(function() { t.classList.remove('show'); }, 4200);
+  }
+
   function reasonsComplete() {
     if (state.reasons.length === 0) return false;
-    if (state.reasons.indexOf('Other') >= 0 && !(state.otherReason || '').trim()) return false;
+    if (state.reasons.indexOf('Other') >= 0 && !validateOtherReason(state.otherReason).valid) return false;
+    if (selectedReasonRequiresFile() && !(state.attachment && state.attachment.data)) return false; // Medical/Gov need a doc
     return true;
   }
 
@@ -7059,10 +7769,18 @@
       if (state.timeOff.days.length === 0 || !state.timeOff.from || !state.timeOff.to) markMissing('timeoff');
       if (!reasonsComplete()) {
         markMissing('reason');
-        // If Other is picked but blank, flag the specify field too.
-        const otherInput = document.getElementById('reason-other-input');
-        if (otherInput && state.reasons.indexOf('Other') >= 0 && !(state.otherReason || '').trim()) {
-          otherInput.classList.add('required-empty');
+        // If Other is picked but its detail is invalid, show the rules toast and focus the field.
+        if (state.reasons.indexOf('Other') >= 0) {
+          const v = validateOtherReason(state.otherReason);
+          if (!v.valid) {
+            showFormToast(v.msg);
+            const otherInput = document.getElementById('reason-other-input');
+            if (otherInput) setTimeout(function() { otherInput.focus(); }, 120);
+          }
+        }
+        // Medical / Government with no document attached: prompt for it.
+        if (selectedReasonRequiresFile() && !(state.attachment && state.attachment.data)) {
+          showFormToast(state.reasons[0] + ' needs a document attached. Add a report, prescription, or appointment proof.');
         }
       }
     }
@@ -7079,6 +7797,27 @@
   // request with a fresh ts that the server can't dedupe against the first.
   let isSubmitting = false;
 
+  let timeoffConfirmed = false;
+  // Small inline confirmation shown above the submit button for risky / over-cap Time Off entries.
+  function showTimeoffConfirm(forYesterday) {
+    const existing = document.getElementById('timeoff-confirm');
+    if (existing) existing.remove();
+    const p = document.createElement('div');
+    p.id = 'timeoff-confirm';
+    p.className = 'timeoff-confirm';
+    p.innerHTML =
+      '<div class="tc-msg"><i class="ti ti-alert-triangle" aria-hidden="true"></i> This reason is logged and flagged for the team to review. Submit anyway?</div>' +
+      '<div class="tc-actions">' +
+        '<button type="button" class="tc-cancel">Cancel</button>' +
+        '<button type="button" class="tc-go">Submit anyway</button>' +
+      '</div>';
+    const btn = document.getElementById('submit-btn');
+    btn.parentNode.insertBefore(p, btn);
+    p.querySelector('.tc-cancel').onclick = function() { p.remove(); };
+    p.querySelector('.tc-go').onclick = function() { timeoffConfirmed = true; p.remove(); submit(forYesterday); };
+    p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function submit(forYesterday) {
     // Hard guard: if a submission is already in flight, ignore further taps. JS is single-threaded
     // so this is set synchronously before any await/network, making rapid double-taps a no-op.
@@ -7094,6 +7833,12 @@
       document.getElementById('name-strip').classList.add('invalid');
       document.getElementById('name-input').focus();
       document.getElementById('name-strip').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    // Time Off: if a risky reason or an over-cap duration is selected, ask for a small inline
+    // confirmation first (not a browser alert). The form still submits; this is just a heads-up.
+    if (mode === 'off' && timeoffNeedsConfirm() && !timeoffConfirmed) {
+      showTimeoffConfirm(forYesterday);
       return;
     }
     // Validation passed -> lock immediately so a second tap during the 2.5s pre-success window
@@ -7147,8 +7892,11 @@
     } else if (mode === 'out') {
       params.completion = String(COMPLETION_MAP[state.completion] !== undefined ? COMPLETION_MAP[state.completion] : '');
       params.completion_reason = state.completionReason || '';
-      // Numbered task list (oldest = #1, newest = last)
-      const tasksInOrder = state.completed.slice().reverse();
+      // Numbered task list sorted by time spent, HIGHEST hours first (most significant work at the
+      // top), regardless of the order the user entered them. Tasks with no hours fall to the bottom.
+      const tasksInOrder = state.completed.slice().sort(function(a, b) {
+        return (b.hoursSpentMinutes || 0) - (a.hoursSpentMinutes || 0);
+      });
       params.tasks_list = tasksInOrder.map(function(t, i) {
         var num = i + 1;
         var text = t.text || '';
@@ -7195,6 +7943,13 @@
       params.off_full_day = (!state.timeOff.from && !state.timeOff.to) ? 'yes' : 'no';
       params.reasons = state.reasons.join(' | ');
       params.other_reason = state.otherReason || '';
+      // Document attachment (Medical / Government). Base64 + name + type; the Apps Script saves it to
+      // the OFF BOX Team Drive folder and writes the link back to the sheet.
+      if (state.attachment && state.attachment.data) {
+        params.attach_name = state.attachment.name || 'attachment';
+        params.attach_type = state.attachment.type || 'application/octet-stream';
+        params.attach_data = state.attachment.data;
+      }
     }
 
     lastSubmitDate = new Date();
@@ -7373,6 +8128,7 @@
       timeOff: { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false, lockedToNow: false },
       reasons: [],
       otherReason: '',
+      attachment: null,
       notes: '',
       submissionId: genSubmissionId()
     };
