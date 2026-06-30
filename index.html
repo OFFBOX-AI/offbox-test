@@ -2086,7 +2086,7 @@
      right. The selected border is drawn with an inset box-shadow (no layout box), so opening never
      changes height by even a pixel. */
   .reason-other-cell {
-    grid-column: 1 / -1;
+    grid-column: auto;
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -2095,23 +2095,25 @@
     transition: box-shadow 0.3s ease, background-color 0.3s ease;
   }
   .reason-other-cell.is-open {
+    grid-column: 1 / -1;
     box-shadow: inset 0 0 0 1px #A78BFA;
     background: color-mix(in srgb, #A78BFA 13%, transparent);
   }
-  /* Toggle = the Other tile button. Half width closed; shrinks to make room when open. */
+  /* Toggle = the Other tile button. Fills its cell when closed; shrinks to make room when open. */
   .reason-other-toggle {
-    flex: 0 0 50%;
+    flex: 1 1 auto;
     height: 100%;
     min-height: 0;
     box-sizing: border-box;
     transition: flex-basis 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
   }
   .reason-other-cell.is-open .reason-other-toggle {
-    flex-basis: 116px;
+    flex: 0 0 auto;
     border-color: transparent;
     background: transparent;
   }
   .reason-other-cell.is-open .reason-other-toggle .reason-tile-check { display: none; }
+  .reason-other-cell.is-open .reason-other-toggle .reason-tile-repeat { display: none; }
   .reason-other-cell.is-open .reason-other-toggle .reason-tile-label { flex: 0 0 auto; }
   /* Entry = the input box + counter. Collapsed (zero width, transparent) until open, then expands. */
   .reason-other-entry {
@@ -2134,15 +2136,15 @@
     pointer-events: auto;
     padding: 0 9px 0 2px;
   }
-  /* The input is its own inset box, shorter than the row so it has margin top and bottom. */
+  /* The input fills the open cell. Square corners, taller, no growth-stealing toggle. */
   .reason-other-input {
     flex: 1 1 auto;
     min-width: 0;
-    height: 26px;
+    height: 32px;
     box-sizing: border-box;
     background: rgba(0,0,0,0.35);
     border: 1px solid rgba(167,139,250,0.32);
-    border-radius: 5px;
+    border-radius: 0;
     color: #FFFFFF;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
@@ -2250,34 +2252,35 @@
   .reason-attach:empty { margin: 0; }
   .reason-attach { margin-top: 9px; }
   .attach-box {
-    border: 1px solid rgba(167,139,250,0.4);
-    border-left: 3px solid #A78BFA;
-    background: rgba(167,139,250,0.06);
+    --reason-color: #A78BFA;
+    border: 1px solid color-mix(in srgb, var(--reason-color) 40%, transparent);
+    border-left: 3px solid var(--reason-color);
+    background: color-mix(in srgb, var(--reason-color) 7%, transparent);
     padding: 10px;
   }
   .attach-head {
     display: flex; align-items: center; gap: 6px;
     font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
-    color: #C4B5FD; margin-bottom: 9px;
+    color: var(--reason-color); margin-bottom: 9px;
   }
   .attach-head i { font-size: 13px; }
   .attach-req {
     margin-left: auto;
     font-size: 8.5px; letter-spacing: 0.5px;
-    color: #191919; background: #FFB800; padding: 1px 6px;
+    color: #191919; background: var(--reason-color); padding: 1px 6px;
   }
   .attach-drop {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     padding: 14px 10px;
-    border: 1px dashed rgba(167,139,250,0.5);
+    border: 1px dashed color-mix(in srgb, var(--reason-color) 50%, transparent);
     background: rgba(0,0,0,0.2);
     cursor: pointer;
     text-align: center;
     transition: border-color 0.18s, background 0.18s;
   }
-  .attach-drop:hover { border-color: #A78BFA; background: rgba(167,139,250,0.08); }
+  .attach-drop:hover { border-color: var(--reason-color); background: color-mix(in srgb, var(--reason-color) 8%, transparent); }
   .attach-input { display: none; }
-  .attach-drop-ic { font-size: 22px; color: #A78BFA; }
+  .attach-drop-ic { font-size: 22px; color: var(--reason-color); }
   .attach-drop-main { font-size: 12px; font-weight: 700; color: #FFFFFF; }
   .attach-drop-sub { font-size: 9.5px; color: rgba(230,230,230,0.5); }
   .attach-file {
@@ -3427,63 +3430,111 @@
     letter-spacing: 0.5px;
   }
 
-  .reason-selected {
+  /* ---- Selected-reason explanation card (under the grid) ---- */
+  .reason-explain-wrap { margin-top: 10px; }
+  .reason-explain-wrap.empty { margin-top: 8px; }
+  .reason-explain-empty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.2px;
+    color: rgba(230,230,230,0.4);
+    padding: 8px 9px;
+    border: 1px dashed rgba(255,255,255,0.12);
+  }
+  .reason-explain-empty i { font-size: 12px; }
+  .reason-explain {
+    --reason-color: #FFB800;
+    border: 1px solid color-mix(in srgb, var(--reason-color) 38%, rgba(255,255,255,0.08));
+    border-left: 3px solid var(--reason-color);
+    background: color-mix(in srgb, var(--reason-color) 7%, rgba(0,0,0,0.2));
+    padding: 10px 11px;
+    animation: fadeInUp 0.2s ease;
+  }
+  .reason-explain-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .reason-explain-icon {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--reason-color);
+    color: #0F0F0F;
+  }
+  .reason-explain-icon i { font-size: 15px; line-height: 1; }
+  .reason-explain-name {
+    flex: 1;
+    min-width: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: #FFFFFF;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .reason-explain-clear {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(230,230,230,0.6);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .reason-explain-clear:hover { border-color: var(--reason-color); color: #FFFFFF; background: color-mix(in srgb, var(--reason-color) 18%, transparent); }
+  .reason-explain-clear i { font-size: 11px; }
+  .reason-explain-desc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    line-height: 1.45;
+    color: rgba(230,230,230,0.72);
+    margin-bottom: 9px;
+  }
+  .reason-explain-rules {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-top: 10px;
-    padding: 6px 8px;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.08);
-    min-height: 0;
-    align-items: center;
   }
-  /* Empty: hide entirely. Tile selection is the primary confirmation; an empty dashed box wastes space. */
-  .reason-selected.empty { display: none; }
-  .reason-selected-empty {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: rgba(230,230,230,0.35);
-    font-style: italic;
-    letter-spacing: 0.3px;
-  }
-  .reason-chip {
+  .reason-rule-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0;
-    background: #FFB800;
-    color: #0F0F0F;
+    gap: 4px;
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.5px;
-    line-height: 1;
-    animation: fadeInUp 0.2s ease;
+    letter-spacing: 0.2px;
+    color: var(--reason-color);
+    background: color-mix(in srgb, var(--reason-color) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--reason-color) 30%, transparent);
+    padding: 3px 6px;
   }
-  .reason-chip-text {
-    padding: 4px 3px 4px 8px;
-  }
-  .reason-chip-x {
-    background: rgba(0,0,0,0.18);
-    border: none;
-    color: rgba(0,0,0,0.7);
-    padding: 4px 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: background 0.15s, color 0.15s;
-  }
-  .reason-chip-x:hover {
-    background: rgba(0,0,0,0.35);
-    color: #FFFFFF;
-  }
-  .reason-chip-x i { font-size: 10px; }
+  .reason-rule-pill i { font-size: 10px; line-height: 1; opacity: 0.9; }
 
   /* ---- Reason picker: compact grouped grid of horizontal icon tiles, color-coded ---- */
   .reason-groups {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
+  }
+  /* Flat, ungrouped grid: all reasons close together, category shown by color only. */
+  .reason-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
   }
   .reason-group-label {
     display: flex;
@@ -3494,13 +3545,13 @@
     font-weight: 700;
     letter-spacing: 1.3px;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   .reason-group-dot { width: 6px; height: 6px; flex-shrink: 0; }
   .reason-group-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 5px;
+    gap: 4px;
   }
   .reason-tile {
     --reason-color: #FFB800;
@@ -3509,7 +3560,7 @@
     flex-direction: row;
     align-items: center;
     gap: 8px;
-    padding: 7px 22px 7px 9px; /* right pad reserves room for the check badge */
+    padding: 6px 8px;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.10);
     cursor: pointer;
@@ -3522,65 +3573,69 @@
     border-color: color-mix(in srgb, var(--reason-color) 45%, rgba(255,255,255,0.10));
   }
   .reason-tile:active { transform: scale(0.97); }
+  /* Icon sits in a small colored cube (pixel/cubic aesthetic); fills solid when selected. */
   .reason-tile-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     color: var(--reason-color);
+    background: color-mix(in srgb, var(--reason-color) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--reason-color) 32%, transparent);
     flex-shrink: 0;
-    transition: transform 0.18s ease;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
   }
-  .reason-tile-icon i { font-size: 17px; line-height: 1; }
+  .reason-tile-icon i { font-size: 15px; line-height: 1; }
   .reason-tile-label {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.15;
     color: rgba(230,230,230,0.7);
     letter-spacing: 0.1px;
     flex: 1;
     min-width: 0;
     transition: color 0.18s ease;
   }
-  .reason-tile-check {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 14px;
-    height: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--reason-color);
-    color: #0F0F0F;
-    opacity: 0;
-    transform: scale(0.4);
-    transition: opacity 0.18s ease, transform 0.18s ease;
-  }
-  .reason-tile-check i { font-size: 9px; line-height: 1; }
-  /* Small document indicator at the BOTTOM-RIGHT of any reason that requires an attachment. */
+  /* Inline document indicator (reasons that require an attachment) sits just left of the count. */
   .reason-tile-doc {
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--reason-color);
-    opacity: 0.7;
+    flex: 0 0 auto;
     pointer-events: none;
+    color: var(--reason-color);
+    background: color-mix(in srgb, var(--reason-color) 14%, transparent);
+    padding: 2px 4px;
   }
   .reason-tile-doc i { font-size: 11px; line-height: 1; }
-  .reason-tile.needs-doc { padding-bottom: 9px; }
-  .reason-tile.needs-doc.selected .reason-tile-doc { opacity: 1; }
+  /* Per-day repeat-count badge on the right of each tile (number, or infinity for unlimited). */
+  .reason-tile-repeat {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--reason-color);
+    background: color-mix(in srgb, var(--reason-color) 14%, transparent);
+    padding: 2px 4px;
+    letter-spacing: 0.2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .reason-tile-repeat i { font-size: 9px; line-height: 1; opacity: 0.85; }
   .reason-tile.selected {
     background: color-mix(in srgb, var(--reason-color) 16%, transparent);
     border-color: var(--reason-color);
   }
   .reason-tile.selected .reason-tile-label { color: #FFFFFF; }
-  .reason-tile.selected .reason-tile-check { opacity: 1; transform: scale(1); }
+  .reason-tile.selected .reason-tile-icon { background: var(--reason-color); color: #0F0F0F; border-color: var(--reason-color); }
+  .reason-tile.selected .reason-tile-doc { background: var(--reason-color); color: #0F0F0F; }
+  .reason-tile.selected .reason-tile-repeat { background: var(--reason-color); color: #0F0F0F; }
+  .reason-tile.selected .reason-tile-repeat i { opacity: 1; }
 
   /* inline hint next to the prompt ("Pick one or more") */
   .q-prompt-hint {
@@ -3593,7 +3648,7 @@
 
   @media (max-width: 380px) {
     .reason-tile-label { font-size: 9.5px; }
-    .reason-tile { min-height: 36px; padding: 6px 20px 6px 7px; }
+    .reason-tile { min-height: 38px; padding: 6px 8px; }
     .reason-tile-icon i { font-size: 15px; }
   }
 
@@ -4892,10 +4947,10 @@
   // IMPORTANT: the labels must stay byte-for-byte identical to the Apps Script REASON_TO_FIELD map.
   const REASON_OPTIONS = [
     { label: 'Medical / Doctor visit',   icon: 'stethoscope',     group: 'health'   },
-    { label: 'Sick / Unwell',            icon: 'mood-sick',       group: 'health'   },
     { label: 'Family commitment',        icon: 'users',           group: 'personal' },
     { label: 'School / Childcare',       icon: 'school',          group: 'personal' },
     { label: 'Coffee break',             icon: 'coffee',          group: 'personal' },
+    { label: 'Bathroom',                 icon: 'bath',            group: 'personal' },
     { label: 'Religious observance',     icon: 'building-mosque', group: 'personal' },
     { label: 'Work Meeting',             icon: 'calendar-event',  group: 'work'     },
     { label: 'Government appointment',   icon: 'building-bank',   group: 'work'     },
@@ -4903,24 +4958,98 @@
     { label: 'Other',                    icon: 'dots',            group: 'other'    }
   ];
 
-  // Per-reason rules. This system only LOGS and VISUALIZES; it never deducts (pay is separate).
+  // Per-reason rules, matching the finance Attendance & Deduction guide. This system only LOGS and
+  // VISUALIZES; it never deducts (pay is a separate Google Sheets system). "Within range" = the
+  // guide's approved state; "Flagged for review" = the guide's draft (مسودة) state.
   //   capMin       = the usual soft limit in minutes. Over it, the entry is flagged for review and
   //                  the shift bar shows caution stripes on the slice past the cap.
-  //   alwaysReview = the whole entry is flagged for review (caution stripes cover the full selection).
+  //   alwaysReview = always draft for review (caution stripes cover the full selection).
   //   requiresFile = a document must be attached before submit (and the tile shows a doc icon).
   //   risky        = show the submit confirmation panel.
   const REASON_META = {
-    'Medical / Doctor visit': { capMin: 240, requiresFile: true },
-    'Sick / Unwell':          { alwaysReview: true, requiresFile: true, risky: true },
-    'Family commitment':      { capMin: 60 },
-    'School / Childcare':     { capMin: 60 },
-    'Coffee break':           { capMin: 15 },
-    'Religious observance':   { capMin: 30 },
-    'Work Meeting':           { alwaysReview: true, risky: true },
-    'Government appointment':  { capMin: 240, requiresFile: true },
-    'Home emergency':         { alwaysReview: true, risky: true },
-    'Other':                  { alwaysReview: true, risky: true }
+    'Medical / Doctor visit': { capMin: 240, requiresFile: true }, // up to 4h, over -> draft
+    'Family commitment':      { capMin: 60 },                      // up to 1h, over -> draft
+    'School / Childcare':     { capMin: 60 },                      // up to 1h
+    'Coffee break':           { capMin: 15 },                      // up to 15m
+    'Bathroom':               { alwaysReview: true, risky: true },  // always reviewed, unlimited uses
+    'Religious observance':   { alwaysReview: true, risky: true }, // always draft (twice a day allowed)
+    'Work Meeting':           { alwaysReview: true, risky: true }, // always draft, write details
+    'Government appointment':  { capMin: 240, requiresFile: true }, // same as Medical
+    'Home emergency':         { alwaysReview: true, risky: true }, // always draft
+    'Other':                  { alwaysReview: true, risky: true }  // always draft, write reason
   };
+
+  // Times per day each reason may be used. 0 = unlimited -> NO badge is shown (the absence of a badge
+  // means unrestricted use). A badge only appears on reasons with a real daily limit.
+  const REPEAT_PER_DAY = {
+    'Medical / Doctor visit': 0, // unlimited
+    'Family commitment':      1,
+    'School / Childcare':     1, // guide: once a day
+    'Coffee break':           1, // guide: once a day
+    'Bathroom':               0, // unlimited uses
+    'Religious observance':   2, // guide: twice a day
+    'Work Meeting':           0, // unlimited
+    'Government appointment':  0, // unlimited
+    'Home emergency':         0, // unlimited
+    'Other':                  0  // unlimited
+  };
+  function repeatBadgeHtml(label) {
+    const n = REPEAT_PER_DAY[label];
+    if (!n) return ''; // 0 / unlimited -> no badge at all
+    const tip = 'Up to ' + n + ' time' + (n > 1 ? 's' : '') + ' per day';
+    return '<span class="reason-tile-repeat" title="' + tip + '"><i class="ti ti-repeat"></i>' + n + '/day</span>';
+  }
+
+  // Plain-language description of what each reason covers (from the finance guide's "when to use").
+  const REASON_DESC = {
+    'Medical / Doctor visit': 'Doctor visit, medical appointment, treatment, test, or health check.',
+    'Family commitment':      'A necessary, temporary family obligation.',
+    'School / Childcare':     'A school commitment or childcare duty.',
+    'Coffee break':           'A short coffee break outside the official 1 to 2 PM break.',
+    'Bathroom':               'A short break to use the bathroom.',
+    'Religious observance':   'A religious obligation during work hours.',
+    'Work Meeting':           'A work meeting outside Discord or not visible in the rooms.',
+    'Government appointment':  'A government appointment or official procedure.',
+    'Home emergency':         'A home emergency: power, internet, water, or another urgent situation.',
+    'Other':                  'Any reason not in the list. Write it clearly in 2 to 3 words.'
+  };
+
+  // Small rule pill.
+  function reasonRulePill(icon, text) {
+    return '<span class="reason-rule-pill"><i class="ti ti-' + icon + '"></i>' + escapeHtml(text) + '</span>';
+  }
+  // The rule pills for a reason: limit/review, daily repeat, document.
+  function reasonRulePills(r) {
+    const m = REASON_META[r] || {};
+    const pills = [];
+    if (m.alwaysReview) pills.push(reasonRulePill('eye-search', 'Always reviewed'));
+    else if (m.capMin != null) pills.push(reasonRulePill('clock', 'Up to ' + fmtMinShort(m.capMin)));
+    const n = REPEAT_PER_DAY[r];
+    pills.push((n && n > 0) ? reasonRulePill('repeat', n + '/day') : reasonRulePill('infinity', 'No daily limit'));
+    if (m.requiresFile) pills.push(reasonRulePill('paperclip', 'Document required'));
+    return pills.join('');
+  }
+
+  // The explanation card under the grid: shows what the selected reason covers + its rule pills.
+  function renderReasonExplainHtml() {
+    if (state.reasons.length === 0) {
+      return '<div class="reason-explain-empty"><i class="ti ti-arrow-up"></i> Pick a reason above to see what it covers.</div>';
+    }
+    const r = state.reasons[0];
+    const color = getReasonColor(r);
+    const opt = REASON_OPTIONS.find(function(o) { return o.label === r; });
+    const icon = opt ? opt.icon : 'help-circle';
+    const display = (r === 'Other' && state.otherReason && state.otherReason.trim()) ? state.otherReason.trim() : r;
+    return '<div class="reason-explain" style="--reason-color:' + color + '">' +
+      '<div class="reason-explain-head">' +
+        '<span class="reason-explain-icon"><i class="ti ti-' + icon + '"></i></span>' +
+        '<span class="reason-explain-name">' + escapeHtml(display) + '</span>' +
+        '<button type="button" class="reason-explain-clear" onclick="removeReason(\'' + escapeHtml(r).replace(/'/g, "&#39;") + '\')" aria-label="clear"><i class="ti ti-x"></i></button>' +
+      '</div>' +
+      '<div class="reason-explain-desc">' + escapeHtml(REASON_DESC[r] || '') + '</div>' +
+      '<div class="reason-explain-rules">' + reasonRulePills(r) + '</div>' +
+    '</div>';
+  }
 
   // Status strings: visualization only, never a payroll action. Two states.
   const STATUS_REVIEW = 'Flagged for review';
@@ -5101,58 +5230,44 @@
         <div class="q-content active${reasonsDone ? ' done' : ''}">
           <div class="q-prompt">Why are you unavailable? <span class="q-prompt-hint">Pick one</span></div>
 
-          <div class="reason-groups">
-            ${Object.keys(REASON_GROUPS).map(function(gk) {
-              const g = REASON_GROUPS[gk];
-              const items = REASON_OPTIONS.filter(function(o) { return o.group === gk; });
-              return '<div class="reason-group">' +
-                '<div class="reason-group-label" style="color:' + g.color + '">' +
-                  '<span class="reason-group-dot" style="background:' + g.color + '"></span>' +
-                  g.label +
-                '</div>' +
-                '<div class="reason-group-grid">' +
-                  (gk === 'other'
-                    // The Other "tile" is one box: a toggle on the left + the detail input. When
-                    // selected the SAME box stretches across both columns so the input has room.
-                    // No extra column, no extra row.
-                    ? '<div class="reason-other-cell' + (hasOther ? ' is-open' : '') +
-                        (hasOther && validateOtherReason(state.otherReason).valid ? ' is-filled' : '') + '" id="reason-other-wrap">' +
-                        '<button type="button" class="reason-tile reason-other-toggle' + (hasOther ? ' selected' : '') + '" ' +
-                          'data-reason="Other" style="--reason-color:' + g.color + '" onclick="addReason(this)">' +
-                          '<span class="reason-tile-check"><i class="ti ti-check"></i></span>' +
-                          '<span class="reason-tile-icon"><i class="ti ti-dots"></i></span>' +
-                          '<span class="reason-tile-label">Other</span>' +
-                        '</button>' +
-                        '<div class="reason-other-entry">' +
-                          '<input type="text" class="reason-other-input" id="reason-other-input" ' +
-                            'placeholder="2 to 3 words" maxlength="80" ' +
-                            'value="' + escapeHtml(state.otherReason || '') + '" ' +
-                            'oninput="onOtherReasonInput(this)">' +
-                          '<span class="reason-other-count" id="reason-other-count">0/5</span>' +
-                        '</div>' +
-                      '</div>'
-                    : items.map(function(o) {
-                        const sel = state.reasons.indexOf(o.label) >= 0;
-                        const needsDoc = !!(REASON_META[o.label] && REASON_META[o.label].requiresFile);
-                        return '<button type="button" class="reason-tile' + (sel ? ' selected' : '') + (needsDoc ? ' needs-doc' : '') + '" ' +
-                          'data-reason="' + escapeHtml(o.label) + '" style="--reason-color:' + g.color + '" ' +
-                          'onclick="addReason(this)">' +
-                          '<span class="reason-tile-check"><i class="ti ti-check"></i></span>' +
-                          '<span class="reason-tile-icon"><i class="ti ti-' + o.icon + '"></i></span>' +
-                          '<span class="reason-tile-label">' + escapeHtml(o.label) + '</span>' +
-                          (needsDoc ? '<span class="reason-tile-doc" title="A document is required for this reason"><i class="ti ti-file-text"></i></span>' : '') +
-                        '</button>';
-                      }).join('')
-                  ) +
-                '</div>' +
-              '</div>';
+          <div class="reason-grid">
+            ${REASON_OPTIONS.map(function(o) {
+              const color = REASON_GROUPS[o.group].color;
+              if (o.label === 'Other') {
+                return '<div class="reason-other-cell' + (hasOther ? ' is-open' : '') +
+                    (hasOther && validateOtherReason(state.otherReason).valid ? ' is-filled' : '') + '" id="reason-other-wrap">' +
+                    '<button type="button" class="reason-tile reason-other-toggle' + (hasOther ? ' selected' : '') + '" ' +
+                      'data-reason="Other" style="--reason-color:' + color + '" onclick="addReason(this)">' +
+                      '<span class="reason-tile-icon"><i class="ti ti-dots"></i></span>' +
+                      '<span class="reason-tile-label">Other</span>' +
+                      repeatBadgeHtml('Other') +
+                    '</button>' +
+                    '<div class="reason-other-entry">' +
+                      '<input type="text" class="reason-other-input" id="reason-other-input" ' +
+                        'placeholder="2-5 words" maxlength="80" ' +
+                        'value="' + escapeHtml(state.otherReason || '') + '" ' +
+                        'oninput="onOtherReasonInput(this)">' +
+                      '<span class="reason-other-count" id="reason-other-count">0/5</span>' +
+                    '</div>' +
+                  '</div>';
+              }
+              const sel = state.reasons.indexOf(o.label) >= 0;
+              const needsDoc = !!(REASON_META[o.label] && REASON_META[o.label].requiresFile);
+              return '<button type="button" class="reason-tile' + (sel ? ' selected' : '') + (needsDoc ? ' needs-doc' : '') + '" ' +
+                'data-reason="' + escapeHtml(o.label) + '" style="--reason-color:' + color + '" ' +
+                'onclick="addReason(this)">' +
+                '<span class="reason-tile-icon"><i class="ti ti-' + o.icon + '"></i></span>' +
+                '<span class="reason-tile-label">' + escapeHtml(o.label) + '</span>' +
+                (needsDoc ? '<span class="reason-tile-doc" title="A document is required for this reason"><i class="ti ti-file-text"></i></span>' : '') +
+                repeatBadgeHtml(o.label) +
+              '</button>';
             }).join('')}
           </div>
 
           <div class="reason-attach" id="reason-attach">${renderAttachHtml()}</div>
 
-          <div class="reason-selected${state.reasons.length === 0 ? ' empty' : ''}" id="reason-selected">
-            ${renderReasonChipsHtml()}
+          <div class="reason-explain-wrap${state.reasons.length === 0 ? ' empty' : ''}" id="reason-selected">
+            ${renderReasonExplainHtml()}
           </div>
         </div>
       </div>
@@ -5433,13 +5548,24 @@
       const cellLeftMin = WORK_SCHEDULE.workStart * 60 + fromCell * SLOT_MIN;
       if (fromMinExact > cellLeftMin) partialStartCell = fromCell;
     }
+    // Same for the END: when TO is a precise mid-cell minute (locked mode), the end cell is only
+    // partially in range. Leave it un-lit and let the precise fill paint just the in-range sliver,
+    // so brightness ends exactly at the until mark instead of running to the cell's right edge.
+    let partialEndCell = -1;
+    if (state.timeOff.lockedToNow && state.timeOff.to && toCellInclusive >= 0) {
+      const tpx = state.timeOff.to.split(':');
+      const toMinExact = parseInt(tpx[0], 10) * 60 + parseInt(tpx[1], 10);
+      const endCellLeftMin  = WORK_SCHEDULE.workStart * 60 + toCellInclusive * SLOT_MIN;
+      const endCellRightMin = endCellLeftMin + SLOT_MIN;
+      if (toMinExact > endCellLeftMin && toMinExact < endCellRightMin) partialEndCell = toCellInclusive;
+    }
     const custom = selectionIsCustom();
     cells.forEach(function(c, i) {
       // In custom mode the grid is meaningless, so no cells light up (the dotted overlay covers it).
       // Break cells NEVER light up -- the break isn't time off, so a range that ends at or spans the
       // break shows a gap there instead of a highlighted break block.
       const inRange = !custom && fromCell >= 0 && i >= fromCell && i <= toCellInclusive;
-      const lit = inRange && i !== partialStartCell && !isBreakCell(i);
+      const lit = inRange && i !== partialStartCell && i !== partialEndCell && !isBreakCell(i);
       c.classList.toggle('selected', lit);
       c.classList.toggle('is-selection-start', lit && i === fromCell);
       c.classList.toggle('is-selection-end',   lit && i === toCellInclusive);
@@ -5547,6 +5673,21 @@
     return Math.max(0, (toMin - fromMin) - breakOverlapMinutes(fromMin, toMin));
   }
 
+  // Inverse of the above: given a start and a target WORK duration (break excluded), return the END
+  // minute that yields exactly that much work, stepping cleanly over the 1-2pm break.
+  function timeoffEndForWorkDuration(fromMin, workDur) {
+    let bs = null, be = null;
+    WORK_SCHEDULE.segments.forEach(function(seg) {
+      if (seg.name === 'BREAK') { bs = seg.start * 60; be = seg.end * 60; }
+    });
+    if (bs == null) return fromMin + workDur;
+    if (fromMin >= be) return fromMin + workDur;   // after the break: no break ahead
+    if (fromMin >= bs) return be + workDur;         // inside the break: work counts from break end
+    const workBeforeBreak = bs - fromMin;           // before the break
+    if (workDur <= workBeforeBreak) return fromMin + workDur;
+    return be + (workDur - workBeforeBreak);         // crosses the break: skip it
+  }
+
   // Draw the selection OUTLINE as absolute overlay segment(s) positioned by exact minutes, so the
   // box edges land precisely on the chosen times (in particular the green NOW mark when locked).
   // One segment per contiguous work-run inside [from, to]; the run containing FROM gets the left
@@ -5592,6 +5733,18 @@
         fill.style.width = ((Math.min(cellRightMin, toMin) - fromMin) / span * 100) + '%';
         fill.style.background = segmentColorAt(fromMin);
         bar.appendChild(fill);
+      }
+      // Same for the END: paint the in-range sliver of the end cell (its left edge -> exact TO) so the
+      // brightness stops at the until mark, not the cell's right edge. Only when the end cell is a
+      // later cell than the start (avoids double-painting a single-cell selection).
+      const endCellLeftMin = startMin + Math.floor((toMin - startMin) / SLOT_MIN) * SLOT_MIN;
+      if (toMin > endCellLeftMin && endCellLeftMin >= cellRightMin) {
+        const efill = document.createElement('div');
+        efill.className = 'timeoff-sel-fill';
+        efill.style.left = ((endCellLeftMin - startMin) / span * 100) + '%';
+        efill.style.width = ((toMin - endCellLeftMin) / span * 100) + '%';
+        efill.style.background = segmentColorAt(endCellLeftMin);
+        bar.appendChild(efill);
       }
       return;
     }
@@ -6208,7 +6361,21 @@
       }
       if (newFromMin >= toMin) newFromMin = toMin - SLOT_MIN; // keep >= 15 min duration
       if (newFromMin < SELECT_MIN_MIN) newFromMin = SELECT_MIN_MIN;
-    } else { // 'until' or 'duration' both move the END
+    } else if (field === 'duration') {
+      // DURATION arrows LOCK to the 15-min grid: from an off-grid duration (e.g. 12m), the right
+      // arrow snaps up to the next boundary (15m) rather than adding 15m (27m); left snaps down.
+      const curWork = timeoffWorkMinutesBetween(fromMin, toMin);
+      let target;
+      if (direction > 0) {
+        target = (curWork % SLOT_MIN === 0) ? curWork + SLOT_MIN : Math.ceil(curWork / SLOT_MIN) * SLOT_MIN;
+      } else {
+        target = (curWork % SLOT_MIN === 0) ? curWork - SLOT_MIN : Math.floor(curWork / SLOT_MIN) * SLOT_MIN;
+      }
+      if (target < SLOT_MIN) target = SLOT_MIN; // keep at least 15 min
+      newToMin = timeoffEndForWorkDuration(fromMin, target);
+      if (newToMin > SELECT_MAX_MIN) newToMin = SELECT_MAX_MIN;
+      if (newToMin <= fromMin) newToMin = fromMin + SLOT_MIN;
+    } else { // 'until' moves the END by one grid slot
       if (direction > 0) {
         newToMin = toMin + SLOT_MIN;
         if (newToMin > SELECT_MAX_MIN) newToMin = SELECT_MAX_MIN; // last step lands on 11:59 PM
@@ -6757,10 +6924,11 @@
 
   function renderAttachHtml() {
     if (!selectedReasonRequiresFile()) return '';
+    const color = getReasonColor(state.reasons[0]); // pink for Medical, amber for Government
     const a = state.attachment;
     if (a && a.data) {
       const kb = a.size < 1024 * 1024 ? Math.round(a.size / 1024) + ' KB' : (a.size / 1024 / 1024).toFixed(1) + ' MB';
-      return '<div class="attach-box has-file">' +
+      return '<div class="attach-box has-file" style="--reason-color:' + color + '">' +
         '<div class="attach-head"><i class="ti ti-paperclip"></i> Attached document <span class="attach-req">required</span></div>' +
         '<div class="attach-file">' +
           '<i class="ti ti-file-check attach-file-ic"></i>' +
@@ -6770,7 +6938,7 @@
         '</div>' +
       '</div>';
     }
-    return '<div class="attach-box">' +
+    return '<div class="attach-box" style="--reason-color:' + color + '">' +
       '<div class="attach-head"><i class="ti ti-paperclip"></i> Attach a document <span class="attach-req">required</span></div>' +
       '<label class="attach-drop">' +
         '<input type="file" class="attach-input" accept="' + ATTACH_ACCEPT + '" onchange="handleAttachFile(this)">' +
@@ -6838,12 +7006,12 @@
     }).join('');
   }
 
-  // Live-update the chips strip (called from the Other input's oninput so the chip text reflects typing).
+  // Live-update the explanation card (called on reason change and from the Other input's oninput).
   function updateReasonChips() {
     const sel = document.getElementById('reason-selected');
     if (!sel) return;
     sel.classList.toggle('empty', state.reasons.length === 0);
-    sel.innerHTML = renderReasonChipsHtml();
+    sel.innerHTML = renderReasonExplainHtml();
   }
 
   // ---- Reason picker: ONE primary reason only (tap to set, tap the same to clear) ----
@@ -6917,7 +7085,7 @@
     const sel = document.getElementById('reason-selected');
     if (sel) {
       sel.classList.toggle('empty', state.reasons.length === 0);
-      sel.innerHTML = renderReasonChipsHtml();
+      sel.innerHTML = renderReasonExplainHtml();
     }
     // Tile selected state (the check badge + fill are CSS-driven off .selected)
     document.querySelectorAll('.reason-tile').forEach(function(tile) {
