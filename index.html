@@ -1247,10 +1247,12 @@
     color: #0F0F0F !important;
     animation: btnPop 0.42s ease;
   }
-  .icon-sq-btn.flash-fail {
+  .icon-sq-btn.flash-fail,
+  .q-act.flash-fail {
     background: #0F0F0F !important;
     border-color: #FF5572 !important;
     color: #FF5572 !important;
+    box-shadow: inset 0 0 0 1px #FF5572;
     animation: btnShake 0.4s ease;
   }
   @keyframes btnShake {
@@ -1291,47 +1293,65 @@
   }
   .name-act-btn.paste-btn:hover { background: rgba(255,184,0,0.20); border-color: #FFB800; }
 
-  /* Single-click nudge: brief amber pulse + "2x" badge tells the user to double-click. */
-  .paste-btn { position: relative; }
-  .paste-btn.nudge {
+  /* Two-click confirm (Paste + Reset): the button is highlighted and a "2x" badge shows; both
+     fade out over exactly 1s, matching the confirm window, then are removed by JS. */
+  .q-act.armed, .icon-sq-btn.armed { position: relative; }
+  .armed.armed-paste {
+    background: #0F0F0F !important;
     border-color: #FFB800 !important;
-    animation: pasteNudgePulse 0.55s ease;
+    color: #FFB800 !important;
+    --badge-bg: #FFB800;
+    animation: armFade 1s linear forwards;
   }
-  @keyframes pasteNudgePulse {
-    0%   { box-shadow: 0 0 0 0 rgba(255,184,0,0.7); }
-    50%  { box-shadow: 0 0 0 4px rgba(255,184,0,0.25); }
-    100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); }
+  .armed.armed-reset {
+    background: #0F0F0F !important;
+    border-color: #FF5572 !important;
+    color: #FF5572 !important;
+    --badge-bg: #FF5572;
+    animation: armFade 1s linear forwards;
   }
-  .paste-2x {
+  @keyframes armFade {
+    0%, 84%  { box-shadow: 0 0 0 3px rgba(255,255,255,0.12), 0 0 12px 2px currentColor; opacity: 1; }
+    88%  { opacity: 0.2; }
+    92%  { opacity: 1; }
+    96%  { opacity: 0.2; }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); opacity: 0; }
+  }
+  .action-2x {
     position: absolute;
-    bottom: 110%;
+    bottom: 118%;
     left: 50%;
     transform: translateX(-50%);
-    background: #FFB800;
+    background: var(--badge-bg, #FFB800);
     color: #0F0F0F;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 8px;
     font-weight: 800;
     letter-spacing: 0.3px;
     padding: 2px 5px;
-    border-radius: 3px;
     white-space: nowrap;
     pointer-events: none;
     z-index: 100;
-    animation: paste2xPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    animation: badgeFade 1s linear forwards;
   }
-  .paste-2x::after {
+  .action-2x::after {
     content: '';
     position: absolute;
     top: 100%; left: 50%;
     transform: translateX(-50%);
     border: 3px solid transparent;
-    border-top-color: #FFB800;
+    border-top-color: var(--badge-bg, #FFB800);
   }
-  @keyframes paste2xPop {
-    0%   { opacity: 0; transform: translateX(-50%) scale(0.5); }
-    100% { opacity: 1; transform: translateX(-50%) scale(1); }
+  @keyframes badgeFade {
+    0%, 84% { opacity: 1; }
+    88% { opacity: 0.2; }
+    92% { opacity: 1; }
+    96% { opacity: 0.2; }
+    100% { opacity: 0; }
   }
+
+
+
   /* Scan sweep on copy/export. */
   .scan-line {
     position: absolute;
@@ -1582,41 +1602,53 @@
     pointer-events: none;
   }
 
-  /* Per-question controls: info on top, then a [paste][copy] row below it. */
+  /* Per-question controls: one compact 2x2 square. Top: [Reset][Info]. Bottom: [Copy][Paste].
+     Shared 1px lines via a 1px grid gap over a dark backing. Internal + outer corners sharp. */
   .q-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+    display: grid;
+    grid-template-columns: 18px 18px;
+    grid-template-rows: 18px 18px;
+    gap: 1px;
     flex-shrink: 0;
-    align-items: flex-end;
+    background: rgba(0,0,0,0.42);
+    border: 1px solid rgba(0,0,0,0.42);
   }
-  .q-actions-row {
-    display: flex;
-    gap: 3px;
-  }
-  .q-copy-btn,
-  .q-info-btn,
-  .q-paste-btn {
-    width: 18px;
-    height: 18px;
+  .q-act {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
     position: relative;
     /* Capacity-based: a dark chip tinted with the question's own color, not flat gray. */
-    background: color-mix(in srgb, var(--q-color, #43D9FF) 22%, rgba(8,8,10,0.86));
-    border-color: color-mix(in srgb, var(--q-color, #43D9FF) 30%, transparent);
+    background: color-mix(in srgb, var(--q-color, #43D9FF) 20%, rgba(0,0,0,0.3));
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
   }
+  .q-act i { font-size: 11px; line-height: 1; }
+  .q-act:active { transform: scale(0.9); }
+  .q-reset-btn { color: #FF5572; }                 /* reset = red  (destructive) */
   .q-info-btn  { color: rgba(255,255,255,0.85); cursor: help; }
-  .q-copy-btn  { color: #43D9FF; }  /* copy  = cyan  (safe, reads out) */
-  .q-paste-btn { color: #FFB800; }  /* paste = amber (caution, writes in) */
-  .q-copy-btn:hover,
-  .q-info-btn:hover,
-  .q-paste-btn:hover {
-    background: color-mix(in srgb, var(--q-color, #43D9FF) 34%, rgba(8,8,10,0.82));
-    border-color: color-mix(in srgb, var(--q-color, #43D9FF) 55%, transparent);
-  }
+  .q-copy-btn  { color: #43D9FF; }                 /* copy  = cyan (safe, reads out) */
+  .q-paste-btn { color: #FFB800; }                 /* paste = amber (caution, writes in) */
+  .q-act:hover { background: color-mix(in srgb, var(--q-color, #43D9FF) 36%, rgba(8,8,10,0.82)); }
+  .q-reset-btn:hover { color: #FF7E93; }
   .q-info-btn:hover  { color: #FFFFFF; }
   .q-copy-btn:hover  { color: #6FE3FF; }
   .q-paste-btn:hover { color: #FFC93C; }
-  .q-copy-btn i, .q-info-btn i, .q-paste-btn i { font-size: 11px; line-height: 1; }
+
+  /* Time-Off cards have a single info chip, not the 2x2 grid. */
+  .q-actions-solo { flex-shrink: 0; }
+  .q-actions-solo .q-info-btn {
+    width: 18px; height: 18px; position: relative;
+    background: color-mix(in srgb, var(--q-color, #43D9FF) 20%, rgba(0,0,0,0.3));
+    border-color: color-mix(in srgb, var(--q-color, #43D9FF) 30%, transparent);
+    color: rgba(255,255,255,0.85); cursor: help;
+  }
+  .q-actions-solo .q-info-btn i { font-size: 11px; line-height: 1; }
+
 
   .q-content {
     padding: 20px;
@@ -1905,6 +1937,29 @@
     font-size: 13px;
     animation: slideIn 0.3s ease;
     overflow: hidden;
+  }
+
+  /* Fully-filled task (text + where + time): green completed outline, like a finished question. */
+  .task-card.task-done {
+    box-shadow: inset 0 0 0 1.5px rgba(57,217,138,0.7);
+  }
+  /* Smooth single-card removal instead of a full-list teardown. */
+  .task-card.task-removing {
+    animation: taskRemove 0.18s ease forwards;
+  }
+  @keyframes taskRemove {
+    to { opacity: 0; transform: translateX(-16px); }
+  }
+  /* Not-yet-complete task: text box reads gray + dotted so it's clearly a fill-me placeholder. */
+  .task-card.task-pending .task-text-cell {
+    background: rgba(255,255,255,0.045);
+    box-shadow: none;
+    outline: 1.5px dotted rgba(230,230,230,0.4);
+    outline-offset: -2px;
+  }
+  .task-card.task-pending .task-num {
+    background: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.85);
   }
 
   .task-card.sortable-ghost {
@@ -4373,7 +4428,7 @@
     <div class="name-export-btns">
       <button type="button" class="icon-sq-btn txt-btn name-act-btn" id="btn-export-log" onclick="exportLogTxt(this)" title="Download the full log as a .txt file" aria-label="Download .txt"><i class="ti ti-download"></i></button>
       <button type="button" class="icon-sq-btn copy-btn name-act-btn" id="btn-copy-log" onclick="copyLogToClipboard(this)" title="Copy the full log to clipboard" aria-label="Copy log"><i class="ti ti-copy"></i></button>
-      <button type="button" class="icon-sq-btn paste-btn name-act-btn" id="btn-paste-log" onclick="pasteNudge(this)" ondblclick="pasteWholePage(this)" title="Double-click to paste a saved log" aria-label="Paste log"><i class="ti ti-clipboard-plus"></i></button>
+      <button type="button" class="icon-sq-btn paste-btn name-act-btn" id="btn-paste-log" onclick="pasteWholePage(this)" title="Double-click to paste a saved log" aria-label="Paste log"><i class="ti ti-clipboard-plus"></i></button>
     </div>
     <div class="name-warning" id="name-warning">
       <i class="ti ti-alert-circle"></i>
@@ -5152,13 +5207,39 @@
       Object.assign(state, parsed[qid]);
     });
   }
-  // Paste-in: DOUBLE-CLICK a paste button. It reads the clipboard, pulls out the part it needs
-  // (a single question's data, even from a whole-log copy), applies it, and re-renders. Success
-  // scans the target amber; failure (no clipboard access, or the copy has nothing for this target)
-  // flashes the button red.
+  // Paste-in / Reset both use a two-click confirm. First click arms the button (full highlight +
+  // "2x" badge that fade out over exactly 1s). A second click WITHIN that 1s confirms. After 1s,
+  // or on any outside click, the armed state is fully removed so a stale second click can't fire.
+  const ARM_WINDOW_MS = 1000;
+  let armState = { btn: null, action: null, t: null, outside: null };
+  function disarmAction() {
+    if (armState.btn) {
+      armState.btn.classList.remove('armed', 'armed-paste', 'armed-reset');
+      const b = armState.btn.querySelector('.action-2x');
+      if (b && b.parentNode) b.parentNode.removeChild(b);
+    }
+    clearTimeout(armState.t);
+    if (armState.outside) { document.removeEventListener('click', armState.outside, true); armState.outside = null; }
+    armState.btn = null; armState.action = null; armState.t = null;
+  }
+  function armConfirm(btn, action, cls) {
+    if (armState.btn === btn) {           // second click inside the window: confirm
+      const fn = action; disarmAction(); fn(); return;
+    }
+    disarmAction();
+    armState.btn = btn; armState.action = action;
+    btn.classList.add('armed', cls);
+    const badge = document.createElement('span');
+    badge.className = 'action-2x';
+    badge.textContent = '2x';
+    btn.appendChild(badge);
+    armState.t = setTimeout(disarmAction, ARM_WINDOW_MS);   // window == visual fade length
+    armState.outside = function(e) { if (!btn.contains(e.target)) disarmAction(); };
+    setTimeout(function() { document.addEventListener('click', armState.outside, true); }, 0);
+  }
+
   function pasteFail(btn) {
     if (!btn) return;
-    clearNudge(btn);
     btn.classList.remove('flash', 'flash-amber');
     btn.classList.add('flash-fail');
     setTimeout(function() { btn.classList.remove('flash-fail'); }, 650);
@@ -5184,30 +5265,20 @@
       onFail();
     }
   }
-  function clearNudge(btn) {
-    if (!btn) return;
-    btn.classList.remove('nudge');
-    const badge = btn.querySelector('.paste-2x');
-    if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
-    clearTimeout(btn._nudgeT);
-    btn._nudging = false;
-  }
-  function pasteQuestion(btn, qid) {
-    clearNudge(btn);
+  function doPasteQuestion(btn, qid) {
     readClipboardText(function(text) {
       const parsed = parseLogText(text);
-      if (!parsed[qid]) { pasteFail(btn); return; }   // clipboard has no data for this question
+      if (!parsed[qid]) { pasteFail(btn); return; }
       applyParsedToState(parsed, qid);
       renderForm();
       if (typeof updateSubmitState === 'function') updateSubmitState();
       setTimeout(function() { const c = document.getElementById(QID_CARD[qid]); if (c) runScanEffect(c, '#FFB800'); }, 40);
-    }, function() { pasteFail(btn); });               // clipboard could not be read
+    }, function() { pasteFail(btn); });
   }
-  function pasteWholePage(btn) {
-    clearNudge(btn);
+  function doPasteWhole(btn) {
     readClipboardText(function(text) {
       const parsed = parseLogText(text);
-      if (Object.keys(parsed).length === 0) { pasteFail(btn); return; }  // nothing recognizable
+      if (Object.keys(parsed).length === 0) { pasteFail(btn); return; }
       applyParsedToState(parsed, null);
       renderForm();
       if (typeof updateSubmitState === 'function') updateSubmitState();
@@ -5215,25 +5286,27 @@
       runPageScan('#FFB800');
     }, function() { pasteFail(btn); });
   }
-  // Single-click nudge: flash the button amber with a "2x" badge so the user knows to double-click.
-  function pasteNudge(btn) {
-    if (!btn || btn._nudging) return;
-    btn._nudging = true;
-    let badge = btn.querySelector('.paste-2x');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'paste-2x';
-      badge.textContent = '2x';
-      btn.appendChild(badge);
-    }
-    btn.classList.add('nudge');
-    clearTimeout(btn._nudgeT);
-    btn._nudgeT = setTimeout(function() {
-      btn.classList.remove('nudge');
-      if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
-      btn._nudging = false;
-    }, 1100);
+  // Reset a single question back to its page-load state (clears option, text, pasted data, and any
+  // temporary UI like the blocker detail or a reason field, since all of that is driven by state).
+  const QID_RESET = {
+    goal:         function() { state.goal = ''; },
+    blocker:      function() { state.blocker = { has: null, what: '', unblocker: '' }; },
+    energyIn:     function() { state.energyIn = 0; },
+    expectedDiff: function() { state.expectedDiff = ''; },
+    completion:   function() { state.completion = ''; state.completionReason = ''; },
+    actualDiff:   function() { state.actualDiff = 0; },
+    energyOut:    function() { state.energyOut = 0; },
+    completed:    function() { state.completed = []; }
+  };
+  function doResetQuestion(qid) {
+    if (QID_RESET[qid]) QID_RESET[qid]();
+    renderForm();
+    if (typeof updateSubmitState === 'function') updateSubmitState();
+    setTimeout(function() { const c = document.getElementById(QID_CARD[qid]); if (c) runScanEffect(c, '#FF5572'); }, 40);
   }
+  function pasteQuestion(btn, qid) { armConfirm(btn, function() { doPasteQuestion(btn, qid); }, 'armed-paste'); }
+  function pasteWholePage(btn)     { armConfirm(btn, function() { doPasteWhole(btn); }, 'armed-paste'); }
+  function resetQuestion(btn, qid) { armConfirm(btn, function() { doResetQuestion(qid); }, 'armed-reset'); }
   // ====================== end DAILY LOG SUMMARY ======================
 
   // 4-tier color system communicates task weight
@@ -5502,7 +5575,7 @@
           <div class="num">1</div>
           <i class="ti ti-target q-icon" aria-hidden="true"></i>
           <div class="title">Today's Goal</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="One sentence. Helps the founders see what you're focused on so they can clear blockers and support you fast." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'goal')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'goal')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'goal')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="One sentence. Helps the founders see what you're focused on so they can clear blockers and support you fast." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'goal')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'goal')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content active${state.goal.trim() ? ' done' : ''}" id="content-goal">
           <div class="q-prompt">What is your ONE main goal today?</div>
@@ -5515,7 +5588,7 @@
           <div class="num">2</div>
           <i class="ti ti-hand-stop q-icon" aria-hidden="true"></i>
           <div class="title">Blocker Check</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Flag it early, we move fast to unblock you. Sitting blocked is not a virtue. Tell us and we'll help." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'blocker')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'blocker')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'blocker')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="Flag it early, we move fast to unblock you. Sitting blocked is not a virtue. Tell us and we'll help." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'blocker')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'blocker')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content${state.blocker.has !== null ? ' active done' : ''}" id="content-blocker">
           <div class="q-prompt">Are you blocked on anything right now?</div>
@@ -5541,7 +5614,7 @@
           <div class="num">3</div>
           <i class="ti ti-sun q-icon" aria-hidden="true"></i>
           <div class="title">Morning Energy</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Helps us build a healthier studio. We watch patterns over time, never single days. Honest answers help us support you." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'energyIn')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'energyIn')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'energyIn')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="Helps us build a healthier studio. We watch patterns over time, never single days. Honest answers help us support you." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'energyIn')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'energyIn')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content${state.energyIn > 0 ? ' active done' : ''}" id="content-energy-in">
           <div class="q-prompt">How are you feeling right now?</div>
@@ -5560,7 +5633,7 @@
           <div class="num">4</div>
           <i class="ti ti-mountain q-icon" aria-hidden="true"></i>
           <div class="title">Expected Difficulty</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Lets the founders check you're being given meaningful work. Not too easy, not too crushing. We want you doing work that matters." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'expectedDiff')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'expectedDiff')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'expectedDiff')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="Lets the founders check you're being given meaningful work. Not too easy, not too crushing. We want you doing work that matters." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'expectedDiff')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'expectedDiff')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content${state.expectedDiff ? ' active done' : ''}" id="content-difficulty">
           <div class="q-prompt">How difficult do you expect today to be?</div>
@@ -5587,7 +5660,7 @@
           <div class="num">1</div>
           <i class="ti ti-checks q-icon" aria-hidden="true"></i>
           <div class="title">Goal Check</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="If goals keep slipping, that's a planning problem the founders need to fix, not blame the person. Be honest." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'completion')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'completion')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'completion')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="If goals keep slipping, that's a planning problem the founders need to fix, not blame the person. Be honest." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'completion')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'completion')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content active${state.completion ? ' done' : ''}" id="content-completion">
           ${morningGoal ? `
@@ -5610,18 +5683,18 @@
         </div>
       </div>
 
-      <div class="question-card${state.completed.length > 0 ? ' done' : ''}" id="card-completed" style="--q-color:#43D9FF">
+      <div class="question-card${allTasksComplete() ? ' done' : ''}" id="card-completed" style="--q-color:#43D9FF">
         <div class="q-header-block" style="background:#43D9FF">
           <div class="num">2</div>
           <i class="ti ti-list-check q-icon" aria-hidden="true"></i>
           <div class="title">What Got Done</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Your daily wins matter. This keeps the founders close to what you're producing without anyone having to micromanage." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'completed')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'completed')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'completed')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="Your daily wins matter. This keeps the founders close to what you're producing without anyone having to micromanage." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'completed')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'completed')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
-        <div class="q-content${state.completed.length > 0 ? ' active done' : ''}" id="content-completed">
+        <div class="q-content${state.completed.length > 0 ? ' active' : ''}${allTasksComplete() ? ' done' : ''}" id="content-completed">
           <div class="q-prompt">What did you actually complete today?</div>
           <div class="card-input-wrap">
             <input type="text" id="completed-input" placeholder="Type a task and hit Enter or tab away to add">
-            <button class="card-add-btn" onclick="addCompleted()" aria-label="add">
+            <button class="card-add-btn" onmousedown="event.preventDefault()" onclick="addCompleted()" aria-label="add">
               <i class="ti ti-plus"></i>
             </button>
           </div>
@@ -5642,7 +5715,7 @@
           <div class="num">3</div>
           <i class="ti ti-flame q-icon" aria-hidden="true"></i>
           <div class="title">Difficulty Today</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Be honest with yourself. Easy days are normal. Inflating difficulty helps no one and makes your own pattern unreadable." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'actualDiff')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'actualDiff')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'actualDiff')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="Be honest with yourself. Easy days are normal. Inflating difficulty helps no one and makes your own pattern unreadable." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'actualDiff')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'actualDiff')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content${state.actualDiff > 0 ? ' active done' : ''}" id="content-actual-diff">
           <div class="q-prompt">How difficult was your work today?</div>
@@ -5661,7 +5734,7 @@
           <div class="num">4</div>
           <i class="ti ti-moon q-icon" aria-hidden="true"></i>
           <div class="title">Day's End Energy</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Patterns tell us if work is fulfilling or draining you. We act before anyone burns out. This is how we protect you and the team." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'energyOut')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'energyOut')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
+          <div class="q-actions"><button type="button" class="q-act q-reset-btn" onclick="resetQuestion(this,'energyOut')" title="Reset this answer (double-click)" aria-label="Reset this answer"><i class="ti ti-refresh"></i></button><button type="button" class="q-act q-info-btn" data-tip="Patterns tell us if work is fulfilling or draining you. We act before anyone burns out. This is how we protect you and the team." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><button type="button" class="q-act q-copy-btn" onclick="copyQuestion(this,'energyOut')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="q-act q-paste-btn" onclick="pasteQuestion(this,'energyOut')" title="Paste a saved answer (double-click)" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div>
         </div>
         <div class="q-content${state.energyOut > 0 ? ' active done' : ''}" id="content-energy-out">
           <div class="q-prompt">How are you leaving the day?</div>
@@ -5912,7 +5985,7 @@
           <div class="num">1</div>
           <i class="ti ti-calendar-off q-icon" aria-hidden="true"></i>
           <div class="title">Time Off</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Pick the days you'll be away, then drag the bar to set the hours. Hit Whole Day if you're off the entire shift." aria-label="What this is for"><i class="ti ti-info-circle"></i></button></div>
+          <div class="q-actions-solo"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Pick the days you'll be away, then drag the bar to set the hours. Hit Whole Day if you're off the entire shift." aria-label="What this is for"><i class="ti ti-info-circle"></i></button></div>
         </div>
         <div class="q-content active${daysDone ? ' done' : ''}">
           <div class="q-prompt">When will you be unavailable?</div>
@@ -5986,7 +6059,7 @@
           <div class="num">2</div>
           <i class="ti ti-question-mark q-icon" aria-hidden="true"></i>
           <div class="title">Reason</div>
-          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Tap the one main reason you're away. Pick the closest single category. The team only needs the category, not the details." aria-label="What this is for"><i class="ti ti-info-circle"></i></button></div>
+          <div class="q-actions-solo"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Tap the one main reason you're away. Pick the closest single category. The team only needs the category, not the details." aria-label="What this is for"><i class="ti ti-info-circle"></i></button></div>
         </div>
         <div class="q-content active${reasonsDone ? ' done' : ''}">
           <div class="q-prompt">Why are you unavailable? <span class="q-prompt-hint">Pick one</span></div>
@@ -8235,16 +8308,142 @@
     updateSubmitState();
   }
 
+  // A task only "counts" (streak + done state + green outline) when it has text AND a where AND a
+  // time. Empty/partial cards are allowed as scaffolding but do not count.
+  function completeCount() { return state.completed.filter(isTaskComplete).length; }
+  let _lastComboCount = 0;
+  function refreshCombo() {
+    const c = completeCount();
+    const msg = document.getElementById('combo-msg');
+    if (c > 0) { if (c !== _lastComboCount) showCombo(c); }
+    else if (msg) { msg.classList.remove('show'); }
+    _lastComboCount = c;
+  }
+  function refreshTaskCard(idx) {
+    const list = document.getElementById('completed-list');
+    if (!list) return;
+    const card = list.children[idx];
+    if (!card || !state.completed[idx]) return;
+    const done = isTaskComplete(state.completed[idx]);
+    card.classList.toggle('task-done', done);
+    card.classList.toggle('task-pending', !done);
+  }
+  // Build the HTML for one task card (used by both the full render and incremental add).
+  function taskCardHTML(t, num) {
+    const whereEmpty = !t.projectCostCenter;
+    const timeEmpty = !t.hoursSpentMinutes;
+    const whereVal = whereLabel(t.projectCostCenter) || 'WHERE';
+    const timeVal = hoursLabel(t.hoursSpentMinutes) || 'TIME';
+    const whereBg = whereColor(t.projectCostCenter);
+    const timeBg = timeColor(t.hoursSpentMinutes);
+    const whereStyle = whereBg ? ' style="background:' + whereBg + '"' : '';
+    const timeStyle = timeBg ? ' style="background:' + timeBg + '"' : '';
+    return '<div class="task-card' + (isTaskComplete(t) ? ' task-done' : ' task-pending') + '">' +
+      '<span class="drag-handle" aria-label="drag"><i class="ti ti-grip-vertical"></i></span>' +
+      '<div class="task-text-cell">' +
+        '<span class="task-num">' + num + '</span>' +
+        '<div class="task-edit" contenteditable="true" data-placeholder="Empty task" spellcheck="false">' + escapeHtml(t.text) + '</div>' +
+      '</div>' +
+      '<div class="wheel-selector wheel-where' + (whereEmpty ? ' empty' : '') + '" data-type="where"' + whereStyle + '>' +
+        '<button class="wheel-arrow" data-dir="prev" aria-label="up"><i class="ti ti-chevron-up"></i></button>' +
+        '<div class="wheel-value">' + whereVal + '</div>' +
+        '<button class="wheel-arrow" data-dir="next" aria-label="down"><i class="ti ti-chevron-down"></i></button>' +
+      '</div>' +
+      '<div class="wheel-selector wheel-time' + (timeEmpty ? ' empty' : '') + '" data-type="hours"' + timeStyle + '>' +
+        '<button class="wheel-arrow" data-dir="prev" aria-label="up"><i class="ti ti-chevron-up"></i></button>' +
+        '<div class="wheel-value">' + timeVal + '</div>' +
+        '<button class="wheel-arrow" data-dir="next" aria-label="down"><i class="ti ti-chevron-down"></i></button>' +
+      '</div>' +
+      '<button class="remove" aria-label="remove"><i class="ti ti-x"></i></button>' +
+    '</div>';
+  }
+  // Wire up one task card's handlers. All index lookups are by live DOM position, so they stay
+  // correct after reorder/insert/remove without re-attaching.
+  function attachTaskCardHandlers(card) {
+    const list = document.getElementById('completed-list');
+    if (!list || !card) return;
+    const input = card.querySelector('.task-edit');
+    if (input) {
+      input.addEventListener('input', function() {
+        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        if (idx >= 0) {
+          state.completed[idx].text = this.textContent;
+          adjustTaskText(this);
+          refreshTaskCard(idx);
+          updateCard('completed', allTasksComplete());
+          refreshCombo();
+          updateSubmitState();
+        }
+      });
+      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') e.preventDefault(); });
+      input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' ');
+        document.execCommand('insertText', false, text);
+      });
+      adjustTaskText(input);
+    }
+    const rm = card.querySelector('.remove');
+    if (rm) {
+      rm.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        if (idx >= 0) removeCompleted(idx);
+      });
+    }
+    card.querySelectorAll('.wheel-selector').forEach(function(sel) {
+      const type = sel.dataset.type;
+      sel.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - wheelLockTime < WHEEL_LOCK_MS) return;
+        wheelLockTime = now;
+        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        if (idx < 0) return;
+        cycleMeta(idx, type, e.deltaY > 0 ? 'next' : 'prev');
+      }, { passive: false });
+      sel.querySelectorAll('.wheel-arrow').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+          if (idx < 0) return;
+          cycleMeta(idx, type, this.dataset.dir);
+        });
+      });
+    });
+  }
+  // Renumber cards in place (newest on top = highest number). Only updates the number text, so no
+  // teardown/rebuild flash.
+  function renumberTasks() {
+    const list = document.getElementById('completed-list');
+    if (!list) return;
+    const total = list.children.length;
+    Array.from(list.children).forEach(function(card, i) {
+      const numEl = card.querySelector('.task-num');
+      if (numEl) numEl.textContent = total - i;
+    });
+  }
   function addCompleted() {
     const input = document.getElementById('completed-input');
-    const val = input.value.trim();
-    if (!val) return;
+    const val = input ? input.value.trim() : '';
+    // Empty is allowed: this drops in a blank card to fill in later (like adding a bullet first).
     state.completed.unshift({ text: val, projectCostCenter: null, hoursSpentMinutes: null });
-    renderCompletedList();
-    showCombo(state.completed.length);
-    input.value = '';
-    input.focus();
+    const list = document.getElementById('completed-list');
+    if (list) {
+      // Incremental insert so existing cards do not teardown/rebuild (no flash).
+      const holder = document.createElement('div');
+      holder.innerHTML = taskCardHTML(state.completed[0], state.completed.length);
+      const card = holder.firstChild;
+      list.insertBefore(card, list.firstChild);
+      attachTaskCardHandlers(card);
+      renumberTasks();
+    } else {
+      renderCompletedList();
+    }
+    refreshCombo();
+    if (input) { input.value = ''; input.focus(); }
     updateCard('completed', allTasksComplete());
+    updateTotalHoursDisplay();
     updateSubmitState();
   }
 
@@ -8267,15 +8466,22 @@
   }
 
   function removeCompleted(i) {
+    const list = document.getElementById('completed-list');
     state.completed.splice(i, 1);
-    renderCompletedList();
-    if (state.completed.length > 0) {
-      showCombo(state.completed.length);
+    if (list && list.children[i]) {
+      const card = list.children[i];
+      card.style.pointerEvents = 'none';
+      card.classList.add('task-removing');
+      setTimeout(function() {
+        if (card.parentNode) card.parentNode.removeChild(card);
+        renumberTasks();
+      }, 180);
     } else {
-      const msg = document.getElementById('combo-msg');
-      if (msg) msg.classList.remove('show');
+      renderCompletedList();
     }
+    refreshCombo();
     updateCard('completed', allTasksComplete());
+    updateTotalHoursDisplay();
     updateSubmitState();
   }
 
@@ -8284,95 +8490,10 @@
     if (!list) return;
     state.completed = state.completed.map(migrateTask);
     const total = state.completed.length;
-
     list.innerHTML = state.completed.map(function(t, i) {
-      const num = total - i;
-      const whereEmpty = !t.projectCostCenter;
-      const timeEmpty = !t.hoursSpentMinutes;
-      const whereVal = whereLabel(t.projectCostCenter) || 'WHERE';
-      const timeVal = hoursLabel(t.hoursSpentMinutes) || 'TIME';
-      const whereBg = whereColor(t.projectCostCenter);
-      const timeBg = timeColor(t.hoursSpentMinutes);
-      const whereStyle = whereBg ? ' style="background:' + whereBg + '"' : '';
-      const timeStyle = timeBg ? ' style="background:' + timeBg + '"' : '';
-
-      return '<div class="task-card">' +
-        '<span class="drag-handle" aria-label="drag"><i class="ti ti-grip-vertical"></i></span>' +
-        '<div class="task-text-cell">' +
-          '<span class="task-num">' + num + '</span>' +
-          '<div class="task-edit" contenteditable="true" data-placeholder="Empty task" spellcheck="false">' + escapeHtml(t.text) + '</div>' +
-        '</div>' +
-        '<div class="wheel-selector wheel-where' + (whereEmpty ? ' empty' : '') + '" data-type="where"' + whereStyle + '>' +
-          '<button class="wheel-arrow" data-dir="prev" aria-label="up"><i class="ti ti-chevron-up"></i></button>' +
-          '<div class="wheel-value">' + whereVal + '</div>' +
-          '<button class="wheel-arrow" data-dir="next" aria-label="down"><i class="ti ti-chevron-down"></i></button>' +
-        '</div>' +
-        '<div class="wheel-selector wheel-time' + (timeEmpty ? ' empty' : '') + '" data-type="hours"' + timeStyle + '>' +
-          '<button class="wheel-arrow" data-dir="prev" aria-label="up"><i class="ti ti-chevron-up"></i></button>' +
-          '<div class="wheel-value">' + timeVal + '</div>' +
-          '<button class="wheel-arrow" data-dir="next" aria-label="down"><i class="ti ti-chevron-down"></i></button>' +
-        '</div>' +
-        '<button class="remove" aria-label="remove"><i class="ti ti-x"></i></button>' +
-      '</div>';
+      return taskCardHTML(t, total - i);
     }).join('');
-
-    // Text edit handlers using current DOM position
-    list.querySelectorAll('.task-edit').forEach(function(input) {
-      input.addEventListener('input', function() {
-        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
-        if (idx >= 0) {
-          state.completed[idx].text = this.textContent;
-          adjustTaskText(this);
-          updateCard('completed', allTasksComplete());
-          updateSubmitState();
-        }
-      });
-      input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') e.preventDefault();
-      });
-      input.addEventListener('paste', function(e) {
-        // Force plain text paste so no rich formatting sneaks in
-        e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\s+/g, ' ');
-        document.execCommand('insertText', false, text);
-      });
-      // Initial sizing
-      adjustTaskText(input);
-    });
-
-    // Remove handlers
-    list.querySelectorAll('.remove').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
-        if (idx >= 0) removeCompleted(idx);
-      });
-    });
-
-    // Wheel selector interactions: mouse wheel + arrow clicks
-    list.querySelectorAll('.wheel-selector').forEach(function(sel) {
-      const type = sel.dataset.type;
-
-      sel.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        const now = Date.now();
-        if (now - wheelLockTime < WHEEL_LOCK_MS) return;
-        wheelLockTime = now;
-        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
-        if (idx < 0) return;
-        cycleMeta(idx, type, e.deltaY > 0 ? 'next' : 'prev');
-      }, { passive: false });
-
-      sel.querySelectorAll('.wheel-arrow').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
-          if (idx < 0) return;
-          cycleMeta(idx, type, this.dataset.dir);
-        });
-      });
-    });
-
+    Array.from(list.children).forEach(function(card) { attachTaskCardHandlers(card); });
     updateTotalHoursDisplay();
     initSortable();
   }
@@ -8394,7 +8515,9 @@
           if (evt.oldIndex === evt.newIndex) return;
           const item = state.completed.splice(evt.oldIndex, 1)[0];
           state.completed.splice(evt.newIndex, 0, item);
-          renderCompletedList();
+          // Sortable already moved the DOM node with its own animation; just fix the numbers.
+          renumberTasks();
+          updateSubmitState();
         }
       });
     }
@@ -8467,8 +8590,10 @@
 
     lastCycleDirection = direction;
     updateWheelValue(idx, type);
+    refreshTaskCard(idx);
     updateTotalHoursDisplay();
     updateCard('completed', allTasksComplete());
+    refreshCombo();
     updateSubmitState();
   }
 
