@@ -1181,7 +1181,208 @@
     font-weight: 600;
     display: none;
   }
-  .name-saved-tag.show { display: inline-block; }
+  .name-saved-tag.show { display: inline-flex; }
+
+  /* All name-strip controls share one height so they line up with the name input. */
+  .name-strip { --ctl-h: 36px; }
+  .name-strip input {
+    height: var(--ctl-h);
+    box-sizing: border-box;
+  }
+  .name-saved-tag {
+    height: var(--ctl-h);
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  /* Optional honorific: a compact box, color-coded by category. Scroll or click to cycle. */
+  .name-prefix {
+    flex: 0 0 auto;
+    width: 56px;
+    height: var(--ctl-h);
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 1px solid rgba(230,230,230,0.16);
+    background: rgba(255,255,255,0.04);
+    color: #8A8F98;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    cursor: ns-resize;
+    user-select: none;
+    outline: none;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.1s ease;
+  }
+  .name-prefix:hover { filter: brightness(1.15); }
+  .name-prefix:active { transform: scale(0.92); }
+  .name-prefix:focus-visible { box-shadow: 0 0 0 2px rgba(67,217,255,0.4); }
+
+  /* ---- Square icon buttons (copy / txt / per-question). One shared look, slightly rounded. ---- */
+  .icon-sq-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 0;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 4px;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.1s ease, box-shadow 0.16s ease;
+  }
+  .icon-sq-btn:active { transform: scale(0.9); }
+  .icon-sq-btn.flash {
+    background: #39D98A !important;
+    border-color: #39D98A !important;
+    color: #0F0F0F !important;
+    animation: btnPop 0.42s ease;
+  }
+  .icon-sq-btn.flash-amber {
+    background: #FFB800 !important;
+    border-color: #FFB800 !important;
+    color: #0F0F0F !important;
+    animation: btnPop 0.42s ease;
+  }
+  .icon-sq-btn.flash-fail {
+    background: #0F0F0F !important;
+    border-color: #FF5572 !important;
+    color: #FF5572 !important;
+    animation: btnShake 0.4s ease;
+  }
+  @keyframes btnShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+  @keyframes btnPop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.16); }
+    70%  { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+
+  /* Name-strip copy + txt: square, on the dark strip. */
+  .name-export-btns { display: flex; gap: 6px; flex: 0 0 auto; }
+  .name-act-btn {
+    width: var(--ctl-h);
+    height: var(--ctl-h);
+    background: rgba(67,217,255,0.08);
+    border-color: rgba(67,217,255,0.30);
+    color: #43D9FF;
+  }
+  .name-act-btn i { font-size: 15px; line-height: 1; }
+  .name-act-btn:hover { background: rgba(67,217,255,0.18); border-color: #43D9FF; }
+  /* TXT export: purple, a different blue from the cyan copy. */
+  .name-act-btn.txt-btn {
+    background: rgba(167,139,250,0.10);
+    border-color: rgba(167,139,250,0.34);
+    color: #A78BFA;
+  }
+  .name-act-btn.txt-btn:hover { background: rgba(167,139,250,0.20); border-color: #A78BFA; }
+  /* Paste is amber everywhere, clearly different from cyan copy/txt. */
+  .name-act-btn.paste-btn {
+    background: rgba(255,184,0,0.10);
+    border-color: rgba(255,184,0,0.34);
+    color: #FFB800;
+  }
+  .name-act-btn.paste-btn:hover { background: rgba(255,184,0,0.20); border-color: #FFB800; }
+
+  /* Single-click nudge: brief amber pulse + "2x" badge tells the user to double-click. */
+  .paste-btn { position: relative; }
+  .paste-btn.nudge {
+    border-color: #FFB800 !important;
+    animation: pasteNudgePulse 0.55s ease;
+  }
+  @keyframes pasteNudgePulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,184,0,0.7); }
+    50%  { box-shadow: 0 0 0 4px rgba(255,184,0,0.25); }
+    100% { box-shadow: 0 0 0 0 rgba(255,184,0,0); }
+  }
+  .paste-2x {
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFB800;
+    color: #0F0F0F;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    animation: paste2xPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .paste-2x::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 3px solid transparent;
+    border-top-color: #FFB800;
+  }
+  @keyframes paste2xPop {
+    0%   { opacity: 0; transform: translateX(-50%) scale(0.5); }
+    100% { opacity: 1; transform: translateX(-50%) scale(1); }
+  }
+  /* Scan sweep on copy/export. */
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 45%;
+    pointer-events: none;
+    z-index: 60;
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--scan-color, #43D9FF) 20%, transparent) 82%, transparent 100%);
+    animation: scanSweep 0.62s cubic-bezier(0.1,0.75,0.2,1) forwards;
+  }
+  .scan-line::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--scan-color, #43D9FF);
+    box-shadow: 0 0 12px 2px var(--scan-color, #43D9FF);
+    opacity: 0.9;
+  }
+  @keyframes scanSweep {
+    0%   { transform: translateY(-110%); opacity: 0; }
+    12%  { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { transform: translateY(230%); opacity: 0; }
+  }
+
+  /* Whole-page scan (fixed to the viewport) for the full-log Copy / TXT. */
+  .scan-line-page {
+    position: fixed;
+    left: 0; right: 0; top: 0;
+    height: 24vh;
+    pointer-events: none;
+    z-index: 99999;
+    background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--scan-color, #43D9FF) 16%, transparent) 82%, transparent 100%);
+    animation: scanSweepPage 0.85s cubic-bezier(0.1,0.75,0.2,1) forwards;
+  }
+  .scan-line-page::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--scan-color, #43D9FF);
+    box-shadow: 0 0 16px 3px var(--scan-color, #43D9FF);
+    opacity: 0.9;
+  }
+  @keyframes scanSweepPage {
+    0%   { transform: translateY(-110%); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(470%); opacity: 0; }
+  }
 
   .questions-grid {
     display: grid;
@@ -1282,9 +1483,9 @@
   .q-header-block::after {
     content: "COMPLETED!";
     position: absolute;
-    right: 46px;
+    left: 50%;
     top: 50%;
-    transform: translateY(-50%) scale(0);
+    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
     background: #0F0F0F;
     color: var(--q-color, #FFFFFF);
@@ -1295,15 +1496,19 @@
     padding: 4px 7px;
     pointer-events: none;
     white-space: nowrap;
+    z-index: 5;
   }
+  /* Transient: pops in the center, holds, then fades out, so it never persistently blocks the buttons. */
   .question-card.done .q-header-block::after {
-    animation: completedBadgePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: completedBadgePop 1.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
   @keyframes completedBadgePop {
-    0%   { opacity: 0; transform: translateY(-50%) scale(0.3) rotate(-12deg); }
-    50%  { opacity: 1; transform: translateY(-50%) scale(1.22) rotate(5deg); }
-    75%  { transform: translateY(-50%) scale(0.94) rotate(-2deg); }
-    100% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0deg); }
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.3) rotate(-12deg); }
+    16%  { opacity: 1; transform: translate(-50%,-50%) scale(1.22) rotate(5deg); }
+    26%  { transform: translate(-50%,-50%) scale(0.95) rotate(-2deg); }
+    36%  { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
+    78%  { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(1) rotate(0deg); }
   }
 
   /* Header pulse: a brief outward glow in the question's own color when the card transitions
@@ -1320,7 +1525,7 @@
   /* On narrow screens the badge sits a touch closer in (or hides "!" character implicitly via
      content truncation). At very small widths, shrink the badge a bit. */
   @media (max-width: 420px) {
-    .q-header-block::after { right: 42px; font-size: 8px; padding: 3px 6px; }
+    .q-header-block::after { font-size: 8px; padding: 3px 6px; }
   }
 
   .q-header-block .num {
@@ -1355,7 +1560,8 @@
 
   .q-header-block .info-icon:hover { color: #0F0F0F; }
 
-  .info-icon[data-tip]:hover::after {
+  .info-icon[data-tip]:hover::after,
+  .q-info-btn[data-tip]:hover::after {
     content: attr(data-tip);
     position: absolute;
     bottom: 130%;
@@ -1375,6 +1581,42 @@
     text-align: left;
     pointer-events: none;
   }
+
+  /* Per-question controls: info on top, then a [paste][copy] row below it. */
+  .q-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+    align-items: flex-end;
+  }
+  .q-actions-row {
+    display: flex;
+    gap: 3px;
+  }
+  .q-copy-btn,
+  .q-info-btn,
+  .q-paste-btn {
+    width: 18px;
+    height: 18px;
+    position: relative;
+    /* Capacity-based: a dark chip tinted with the question's own color, not flat gray. */
+    background: color-mix(in srgb, var(--q-color, #43D9FF) 22%, rgba(8,8,10,0.86));
+    border-color: color-mix(in srgb, var(--q-color, #43D9FF) 30%, transparent);
+  }
+  .q-info-btn  { color: rgba(255,255,255,0.85); cursor: help; }
+  .q-copy-btn  { color: #43D9FF; }  /* copy  = cyan  (safe, reads out) */
+  .q-paste-btn { color: #FFB800; }  /* paste = amber (caution, writes in) */
+  .q-copy-btn:hover,
+  .q-info-btn:hover,
+  .q-paste-btn:hover {
+    background: color-mix(in srgb, var(--q-color, #43D9FF) 34%, rgba(8,8,10,0.82));
+    border-color: color-mix(in srgb, var(--q-color, #43D9FF) 55%, transparent);
+  }
+  .q-info-btn:hover  { color: #FFFFFF; }
+  .q-copy-btn:hover  { color: #6FE3FF; }
+  .q-paste-btn:hover { color: #FFC93C; }
+  .q-copy-btn i, .q-info-btn i, .q-paste-btn i { font-size: 11px; line-height: 1; }
 
   .q-content {
     padding: 20px;
@@ -1893,8 +2135,20 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 0;
+    cursor: pointer;
+    user-select: none;
   }
+  .notes-section.expanded .notes-label { margin-bottom: 12px; }
+  .notes-chevron {
+    font-size: 16px;
+    color: #A78BFA;
+    margin-left: 10px;
+    flex: 0 0 auto;
+    transition: transform 0.25s ease;
+  }
+  .notes-section.expanded .notes-chevron { transform: rotate(180deg); }
+  .notes-section.notes-mode-off .notes-chevron { color: #FFFFFF; }
 
   .notes-icon {
     width: 28px;
@@ -1906,6 +2160,7 @@
     align-items: center;
     justify-content: center;
     font-size: 16px;
+    flex: 0 0 auto;
   }
 
   .notes-title {
@@ -1924,12 +2179,26 @@
     font-style: italic;
   }
 
+  /* Collapsed by default: the textarea takes no vertical space until the header is clicked. */
   .notes-section textarea {
     background: rgba(0,0,0,0.3);
     border-color: rgba(167,139,250,0.2);
     min-height: 100px;
+    max-height: 420px;
     font-size: 13px;
     line-height: 1.6;
+    overflow: auto;
+    transition: max-height 0.3s ease, opacity 0.22s ease, padding 0.22s ease, margin 0.22s ease, border-width 0.22s ease;
+  }
+  .notes-section:not(.expanded) textarea {
+    max-height: 0;
+    min-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+    border-width: 0;
+    overflow: hidden;
   }
 
   .notes-section textarea:focus { border-color: #A78BFA; }
@@ -4098,8 +4367,14 @@
 
   <div class="name-strip" id="name-strip">
     <span class="name-strip-label">You</span>
+    <div class="name-prefix" id="name-prefix" tabindex="0" aria-label="Optional title, scroll or click to change">&ndash;&ndash;</div>
     <input type="text" id="name-input" placeholder="e.g. Abdullah Yousef" autocomplete="off">
     <span class="name-saved-tag" id="name-saved-tag">Saved</span>
+    <div class="name-export-btns">
+      <button type="button" class="icon-sq-btn txt-btn name-act-btn" id="btn-export-log" onclick="exportLogTxt(this)" title="Download the full log as a .txt file" aria-label="Download .txt"><i class="ti ti-download"></i></button>
+      <button type="button" class="icon-sq-btn copy-btn name-act-btn" id="btn-copy-log" onclick="copyLogToClipboard(this)" title="Copy the full log to clipboard" aria-label="Copy log"><i class="ti ti-copy"></i></button>
+      <button type="button" class="icon-sq-btn paste-btn name-act-btn" id="btn-paste-log" onclick="pasteNudge(this)" ondblclick="pasteWholePage(this)" title="Double-click to paste a saved log" aria-label="Paste log"><i class="ti ti-clipboard-plus"></i></button>
+    </div>
     <div class="name-warning" id="name-warning">
       <i class="ti ti-alert-circle"></i>
       <span>Need your first AND last name</span>
@@ -4123,10 +4398,11 @@
   </div>
 
   <div class="notes-section" id="notes-section">
-    <div class="notes-label">
+    <div class="notes-label" id="notes-label" onclick="toggleNotes()" role="button" tabindex="0" aria-expanded="false">
       <div class="notes-icon"><i class="ti ti-message" aria-hidden="true"></i></div>
       <div class="notes-title" id="notes-title">Optional Log In Notes</div>
       <div class="notes-sub">Literally anything</div>
+      <i class="ti ti-chevron-down notes-chevron" aria-hidden="true"></i>
     </div>
     <textarea id="notes-input" placeholder="Tell us anything. Wins, frustrations, what you ate for breakfast, your favorite game right now, what TV show you binged, whether cats are better than dogs (they are), or just rant. We read every single one." oninput="state.notes=this.value"></textarea>
   </div>
@@ -4483,6 +4759,483 @@
     return null;
   }
 
+  // ====================== DAILY LOG SUMMARY: copy + .txt export ======================
+  // Builds a plain-text stamp of everything the person has filled. Answered questions show their
+  // value; unanswered ones show "-". Used by the clipboard + TXT buttons in the name strip.
+  const SUMMARY_SEP = '- '.repeat(29).trim();
+
+  function summaryBars(filled, total) {
+    let s = [];
+    for (let i = 0; i < total; i++) s.push(i < filled ? '\u25A0' : '\u25A1');
+    return s.join(' ');
+  }
+  function summaryClock(d) {
+    let h = d.getHours(), m = d.getMinutes();
+    let ampm = h >= 12 ? 'pm' : 'am';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + ':' + String(m).padStart(2, '0') + ampm;
+  }
+  function summaryDayTag(d) {
+    const labels = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    return (d.getDay() + 1) + '-' + labels[d.getDay()];
+  }
+  function summaryDateShort(d) {
+    const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return String(d.getDate()).padStart(2, '0') + '-' + mon[d.getMonth()] + '-' + String(d.getFullYear()).slice(-2);
+  }
+  function summaryTaskHours(min) {
+    if (!min) return '';
+    if (min < 60) return min + 'm';
+    const h = min / 60;
+    if (h === Math.floor(h)) return h + 'h';
+    return (Math.round(h * 100) / 100) + 'h';
+  }
+  function summaryProject(p) {
+    const lbl = whereLabel(p);
+    return lbl ? lbl.replace(/ /g, '-') : '';
+  }
+
+  // Per-question value blocks ("-" when unanswered). Reused later for per-question copy buttons.
+  function qGoal() { return state.goal.trim() ? state.goal.trim() : '-'; }
+  function qBlocker() {
+    if (state.blocker.has === null) return '-';
+    if (state.blocker.has === false) return 'None';
+    const what = (state.blocker.what || '').trim();
+    const who  = (state.blocker.unblocker || '').trim();
+    let lines = [];
+    if (what) lines.push(what);
+    if (who) lines.push('Needs: ' + who);
+    return lines.length ? lines.join('\n') : '-';
+  }
+  function qEnergyIn() {
+    if (!state.energyIn) return '-';
+    const lab = (ENERGY_IN_LABELS[state.energyIn] || {}).label || '';
+    return summaryBars(state.energyIn, 5) + ' [' + lab.toUpperCase() + ']';
+  }
+  function qExpectedDiff() {
+    const lvl = { easy: 1, medium: 2, hard: 3, expert: 4 };
+    const nm  = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Brutal' };
+    if (!state.expectedDiff || !lvl[state.expectedDiff]) return '-';
+    return summaryBars(lvl[state.expectedDiff], 4) + ' [' + nm[state.expectedDiff].toUpperCase() + ']';
+  }
+  function qGoalCheck() {
+    const lvl = { fully: 4, mostly: 3, partially: 2, not: 1 };
+    const nm  = { fully: 'Fully done', mostly: 'Mostly', partially: 'Partially', not: 'Not done' };
+    if (!state.completion || !lvl[state.completion]) return '-';
+    let line = summaryBars(lvl[state.completion], 4) + ' [' + nm[state.completion].toUpperCase() + ']';
+    const reason = (state.completionReason || '').trim();
+    if (reason) line += ' ' + reason;
+    return line;
+  }
+  function qActualDiff() {
+    if (!state.actualDiff) return '-';
+    const lab = (DIFF_LABELS[state.actualDiff] || {}).label || '';
+    return summaryBars(state.actualDiff, 5) + ' [' + lab.toUpperCase() + ']';
+  }
+  function qEnergyOut() {
+    if (!state.energyOut) return '-';
+    const lab = (ENERGY_OUT_LABELS[state.energyOut] || {}).label || '';
+    return summaryBars(state.energyOut, 5) + ' [' + lab.toUpperCase() + ']';
+  }
+  function qWhatGotDone() {
+    if (!state.completed || state.completed.length === 0) return '-';
+    let lines = [];
+    state.completed.forEach(function(t, i) {
+      const text = (t.text || '').trim() || '(no description)';
+      const hrs  = summaryTaskHours(t.hoursSpentMinutes);
+      const proj = summaryProject(t.projectCostCenter);
+      let meta = (i + 1) + '.';
+      if (hrs)  meta += ' [' + hrs + ']';
+      if (proj) meta += ' [' + proj + ']';
+      lines.push(text);
+      lines.push(meta);
+    });
+    return lines.join('\n');
+  }
+
+  function buildLogSummary() {
+    const d = new Date();
+    const title = (localStorage.getItem('offbox_title') || '').trim();
+    const nm = (document.getElementById('name-input').value || '').trim();
+    let out = [];
+    out.push('\uD83D\uDC64 ' + (title ? title + ' ' : '') + (nm || '(no name)'));
+    out.push('LOG STAMP [' + summaryDayTag(d) + '] [' + summaryClock(d) + '] [' + summaryDateShort(d) + ']');
+    out.push('');
+    out.push(SUMMARY_SEP);
+    out.push('\uD83D\uDFE9 IN');
+    out.push(SUMMARY_SEP);
+    out.push('\uD83C\uDFC1 TODAY\u2019S GOAL');     out.push(qGoal());        out.push('');
+    out.push('\uD83D\uDED1 BLOCKER CHECK');         out.push(qBlocker());     out.push('');
+    out.push('\u2600\uFE0F MORNING ENERGY');         out.push(qEnergyIn());    out.push('');
+    out.push('\uD83D\uDCCA EXPECTED DIFFICULTY');    out.push(qExpectedDiff());
+    out.push('');
+    out.push(SUMMARY_SEP);
+    out.push('\uD83D\uDFE5 OUT');
+    out.push(SUMMARY_SEP);
+    out.push('\u2705 GOAL CHECK');                   out.push(qGoalCheck());   out.push('');
+    out.push('\uD83D\uDD25 DIFFICULTY TODAY');       out.push(qActualDiff());  out.push('');
+    out.push('\uD83C\uDF19 DAY\u2019S END ENERGY');  out.push(qEnergyOut());   out.push('');
+    out.push('\uD83D\uDCCB WHAT GOT DONE');          out.push(qWhatGotDone());
+    return out.join('\n');
+  }
+
+  function summaryFlashBtn(btn, label) {
+    if (!btn) return;
+    const span = btn.querySelector('span');
+    if (span) {
+      if (!span.getAttribute('data-orig')) span.setAttribute('data-orig', span.textContent);
+      span.textContent = label;
+    }
+    btn.classList.add('flash');
+    clearTimeout(btn._flashT);
+    btn._flashT = setTimeout(function() {
+      btn.classList.remove('flash');
+      if (span && span.getAttribute('data-orig')) span.textContent = span.getAttribute('data-orig');
+    }, 1300);
+  }
+  function summaryFallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+  // Per-question blocks (header + value), reused by the small per-card copy buttons.
+  const QUESTION_BLOCKS = {
+    goal:         { head: '\uD83C\uDFC1 TODAY\u2019S GOAL',     fn: qGoal },
+    blocker:      { head: '\uD83D\uDED1 BLOCKER CHECK',         fn: qBlocker },
+    energyIn:     { head: '\u2600\uFE0F MORNING ENERGY',        fn: qEnergyIn },
+    expectedDiff: { head: '\uD83D\uDCCA EXPECTED DIFFICULTY',   fn: qExpectedDiff },
+    completion:   { head: '\u2705 GOAL CHECK',                  fn: qGoalCheck },
+    actualDiff:   { head: '\uD83D\uDD25 DIFFICULTY TODAY',      fn: qActualDiff },
+    energyOut:    { head: '\uD83C\uDF19 DAY\u2019S END ENERGY', fn: qEnergyOut },
+    completed:    { head: '\uD83D\uDCCB WHAT GOT DONE',         fn: qWhatGotDone }
+  };
+
+  // Sweep a bright scan line across an element (the "cool scan effect" on copy).
+  function runScanEffect(el, color) {
+    if (!el) return;
+    const restorePos = getComputedStyle(el).position === 'static';
+    if (restorePos) el.style.position = 'relative';
+    const prevOverflow = el.style.overflow;
+    el.style.overflow = 'hidden';
+    const line = document.createElement('div');
+    line.className = 'scan-line';
+    if (color && color.trim()) line.style.setProperty('--scan-color', color.trim());
+    el.appendChild(line);
+    setTimeout(function() {
+      if (line.parentNode) line.parentNode.removeChild(line);
+      el.style.overflow = prevOverflow;
+      if (restorePos) el.style.position = '';
+    }, 680);
+  }
+  // Icon-button feedback: swap the icon to a check and flash green briefly.
+  function copyFeedback(btn) {
+    if (!btn) return;
+    const i = btn.querySelector('i');
+    // Capture the true original icon ONCE. On a rapid second press the icon is already ti-check,
+    // so re-capturing would make it revert to the check and get stuck.
+    if (i && !btn._origIcon) btn._origIcon = i.className;
+    if (i) i.className = 'ti ti-check';
+    btn.classList.add('flash');
+    clearTimeout(btn._fbT);
+    btn._fbT = setTimeout(function() {
+      btn.classList.remove('flash');
+      if (i && btn._origIcon) { i.className = btn._origIcon; btn._origIcon = null; }
+    }, 1200);
+  }
+  function copyTextRaw(text, cb) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ if (cb) cb(); })
+        .catch(function(){ summaryFallbackCopy(text); if (cb) cb(); });
+    } else { summaryFallbackCopy(text); if (cb) cb(); }
+  }
+  // Copy a single question's answer + scan its card.
+  function copyQuestion(btn, qid) {
+    const q = QUESTION_BLOCKS[qid];
+    if (!q) return;
+    const txt = q.head + '\n' + q.fn();
+    copyTextRaw(txt, function() {
+      copyFeedback(btn);
+      const card = btn.closest('.question-card');
+      if (card) runScanEffect(card, getComputedStyle(card).getPropertyValue('--q-color') || '#43D9FF');
+    });
+  }
+  // Full-viewport scan sweep (used by the whole-log Copy / TXT, so it reads as scanning the page).
+  function runPageScan(color) {
+    const line = document.createElement('div');
+    line.className = 'scan-line-page';
+    if (color && color.trim()) line.style.setProperty('--scan-color', color.trim());
+    document.body.appendChild(line);
+    setTimeout(function() { if (line.parentNode) line.parentNode.removeChild(line); }, 820);
+  }
+  function copyLogToClipboard(btn) {
+    const txt = buildLogSummary();
+    copyTextRaw(txt, function() {
+      copyFeedback(btn);
+      runPageScan('#43D9FF');
+    });
+  }
+  function exportLogTxt(btn) {
+    const txt = buildLogSummary();
+    const d = new Date();
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+    const nm = ((document.getElementById('name-input').value || 'log').trim() || 'log').replace(/\s+/g, '-');
+    const fn = 'DailyLog_' + nm + '_' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '.txt';
+    const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fn;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1500);
+    copyFeedback(btn);
+    runPageScan('#39D98A');
+  }
+
+  // ---- Optional honorific prefix (custom box: scroll/click to cycle, color-coded) ----
+  const NAME_PREFIXES = [
+    { v: '',      label: '\u2013\u2013', color: '#8A8F98' }, // none
+    { v: 'Mr.',   label: 'Mr.',          color: '#5B8DEF' }, // male  -> blue
+    { v: 'Ms.',   label: 'Ms.',          color: '#FF6B9D' }, // female -> pink
+    { v: 'Mrs.',  label: 'Mrs.',         color: '#FF6B9D' }, // female -> pink
+    { v: 'Miss',  label: 'Miss',         color: '#FF6B9D' }, // female -> pink
+    { v: 'Eng.',  label: 'Eng.',         color: '#43D9FF' }, // engineer -> tech cyan
+    { v: 'Dr.',   label: 'Dr.',          color: '#39D98A' }, // doctor -> green
+    { v: 'Prof.', label: 'Prof.',        color: '#A78BFA' }  // professor -> purple
+  ];
+  let prefixIdx = 0;
+  function renderPrefixBox() {
+    const box = document.getElementById('name-prefix');
+    if (!box) return;
+    const p = NAME_PREFIXES[prefixIdx];
+    box.textContent = p.label;
+    box.style.color = p.color;
+    box.style.borderColor = 'color-mix(in srgb, ' + p.color + ' 50%, transparent)';
+    box.style.background = 'color-mix(in srgb, ' + p.color + ' 13%, transparent)';
+    box.setAttribute('title', p.v ? ('Title: ' + p.v + ' (scroll or click to change)') : 'Add a title (scroll or click)');
+    localStorage.setItem('offbox_title', p.v);
+    const g = document.getElementById('greeting-text');
+    if (g) g.textContent = getGreeting();
+  }
+  function cyclePrefix(dir) {
+    prefixIdx = (prefixIdx + dir + NAME_PREFIXES.length) % NAME_PREFIXES.length;
+    renderPrefixBox();
+  }
+
+  // Collapsible optional notes: start small, expand vertically on click, retract on click again.
+  function toggleNotes() {
+    const s = document.getElementById('notes-section');
+    if (!s) return;
+    const expanded = s.classList.toggle('expanded');
+    const label = document.getElementById('notes-label');
+    if (label) label.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (expanded) {
+      const ta = document.getElementById('notes-input');
+      if (ta) setTimeout(function() { ta.focus(); }, 140);
+    }
+  }
+
+  // ---- PASTE-IN: parse copied log text back into the form ----
+  const QID_CARD = {
+    goal: 'card-goal', blocker: 'card-blocker', energyIn: 'card-energy-in',
+    expectedDiff: 'card-difficulty', completion: 'card-completion',
+    actualDiff: 'card-actual-diff', energyOut: 'card-energy-out', completed: 'card-completed'
+  };
+  const PASTE_TITLES = {
+    "TODAY'S GOAL": 'goal',
+    "BLOCKER CHECK": 'blocker',
+    "MORNING ENERGY": 'energyIn',
+    "EXPECTED DIFFICULTY": 'expectedDiff',
+    "GOAL CHECK": 'completion',
+    "DIFFICULTY TODAY": 'actualDiff',
+    "DAY'S END ENERGY": 'energyOut',
+    "WHAT GOT DONE": 'completed'
+  };
+  function pasteLineTitle(line) {
+    return line.replace(/^[^\p{L}]+/u, '').trim().toUpperCase().replace(/\u2019/g, "'");
+  }
+  function pasteCountBars(line) { return line ? (line.match(/\u25A0/g) || []).length : 0; }
+  function pasteBracketLabel(line) {
+    const m = line && line.match(/\[([^\]]+)\]/);
+    return m ? m[1].trim().toUpperCase() : '';
+  }
+  function pasteHoursToMin(tag) {
+    tag = (tag || '').trim();
+    if (/m$/i.test(tag)) return parseInt(tag, 10) || 0;
+    if (/h$/i.test(tag)) return Math.round(parseFloat(tag) * 60) || 0;
+    return 0;
+  }
+  function pasteProjTag(tag) {
+    tag = (tag || '').trim().toUpperCase();
+    if (tag === 'PROJ-A' || tag === 'PROJ A') return 'PROJECT A';
+    if (tag === 'PROJ-B' || tag === 'PROJ B') return 'PROJECT B';
+    return 'STUDIO';
+  }
+  function parseQuestionBlock(qid, block) {
+    const dash = block.length === 0 || (block.length === 1 && block[0].trim() === '-');
+    if (qid === 'goal')        return { goal: dash ? '' : block.join(' ').trim() };
+    if (qid === 'energyIn')    return { energyIn: dash ? 0 : Math.min(5, pasteCountBars(block[0])) };
+    if (qid === 'actualDiff')  return { actualDiff: dash ? 0 : Math.min(5, pasteCountBars(block[0])) };
+    if (qid === 'energyOut')   return { energyOut: dash ? 0 : Math.min(5, pasteCountBars(block[0])) };
+    if (qid === 'blocker') {
+      if (dash) return { blocker: { has: null, what: '', unblocker: '' } };
+      if (block.length === 1 && /^none$/i.test(block[0].trim())) return { blocker: { has: false, what: '', unblocker: '' } };
+      const needs = block.find(function(l) { return /^needs:/i.test(l.trim()); });
+      const what  = block.filter(function(l) { return !/^needs:/i.test(l.trim()); }).join(' ').trim();
+      return { blocker: { has: true, what: what, unblocker: needs ? needs.replace(/^needs:\s*/i, '').trim() : '' } };
+    }
+    if (qid === 'expectedDiff') {
+      if (dash) return { expectedDiff: '' };
+      const byLbl = { 'EASY': 'easy', 'MEDIUM': 'medium', 'HARD': 'hard', 'BRUTAL': 'expert' };
+      let v = byLbl[pasteBracketLabel(block[0])];
+      if (!v) v = ['', 'easy', 'medium', 'hard', 'expert'][pasteCountBars(block[0])] || '';
+      return { expectedDiff: v };
+    }
+    if (qid === 'completion') {
+      if (dash) return { completion: '', completionReason: '' };
+      const byLbl = { 'FULLY DONE': 'fully', 'MOSTLY': 'mostly', 'PARTIALLY': 'partially', 'NOT DONE': 'not' };
+      let v = byLbl[pasteBracketLabel(block[0])];
+      if (!v) v = ({ 4: 'fully', 3: 'mostly', 2: 'partially', 1: 'not' })[pasteCountBars(block[0])] || '';
+      const idx = block[0].indexOf(']');
+      return { completion: v, completionReason: idx >= 0 ? block[0].slice(idx + 1).trim() : '' };
+    }
+    if (qid === 'completed') {
+      if (dash) return { completed: [] };
+      const tasks = []; let pending = null;
+      block.forEach(function(l) {
+        const lt = l.trim();
+        if (/^\d+\.(\s|\[)/.test(lt)) {
+          const brs = lt.match(/\[([^\]]+)\]/g) || [];
+          const minutes = brs.length >= 1 ? pasteHoursToMin(brs[0].slice(1, -1)) : 0;
+          const project = brs.length >= 2 ? pasteProjTag(brs[1].slice(1, -1)) : 'STUDIO';
+          tasks.push({ text: pending != null ? pending : '', hoursSpentMinutes: minutes, projectCostCenter: project });
+          pending = null;
+        } else {
+          pending = lt;
+        }
+      });
+      return { completed: tasks };
+    }
+    return {};
+  }
+  // Parse a copied log (whole page or single question) into a map of qid -> partial state.
+  function parseLogText(text) {
+    const out = {};
+    if (!text) return out;
+    const lines = text.replace(/\r/g, '').split('\n');
+    const heads = [];
+    lines.forEach(function(line, i) {
+      const t = pasteLineTitle(line);
+      if (PASTE_TITLES[t]) heads.push({ idx: i, qid: PASTE_TITLES[t] });
+    });
+    function isSep(l) { return /^[-\s]{5,}$/.test(l); }
+    function isMeta(l) {
+      return l.indexOf('\uD83D\uDFE9') >= 0 || l.indexOf('\uD83D\uDFE5') >= 0 ||
+             l.indexOf('\uD83D\uDC64') >= 0 || /^(DAILY )?LOG STAMP/.test(l.trim());
+    }
+    for (let h = 0; h < heads.length; h++) {
+      const start = heads[h].idx + 1;
+      const end = (h + 1 < heads.length) ? heads[h + 1].idx : lines.length;
+      const block = [];
+      for (let i = start; i < end; i++) {
+        const l = lines[i];
+        if (l.trim() === '' || isSep(l) || isMeta(l)) continue;
+        block.push(l.replace(/\s+$/, ''));
+      }
+      out[heads[h].qid] = parseQuestionBlock(heads[h].qid, block);
+    }
+    return out;
+  }
+  function applyParsedToState(parsed, onlyQid) {
+    Object.keys(parsed).forEach(function(qid) {
+      if (onlyQid && qid !== onlyQid) return;
+      Object.assign(state, parsed[qid]);
+    });
+  }
+  // Paste-in: DOUBLE-CLICK a paste button. It reads the clipboard, pulls out the part it needs
+  // (a single question's data, even from a whole-log copy), applies it, and re-renders. Success
+  // scans the target amber; failure (no clipboard access, or the copy has nothing for this target)
+  // flashes the button red.
+  function pasteFail(btn) {
+    if (!btn) return;
+    clearNudge(btn);
+    btn.classList.remove('flash', 'flash-amber');
+    btn.classList.add('flash-fail');
+    setTimeout(function() { btn.classList.remove('flash-fail'); }, 650);
+  }
+  function pasteOk(btn) {
+    if (!btn) return;
+    const i = btn.querySelector('i');
+    if (i && !btn._origIcon) btn._origIcon = i.className;
+    if (i) i.className = 'ti ti-check';
+    btn.classList.add('flash-amber');
+    clearTimeout(btn._fbT);
+    btn._fbT = setTimeout(function() {
+      btn.classList.remove('flash-amber');
+      if (i && btn._origIcon) { i.className = btn._origIcon; btn._origIcon = null; }
+    }, 1100);
+  }
+  function readClipboardText(onText, onFail) {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText()
+        .then(function(t) { onText(t || ''); })
+        .catch(function() { onFail(); });
+    } else {
+      onFail();
+    }
+  }
+  function clearNudge(btn) {
+    if (!btn) return;
+    btn.classList.remove('nudge');
+    const badge = btn.querySelector('.paste-2x');
+    if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
+    clearTimeout(btn._nudgeT);
+    btn._nudging = false;
+  }
+  function pasteQuestion(btn, qid) {
+    clearNudge(btn);
+    readClipboardText(function(text) {
+      const parsed = parseLogText(text);
+      if (!parsed[qid]) { pasteFail(btn); return; }   // clipboard has no data for this question
+      applyParsedToState(parsed, qid);
+      renderForm();
+      if (typeof updateSubmitState === 'function') updateSubmitState();
+      setTimeout(function() { const c = document.getElementById(QID_CARD[qid]); if (c) runScanEffect(c, '#FFB800'); }, 40);
+    }, function() { pasteFail(btn); });               // clipboard could not be read
+  }
+  function pasteWholePage(btn) {
+    clearNudge(btn);
+    readClipboardText(function(text) {
+      const parsed = parseLogText(text);
+      if (Object.keys(parsed).length === 0) { pasteFail(btn); return; }  // nothing recognizable
+      applyParsedToState(parsed, null);
+      renderForm();
+      if (typeof updateSubmitState === 'function') updateSubmitState();
+      pasteOk(btn);
+      runPageScan('#FFB800');
+    }, function() { pasteFail(btn); });
+  }
+  // Single-click nudge: flash the button amber with a "2x" badge so the user knows to double-click.
+  function pasteNudge(btn) {
+    if (!btn || btn._nudging) return;
+    btn._nudging = true;
+    let badge = btn.querySelector('.paste-2x');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'paste-2x';
+      badge.textContent = '2x';
+      btn.appendChild(badge);
+    }
+    btn.classList.add('nudge');
+    clearTimeout(btn._nudgeT);
+    btn._nudgeT = setTimeout(function() {
+      btn.classList.remove('nudge');
+      if (badge && badge.parentNode) badge.parentNode.removeChild(badge);
+      btn._nudging = false;
+    }, 1100);
+  }
+  // ====================== end DAILY LOG SUMMARY ======================
+
   // 4-tier color system communicates task weight
   // Quick (≤45m) = mint green - low effort, momentum tasks
   // Standard (≤2h) = cyan - normal focused work
@@ -4632,8 +5385,9 @@
 
   function getGreeting() {
     const name = document.getElementById('name-input').value.trim();
+    const title = (localStorage.getItem('offbox_title') || '').trim();
     const tod = getTimeOfDay();
-    const first = name ? ', ' + name.split(' ')[0] : '';
+    const first = name ? ', ' + (title ? title + ' ' : '') + name.split(' ')[0] : '';
     if (tod === 'morning') return 'Good morning' + first;
     if (tod === 'afternoon') return 'Good afternoon' + first;
     return 'Good evening' + first;
@@ -4670,6 +5424,13 @@
     // Restore the notes value in case we are switching back into this mode and have a saved draft
     const notesInput = document.getElementById('notes-input');
     if (notesInput) notesInput.value = state.notes || '';
+    // Keep collapsed unless there is already content, so it does not eat vertical space by default.
+    if (notesSection) {
+      const hasNotes = !!(state.notes && state.notes.trim());
+      notesSection.classList.toggle('expanded', hasNotes);
+      const nl = document.getElementById('notes-label');
+      if (nl) nl.setAttribute('aria-expanded', hasNotes ? 'true' : 'false');
+    }
 
     renderForm();
     updateSubmitState();
@@ -4741,7 +5502,7 @@
           <div class="num">1</div>
           <i class="ti ti-target q-icon" aria-hidden="true"></i>
           <div class="title">Today's Goal</div>
-          <i class="ti ti-info-circle info-icon" data-tip="One sentence. Helps the founders see what you're focused on so they can clear blockers and support you fast."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="One sentence. Helps the founders see what you're focused on so they can clear blockers and support you fast." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'goal')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'goal')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content active${state.goal.trim() ? ' done' : ''}" id="content-goal">
           <div class="q-prompt">What is your ONE main goal today?</div>
@@ -4754,7 +5515,7 @@
           <div class="num">2</div>
           <i class="ti ti-hand-stop q-icon" aria-hidden="true"></i>
           <div class="title">Blocker Check</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Flag it early, we move fast to unblock you. Sitting blocked is not a virtue. Tell us and we'll help."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Flag it early, we move fast to unblock you. Sitting blocked is not a virtue. Tell us and we'll help." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'blocker')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'blocker')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content${state.blocker.has !== null ? ' active done' : ''}" id="content-blocker">
           <div class="q-prompt">Are you blocked on anything right now?</div>
@@ -4780,7 +5541,7 @@
           <div class="num">3</div>
           <i class="ti ti-sun q-icon" aria-hidden="true"></i>
           <div class="title">Morning Energy</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Helps us build a healthier studio. We watch patterns over time, never single days. Honest answers help us support you."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Helps us build a healthier studio. We watch patterns over time, never single days. Honest answers help us support you." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'energyIn')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'energyIn')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content${state.energyIn > 0 ? ' active done' : ''}" id="content-energy-in">
           <div class="q-prompt">How are you feeling right now?</div>
@@ -4799,7 +5560,7 @@
           <div class="num">4</div>
           <i class="ti ti-mountain q-icon" aria-hidden="true"></i>
           <div class="title">Expected Difficulty</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Lets the founders check you're being given meaningful work. Not too easy, not too crushing. We want you doing work that matters."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Lets the founders check you're being given meaningful work. Not too easy, not too crushing. We want you doing work that matters." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'expectedDiff')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'expectedDiff')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content${state.expectedDiff ? ' active done' : ''}" id="content-difficulty">
           <div class="q-prompt">How difficult do you expect today to be?</div>
@@ -4826,7 +5587,7 @@
           <div class="num">1</div>
           <i class="ti ti-checks q-icon" aria-hidden="true"></i>
           <div class="title">Goal Check</div>
-          <i class="ti ti-info-circle info-icon" data-tip="If goals keep slipping, that's a planning problem the founders need to fix, not blame the person. Be honest."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="If goals keep slipping, that's a planning problem the founders need to fix, not blame the person. Be honest." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'completion')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'completion')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content active${state.completion ? ' done' : ''}" id="content-completion">
           ${morningGoal ? `
@@ -4854,7 +5615,7 @@
           <div class="num">2</div>
           <i class="ti ti-list-check q-icon" aria-hidden="true"></i>
           <div class="title">What Got Done</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Your daily wins matter. This keeps the founders close to what you're producing without anyone having to micromanage."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Your daily wins matter. This keeps the founders close to what you're producing without anyone having to micromanage." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'completed')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'completed')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content${state.completed.length > 0 ? ' active done' : ''}" id="content-completed">
           <div class="q-prompt">What did you actually complete today?</div>
@@ -4881,7 +5642,7 @@
           <div class="num">3</div>
           <i class="ti ti-flame q-icon" aria-hidden="true"></i>
           <div class="title">Difficulty Today</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Be honest with yourself. Easy days are normal. Inflating difficulty helps no one and makes your own pattern unreadable."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Be honest with yourself. Easy days are normal. Inflating difficulty helps no one and makes your own pattern unreadable." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'actualDiff')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'actualDiff')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content${state.actualDiff > 0 ? ' active done' : ''}" id="content-actual-diff">
           <div class="q-prompt">How difficult was your work today?</div>
@@ -4900,7 +5661,7 @@
           <div class="num">4</div>
           <i class="ti ti-moon q-icon" aria-hidden="true"></i>
           <div class="title">Day's End Energy</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Patterns tell us if work is fulfilling or draining you. We act before anyone burns out. This is how we protect you and the team."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Patterns tell us if work is fulfilling or draining you. We act before anyone burns out. This is how we protect you and the team." aria-label="What this is for"><i class="ti ti-info-circle"></i></button><div class="q-actions-row"><button type="button" class="icon-sq-btn copy-btn q-copy-btn" onclick="copyQuestion(this,'energyOut')" title="Copy this answer" aria-label="Copy this answer"><i class="ti ti-copy"></i></button><button type="button" class="icon-sq-btn paste-btn q-paste-btn" onclick="pasteNudge(this)" ondblclick="pasteQuestion(this,'energyOut')" title="Double-click to paste a saved answer" aria-label="Paste a saved answer"><i class="ti ti-clipboard-plus"></i></button></div></div>
         </div>
         <div class="q-content${state.energyOut > 0 ? ' active done' : ''}" id="content-energy-out">
           <div class="q-prompt">How are you leaving the day?</div>
@@ -5151,7 +5912,7 @@
           <div class="num">1</div>
           <i class="ti ti-calendar-off q-icon" aria-hidden="true"></i>
           <div class="title">Time Off</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Pick the days you'll be away, then drag the bar to set the hours. Hit Whole Day if you're off the entire shift."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Pick the days you'll be away, then drag the bar to set the hours. Hit Whole Day if you're off the entire shift." aria-label="What this is for"><i class="ti ti-info-circle"></i></button></div>
         </div>
         <div class="q-content active${daysDone ? ' done' : ''}">
           <div class="q-prompt">When will you be unavailable?</div>
@@ -5225,7 +5986,7 @@
           <div class="num">2</div>
           <i class="ti ti-question-mark q-icon" aria-hidden="true"></i>
           <div class="title">Reason</div>
-          <i class="ti ti-info-circle info-icon" data-tip="Tap the one main reason you're away. Pick the closest single category. The team only needs the category, not the details."></i>
+          <div class="q-actions"><button type="button" class="icon-sq-btn q-info-btn" data-tip="Tap the one main reason you're away. Pick the closest single category. The team only needs the category, not the details." aria-label="What this is for"><i class="ti ti-info-circle"></i></button></div>
         </div>
         <div class="q-content active${reasonsDone ? ' done' : ''}">
           <div class="q-prompt">Why are you unavailable? <span class="q-prompt-hint">Pick one</span></div>
@@ -8321,11 +9082,20 @@
     updateSubmitState();
   }
 
+  // A name is letters (any language), spaces, hyphen, apostrophe. No digits, dots, or symbols.
+  const NAME_ALLOWED = /^[\p{L}][\p{L} '\-]*$/u;
+  function nameHasBadChars(raw) {
+    const t = (raw || '').trim();
+    return !!t && !NAME_ALLOWED.test(t);
+  }
   function formatName(raw) {
     const trimmed = (raw || '').trim().replace(/\s+/g, ' ');
+    if (!trimmed || !NAME_ALLOWED.test(trimmed)) return null;
     const parts = trimmed.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return null;
-    return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+    const cap = function(seg) { return seg ? seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase() : seg; };
+    // Capitalize each hyphen-segment too: "al-harthi" -> "Al-Harthi".
+    return parts.map(function(p) { return p.split('-').map(cap).join('-'); }).join(' ');
   }
 
   function checkNameValidity(showWarning) {
@@ -8334,6 +9104,10 @@
     const warning = document.getElementById('name-warning');
     const strip = document.getElementById('name-strip');
     if (value && !formatted) {
+      const span = warning.querySelector('span');
+      if (span) span.textContent = nameHasBadChars(value)
+        ? 'Letters only, no numbers, dots or symbols'
+        : 'Need your first AND last name';
       if (showWarning) {
         warning.classList.add('show');
         strip.classList.add('invalid');
@@ -8698,11 +9472,35 @@
       nameInput.value = savedName;
       document.getElementById('name-saved-tag').classList.add('show');
     }
+    // Optional honorific (Mr./Ms./Eng./...). Custom box: scroll or click to cycle. Saved like the
+    // name, never sent to the sheet.
+    const prefixBox = document.getElementById('name-prefix');
+    if (prefixBox) {
+      const savedTitle = localStorage.getItem('offbox_title') || '';
+      const found = NAME_PREFIXES.findIndex(function(p) { return p.v === savedTitle; });
+      prefixIdx = found >= 0 ? found : 0;
+      renderPrefixBox();
+      prefixBox.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        cyclePrefix(e.deltaY > 0 ? 1 : -1);
+      }, { passive: false });
+      prefixBox.addEventListener('click', function() { cyclePrefix(1); });
+      prefixBox.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); cyclePrefix(1); }
+        else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); cyclePrefix(-1); }
+      });
+    }
+    const notesLabel = document.getElementById('notes-label');
+    if (notesLabel) {
+      notesLabel.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleNotes(); }
+      });
+    }
     nameInput.addEventListener('input', function() {
       document.getElementById('greeting-text').textContent = getGreeting();
-      document.getElementById('name-saved-tag').classList.toggle('show', !!this.value.trim());
-      // Clear warning as soon as they fix it
       const formatted = formatName(this.value);
+      document.getElementById('name-saved-tag').classList.toggle('show', !!formatted);
+      // Clear warning as soon as they fix it
       if (formatted) {
         document.getElementById('name-warning').classList.remove('show');
         document.getElementById('name-strip').classList.remove('invalid');
@@ -8717,7 +9515,11 @@
         document.getElementById('name-warning').classList.remove('show');
         document.getElementById('name-strip').classList.remove('invalid');
       } else if (this.value.trim()) {
-        // They typed something but it's not a full name - warn them
+        // They typed something but it's not a valid full name - warn them with the reason
+        const span = document.querySelector('#name-warning span');
+        if (span) span.textContent = nameHasBadChars(this.value)
+          ? 'Letters only, no numbers, dots or symbols'
+          : 'Need your first AND last name';
         document.getElementById('name-warning').classList.add('show');
         document.getElementById('name-strip').classList.add('invalid');
       }
