@@ -1295,6 +1295,13 @@
   }
   .name-act-btn i { font-size: 15px; line-height: 1; }
   .name-act-btn:hover { background: rgba(67,217,255,0.18); border-color: #43D9FF; }
+  /* Page reset: red, matches the per-question reset. */
+  .name-act-btn.reset-btn {
+    background: rgba(255,85,114,0.12);
+    border-color: rgba(255,85,114,0.45);
+    color: #FF5572;
+  }
+  .name-act-btn.reset-btn:hover { background: rgba(255,85,114,0.22); border-color: #FF5572; }
   /* TXT export: purple, a different blue from the cyan copy. */
   .name-act-btn.txt-btn {
     background: rgba(167,139,250,0.10);
@@ -1960,12 +1967,16 @@
   .task-card.task-done {
     box-shadow: inset 0 0 0 1.5px rgba(57,217,138,0.7);
   }
-  /* Smooth single-card removal instead of a full-list teardown. */
+  /* Removal collapses the card's height while fading, so the rows below slide up AT THE SAME TIME
+     (not after). Fast, so spam-deleting in one spot stays responsive. */
   .task-card.task-removing {
-    animation: taskRemove 0.18s ease forwards;
+    overflow: hidden;
+    pointer-events: none;
+    animation: taskCollapse 0.15s ease forwards;
   }
-  @keyframes taskRemove {
-    to { opacity: 0; transform: translateX(-16px); }
+  @keyframes taskCollapse {
+    0%   { opacity: 1; height: 50px; min-height: 50px; margin-bottom: 8px; transform: translateX(0); }
+    100% { opacity: 0; height: 0; min-height: 0; margin-bottom: 0; transform: translateX(-14px); }
   }
   /* Not-yet-complete task: text box reads gray + dotted so it's clearly a fill-me placeholder. */
   .task-card.task-pending .task-text-cell {
@@ -2309,7 +2320,7 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
-    margin-bottom: 18px;
+    margin-bottom: 8px;
   }
   .timeoff-day {
     position: relative;
@@ -2894,29 +2905,28 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    margin-top: 10px;
-    margin-bottom: 8px;
   }
   .timeoff-current-time-btn,
   .timeoff-whole-day-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    height: 40px;
+    gap: 6px;
+    height: 24px;
+    padding: 0 6px;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.18);
     color: rgba(230,230,230,0.85);
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 1.4px;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.1s;
   }
   .timeoff-current-time-btn i,
-  .timeoff-whole-day-btn i { font-size: 14px; }
+  .timeoff-whole-day-btn i { font-size: 12px; }
   .timeoff-current-time-btn:hover,
   .timeoff-whole-day-btn:hover {
     background: rgba(255,255,255,0.1);
@@ -3200,20 +3210,34 @@
     z-index: 4;
   }
   .timeoff-shift-bar.is-custom::after {
-    content: 'CUSTOM TIME';
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  /* When the range is outside 9-5, the bar shows the actual range "h:mm to h:mm" instead of a
+     generic label, with FROM and UNTIL each colored by their own AM (cyan) / PM (amber). */
+  .timeoff-custom-label {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(215,215,225,0.92);
+    gap: 8px;
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 800;
-    letter-spacing: 5px;
-    font-size: 13px;
-    text-shadow: 0 0 10px rgba(0,0,0,0.6);
+    font-size: 14px;
+    letter-spacing: 0.4px;
     pointer-events: none;
-    z-index: 5;
+    z-index: 6;
+    text-shadow: 0 0 10px rgba(0,0,0,0.75), 0 0 3px rgba(0,0,0,0.9);
+  }
+  .timeoff-custom-label .tcl-sep {
+    color: rgba(220,220,230,0.8);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 1px;
   }
 
   .timeoff-shift-hour-labels {
@@ -3249,7 +3273,7 @@
      are large for comfortable phone tapping.
      ============================================================================ */
   .timeoff-summary-grid {
-    margin-top: 14px;
+    margin-top: 10px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
@@ -3341,6 +3365,69 @@
   .timeoff-editor-input:focus,
   .timeoff-editor-hour:focus { border-color: #39D98A; box-shadow: 0 0 0 2px rgba(57,217,138,0.25); }
   .timeoff-editor-hour { cursor: pointer; }
+
+  /* Apple-style scroll picker (mouse wheel + touch), for OFF FROM / UNTIL / DURATION. */
+  .tp-pop {
+    position: fixed;
+    z-index: 9999;
+    background: #14141B;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(0,0,0,0.6);
+    padding: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+    animation: tpIn 0.14s ease;
+  }
+  @keyframes tpIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+  .tp-title { text-align: center; font-size: 10px; letter-spacing: 1.5px; color: rgba(255,255,255,0.55); margin-bottom: 8px; text-transform: uppercase; }
+  .tp-cols { position: relative; display: flex; align-items: stretch; justify-content: center; gap: 2px; }
+  .tp-col {
+    position: relative;
+    height: 200px;                 /* 5 rows * 40px */
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .tp-col::-webkit-scrollbar { display: none; }
+  .tp-col-hour, .tp-col-min, .tp-col-ampm { width: 60px; }
+  .tp-col-dur { width: 150px; }
+  .tp-item {
+    height: 40px;
+    scroll-snap-align: center;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    transition: color 0.12s ease, transform 0.12s ease;
+    white-space: nowrap;
+  }
+  .tp-item.is-active { color: #FFFFFF; transform: scale(1.06); }
+  .tp-pad { height: 80px; }        /* 2 rows so first/last items can reach the center band */
+  .tp-band {
+    position: absolute; left: 2px; right: 2px; top: 80px; height: 40px;
+    border-top: 1px solid rgba(255,255,255,0.18);
+    border-bottom: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.06);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .tp-colon { display: flex; align-items: center; font-size: 21px; font-weight: 700; color: #FFFFFF; padding: 0 1px; }
+  .tp-unit { display: flex; align-items: center; font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.45); padding: 0 2px; }
+  .tp-done {
+    margin-top: 10px; width: 100%; padding: 9px 0;
+    background: #39D98A; color: #0F0F0F; border: none; border-radius: 9px;
+    font-family: 'IBM Plex Mono', monospace; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; cursor: pointer;
+  }
+  .tp-done:active { transform: scale(0.98); }
+  @media (max-width: 480px) {
+    .tp-item { font-size: 22px; }
+    .tp-col-dur { width: 160px; }
+  }
   .timeoff-tile-value {
     font-size: 18px;
     font-weight: 800;
@@ -4443,6 +4530,7 @@
     <input type="text" id="name-input" placeholder="e.g. Abdullah Yousef" autocomplete="off">
     <span class="name-saved-tag" id="name-saved-tag">Saved</span>
     <div class="name-export-btns">
+      <button type="button" class="icon-sq-btn reset-btn name-act-btn" id="btn-reset-log" onclick="resetPage(this)" title="Reset this page (double-click)" aria-label="Reset this page"><i class="ti ti-refresh"></i></button>
       <button type="button" class="icon-sq-btn txt-btn name-act-btn" id="btn-export-log" onclick="exportLogTxt(this)" title="Download the full log as a .txt file" aria-label="Download .txt"><i class="ti ti-download"></i></button>
       <button type="button" class="icon-sq-btn copy-btn name-act-btn" id="btn-copy-log" onclick="copyLogToClipboard(this)" title="Copy the full log to clipboard" aria-label="Copy log"><i class="ti ti-copy"></i></button>
       <button type="button" class="icon-sq-btn paste-btn name-act-btn" id="btn-paste-log" onclick="pasteWholePage(this)" title="Double-click to paste a saved log" aria-label="Paste log"><i class="ti ti-clipboard-plus"></i></button>
@@ -5451,6 +5539,43 @@
     if (isQuestionEmpty(qid)) { pasteFail(btn); return; }        // nothing to reset -> negative flash, no arm
     armConfirm(btn, function() { doResetQuestion(qid); }, 'armed-reset');
   }
+  // Page reset: clears ONLY the questions on the mode you're currently in (Log In, Log Out, or Time
+  // Off) plus that page's notes. It never touches saved data in the browser or the other modes.
+  function pageQids() {
+    if (mode === 'in')  return ['goal', 'blocker', 'energyIn', 'expectedDiff'];
+    if (mode === 'out') return ['completion', 'completed', 'actualDiff', 'energyOut'];
+    return [];  // 'off' is handled separately (timeOff + reasons)
+  }
+  function isPageEmpty() {
+    const notesEmpty = !(state.notes || '').trim();
+    if (mode === 'off') {
+      const to = state.timeOff;
+      const noTime = !to.from && !to.to && (!to.days || to.days.length === 0);
+      const noReason = !state.reasons || state.reasons.length === 0;
+      return noTime && noReason && !state.attachment && !(state.otherReason || '').trim() && notesEmpty;
+    }
+    return pageQids().every(function(q) { return isQuestionEmpty(q); }) && notesEmpty;
+  }
+  function doResetPage() {
+    if (mode === 'off') {
+      state.timeOff = { days: [], from: '', to: '', durationHours: 1, _previousRange: null, _userCleared: false, lockedToNow: false };
+      state.reasons = [];
+      state.otherReason = '';
+      state.attachment = null;
+    } else {
+      pageQids().forEach(function(q) { if (QID_RESET[q]) QID_RESET[q](); });
+    }
+    state.notes = '';
+    renderForm();                                    // whole page -> a full re-render is fine here
+    const ni = document.getElementById('notes-input');
+    if (ni) ni.value = '';
+    if (typeof updateSubmitState === 'function') updateSubmitState();
+    setTimeout(function() { runPageScan('#FF5572'); }, 40);
+  }
+  function resetPage(btn) {
+    if (isPageEmpty()) { pasteFail(btn); return; }   // nothing to reset -> negative flash, no arm
+    armConfirm(btn, doResetPage, 'armed-reset');
+  }
   // ====================== end DAILY LOG SUMMARY ======================
 
   // 4-tier color system communicates task weight
@@ -6159,9 +6284,17 @@
             })()}
           </div>
 
-          <!-- Action buttons above the slider: Current Time on the left, Whole Day on the right.
-               Equal width via grid. Both always shown, slider always shown, range always required. -->
-          <div class="timeoff-shift-actions">
+          <!-- Shift bar (time graph) comes first. Right-click to clear selection. -->
+          <div class="timeoff-shift-bar-wrap">
+            <div class="timeoff-shift-bar${isWholeDay ? ' is-whole-day' : ''}" id="timeoff-shift-bar" role="slider" aria-label="Drag to pick off-time range, right-click to clear">
+              ${buildShiftBarCellsHtml()}
+            </div>
+            <div class="timeoff-shift-hour-labels">${buildShiftBarHourLabelsHtml()}</div>
+          </div>
+
+          <!-- Summary. Current Time sits directly above OFF FROM, Whole Day above UNTIL (small
+               header buttons), then the two time tiles, then DURATION full width below. -->
+          <div class="timeoff-summary-grid">
             <button type="button" class="timeoff-current-time-btn" id="timeoff-current-time-btn" onclick="selectCurrentTime()">
               <i class="ti ti-clock-hour-3"></i>
               <span>Current Time</span>
@@ -6170,27 +6303,13 @@
               <i class="ti ti-sun"></i>
               <span>Whole Day</span>
             </button>
-          </div>
-
-          <!-- Shift bar — always visible. Right-click to clear selection. -->
-          <div class="timeoff-shift-bar-wrap">
-            <div class="timeoff-shift-bar${isWholeDay ? ' is-whole-day' : ''}" id="timeoff-shift-bar" role="slider" aria-label="Drag to pick off-time range, right-click to clear">
-              ${buildShiftBarCellsHtml()}
-            </div>
-            <div class="timeoff-shift-hour-labels">${buildShiftBarHourLabelsHtml()}</div>
-          </div>
-
-          <!-- Summary: OFF FROM and UNTIL share the top row; DURATION spans full width below.
-               Each tile scrolls (wheel) or steps via the left/right buttons (mobile-friendly),
-               in 30-min increments. Left = earlier/less, right = later/more. -->
-          <div class="timeoff-summary-grid">
-            <div class="timeoff-tile timeoff-tile-from" id="timeoff-tile-from" data-tile-field="from" title="Scroll or use the arrows to adjust by 15 minutes">
+            <div class="timeoff-tile timeoff-tile-from" id="timeoff-tile-from" data-tile-field="from" title="Scroll or use the arrows to adjust, or tap the value to open the picker">
               ${buildTimeoffTileHtml('from')}
             </div>
-            <div class="timeoff-tile timeoff-tile-until" id="timeoff-tile-until" data-tile-field="until" title="Scroll or use the arrows to adjust by 15 minutes">
+            <div class="timeoff-tile timeoff-tile-until" id="timeoff-tile-until" data-tile-field="until" title="Scroll or use the arrows to adjust, or tap the value to open the picker">
               ${buildTimeoffTileHtml('until')}
             </div>
-            <div class="timeoff-tile timeoff-tile-duration timeoff-tile-wide" id="timeoff-tile-duration" data-tile-field="duration" title="Scroll or use the arrows to adjust by 15 minutes">
+            <div class="timeoff-tile timeoff-tile-duration timeoff-tile-wide" id="timeoff-tile-duration" data-tile-field="duration" title="Scroll or use the arrows to adjust, or tap the value to open the picker">
               ${buildTimeoffTileHtml('duration')}
             </div>
           </div>
@@ -6272,7 +6391,7 @@
     // regardless of day-pick state -- the range is required, not optional.
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 5;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -6556,6 +6675,19 @@
       const isWhole = !custom && state.timeOff.from === wholeFrom && state.timeOff.to === wholeTo;
       bar.classList.toggle('is-whole-day', isWhole);
       bar.classList.toggle('is-custom', custom);
+      // Custom mode: show the real range "h:mm to h:mm", each end colored by its AM/PM.
+      let lbl = bar.querySelector('.timeoff-custom-label');
+      if (custom && state.timeOff.from && state.timeOff.to) {
+        if (!lbl) { lbl = document.createElement('div'); lbl.className = 'timeoff-custom-label'; bar.appendChild(lbl); }
+        const f = formatTime12Parts(state.timeOff.from);
+        const t = formatTime12Parts(state.timeOff.to);
+        lbl.innerHTML =
+          '<span style="color:' + f.color + '">' + f.time + ' ' + f.meridiem + '</span>' +
+          '<span class="tcl-sep">to</span>' +
+          '<span style="color:' + t.color + '">' + t.time + ' ' + t.meridiem + '</span>';
+      } else if (lbl) {
+        lbl.remove();
+      }
     }
     updateTimeoffSummaryRow();
     updateWholeDayBtnState();
@@ -7008,7 +7140,7 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 5;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -7037,7 +7169,7 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 5;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -7182,7 +7314,7 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      const isDone = state.timeOff.days.length > 0 && !!state.timeOff.from && !!state.timeOff.to && computeTimeoffWorkMinutes() >= 5;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -7269,8 +7401,8 @@
       } else { // duration
         label = 'DURATION';
         valueHtml = '<span class="timeoff-tile-value-digits">' + computeDurationStr() + '</span>';
-        canLeft  = toMinV > fromMinV + SLOT_MIN;       // less
-        canRight = toMinV < SELECT_MAX_MIN;            // more
+        canLeft  = computeTimeoffWorkMinutes() > 5;     // less, down to 5m
+        canRight = toMinV < SELECT_MAX_MIN;             // more
       }
     }
 
@@ -7340,19 +7472,21 @@
       if (newFromMin >= toMin) newFromMin = toMin - SLOT_MIN; // keep >= 15 min duration
       if (newFromMin < SELECT_MIN_MIN) newFromMin = SELECT_MIN_MIN;
     } else if (field === 'duration') {
-      // DURATION arrows LOCK to the 15-min grid: from an off-grid duration (e.g. 12m), the right
-      // arrow snaps up to the next boundary (15m) rather than adding 15m (27m); left snaps down.
+      // Below/at 15 min the duration steps in 5-min increments (15 <-> 10 <-> 5). At/above 15 it
+      // locks to the 15-min grid.
       const curWork = timeoffWorkMinutesBetween(fromMin, toMin);
       let target;
       if (direction > 0) {
-        target = (curWork % SLOT_MIN === 0) ? curWork + SLOT_MIN : Math.ceil(curWork / SLOT_MIN) * SLOT_MIN;
+        if (curWork < 15) target = Math.min(15, curWork + 5);
+        else target = (curWork % SLOT_MIN === 0) ? curWork + SLOT_MIN : Math.ceil(curWork / SLOT_MIN) * SLOT_MIN;
       } else {
-        target = (curWork % SLOT_MIN === 0) ? curWork - SLOT_MIN : Math.floor(curWork / SLOT_MIN) * SLOT_MIN;
+        if (curWork <= 15) target = curWork - 5;
+        else { target = (curWork % SLOT_MIN === 0) ? curWork - SLOT_MIN : Math.floor(curWork / SLOT_MIN) * SLOT_MIN; if (target < 15) target = 15; }
       }
-      if (target < SLOT_MIN) target = SLOT_MIN; // keep at least 15 min
+      if (target < 5) target = 5;                    // floor at 5 min
       newToMin = timeoffEndForWorkDuration(fromMin, target);
       if (newToMin > SELECT_MAX_MIN) newToMin = SELECT_MAX_MIN;
-      if (newToMin <= fromMin) newToMin = fromMin + SLOT_MIN;
+      if (newToMin <= fromMin) newToMin = fromMin + 5;
     } else { // 'until' moves the END by one grid slot
       if (direction > 0) {
         newToMin = toMin + SLOT_MIN;
@@ -7461,7 +7595,7 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      const isDone = state.timeOff.days.length > 0 && state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() >= 5;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -7485,7 +7619,7 @@
   // time equals what was asked. Clamps at 11:59 PM.
   function setTimeoffDurationExact(durMin) {
     if (durMin == null) return false;
-    durMin = Math.max(SLOT_MIN, Math.round(durMin / SLOT_MIN) * SLOT_MIN);
+    durMin = Math.max(5, Math.round(durMin / 5) * 5);   // 5-min granularity, floor 5m (was 15-min)
     // Changing the duration moves the UNTIL only -- FROM stays put, and if Current Time is on it
     // stays on (FROM keeps tracking the live minute, UNTIL = FROM + duration).
     let fromMin;
@@ -7501,7 +7635,7 @@
       }
     });
     if (toMin > SELECT_MAX_MIN) toMin = SELECT_MAX_MIN;
-    if (toMin <= fromMin) toMin = fromMin + SLOT_MIN;
+    if (toMin <= fromMin) toMin = fromMin + 5;
     state.timeOff.from = minutesToHHMM(fromMin);
     state.timeOff.to   = minutesToHHMM(toMin);
     state.timeOff._previousRange = null;
@@ -7510,7 +7644,7 @@
     updateSubmitState();
     const card = document.getElementById('card-timeoff');
     if (card) {
-      const isDone = state.timeOff.days.length > 0 && state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() >= 15;
+      const isDone = state.timeOff.days.length > 0 && state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() >= 5;
       card.classList.toggle('done', isDone);
       if (isDone) card.classList.remove('missing');
     }
@@ -7528,88 +7662,155 @@
 
   // Open the inline editor under a tile. FROM/UNTIL: a 24h text input + an hour dropdown.
   // DURATION: a single HOURS field.
+  // Apple-style scroll picker. FROM/UNTIL = hour + minute + AM/PM columns (12h, never 24h).
+  // DURATION = one column of human durations (5m/10m/15m, then 15-min steps up). Mouse wheel and
+  // touch both scroll; each column snaps to the centered value and commits live.
+  const TP_ITEM = 40;
+  function durationOptionsMin() {
+    const opts = [5, 10, 15];
+    for (let m = 30; m <= 720; m += 15) opts.push(m);   // 30m .. 12h in 15-min steps
+    return opts;
+  }
+  function durLabelShort(m) {
+    const h = Math.floor(m / 60), mm = m % 60;
+    if (h > 0 && mm > 0) return h + 'h ' + mm + 'm';
+    if (h > 0) return h + 'h';
+    return mm + 'm';
+  }
+  function tpColIndex(col) { return Math.round(col.scrollTop / TP_ITEM); }
+  function tpMarkActive(col) {
+    const idx = tpColIndex(col);
+    col.querySelectorAll('.tp-item').forEach(function(it, i) { it.classList.toggle('is-active', i === idx); });
+  }
+  function tpInitCol(col, selIdx, onSettle) {
+    col.scrollTop = selIdx * TP_ITEM;
+    tpMarkActive(col);
+    let ready = false, t = null;
+    setTimeout(function() { ready = true; }, 80);       // ignore the initial programmatic scroll
+    col.addEventListener('scroll', function() {
+      tpMarkActive(col);
+      if (!ready) return;
+      clearTimeout(t);
+      t = setTimeout(function() {
+        const idx = tpColIndex(col);
+        const target = idx * TP_ITEM;
+        if (Math.abs(col.scrollTop - target) > 1) col.scrollTop = target;   // hard-snap
+        tpMarkActive(col);
+        onSettle(idx);
+      }, 90);
+    });
+    col.addEventListener('wheel', function(e) {          // one item per notch on desktop
+      e.preventDefault();
+      const max = col.querySelectorAll('.tp-item').length - 1;
+      const ni = Math.max(0, Math.min(max, tpColIndex(col) + (e.deltaY > 0 ? 1 : -1)));
+      col.scrollTo({ top: ni * TP_ITEM, behavior: 'smooth' });
+    }, { passive: false });
+  }
+  function tpPlace(pop, tile) {
+    const r = tile.getBoundingClientRect();
+    pop.style.left = '0px'; pop.style.top = '0px';       // measure first
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    let left = Math.round(r.left + r.width / 2 - pw / 2);
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    let top = Math.round(r.bottom + 6);
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, Math.round(r.top - ph - 6));
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+  function tpColHtml(kind, items, selIndex, extraCls) {
+    let s = '<div class="tp-col ' + (extraCls || '') + '" data-kind="' + kind + '"><div class="tp-pad"></div>';
+    items.forEach(function(it, i) {
+      s += '<div class="tp-item' + (i === selIndex ? ' is-active' : '') + '">' + it.label + '</div>';
+    });
+    s += '<div class="tp-pad"></div></div>';
+    return s;
+  }
+  function tpWireDone(pop) {
+    const btn = pop.querySelector('.tp-done');
+    if (btn) btn.addEventListener('click', function() { closeTimeEditor(); });
+    setTimeout(function() { document.addEventListener('pointerdown', onEditorOutside, true); }, 0);
+  }
   function openTimeEditor(field, tile) {
     closeTimeEditor();
-    const ed = document.createElement('div');
-    ed.className = 'timeoff-editor';
+    if (!state.timeOff.from || !state.timeOff.to) seedDefaultTimeoffRange();  // give the picker a value
+
+    const pop = document.createElement('div');
+    pop.className = 'tp-pop';
 
     if (field === 'duration') {
-      const curMin = computeTimeoffWorkMinutes();
-      const curHrs = curMin > 0 ? (Math.round((curMin / 60) * 100) / 100) : '';
-      ed.innerHTML =
-        '<div class="timeoff-editor-row">' +
-          '<label class="timeoff-editor-cap">HOURS</label>' +
-          '<input type="text" inputmode="decimal" class="timeoff-editor-input" placeholder="e.g. 2" value="' + curHrs + '" />' +
-        '</div>';
-      document.body.appendChild(ed);
-      openTimeEditorEl = ed;
-      const r = tile.getBoundingClientRect();
-      ed.style.position = 'fixed';
-      ed.style.left = Math.round(r.left) + 'px';
-      ed.style.top  = Math.round(r.bottom + 6) + 'px';
-      ed.style.minWidth = Math.round(Math.min(r.width, 220)) + 'px';
-      const input = ed.querySelector('.timeoff-editor-input');
-      function commitDur() { const d = parseTypedHours(input.value); if (d != null) setTimeoffDurationExact(d); }
-      input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { commitDur(); closeTimeEditor(); }
-        else if (e.key === 'Escape') { closeTimeEditor(); }
-      });
-      setTimeout(function() { input.focus(); input.select(); document.addEventListener('pointerdown', onEditorOutside, true); }, 0);
+      const cur = computeTimeoffWorkMinutes();
+      let ch = Math.floor(cur / 60);
+      const minStep = 5;
+      let cm = Math.round((cur % 60) / minStep) * minStep;
+      if (cm >= 60) { cm = 0; ch += 1; }
+      const maxH = 12;
+      if (ch > maxH) ch = maxH;
+      const hourItems = []; for (let i = 0; i <= maxH; i++) hourItems.push({ label: String(i) });
+      const minItems = []; for (let m = 0; m < 60; m += minStep) minItems.push({ v: m, label: String(m).padStart(2, '0') });
+      let mSel = minItems.findIndex(function(o) { return o.v === cm; }); if (mSel < 0) mSel = 0;
+      pop.innerHTML = '<div class="tp-title">Duration</div>' +
+        '<div class="tp-cols"><div class="tp-band"></div>' +
+          tpColHtml('durh', hourItems, ch, 'tp-col-hour') +
+          '<span class="tp-unit">h</span>' +
+          tpColHtml('durm', minItems, mSel, 'tp-col-min') +
+          '<span class="tp-unit">m</span>' +
+        '</div>' +
+        '<button type="button" class="tp-done">Done</button>';
+      document.body.appendChild(pop);
+      openTimeEditorEl = pop;
+      tpPlace(pop, tile);
+      const hCol = pop.querySelector('.tp-col[data-kind="durh"]');
+      const mCol = pop.querySelector('.tp-col[data-kind="durm"]');
+      function commitDur() {
+        const total = tpColIndex(hCol) * 60 + minItems[Math.max(0, Math.min(minItems.length - 1, tpColIndex(mCol)))].v;
+        setTimeoffDurationExact(total);   // clamps to >= 5m
+      }
+      tpInitCol(hCol, ch, commitDur);
+      tpInitCol(mCol, mSel, commitDur);
+      tpWireDone(pop);
       return;
     }
 
+    // FROM / UNTIL
     const current = field === 'from' ? state.timeOff.from : state.timeOff.to;
-    const curMin = current ? (function(){ const p = current.split(':'); return +p[0]*60 + +p[1]; })() : null;
-    const curHour = curMin != null ? Math.floor(curMin / 60) : 9;
-    const curMm   = curMin != null ? curMin % 60 : 0;
+    const p = (current || '09:00').split(':');
+    let H = parseInt(p[0], 10), M = parseInt(p[1], 10);
+    const isPM = H >= 12;
+    let h12 = H % 12; if (h12 === 0) h12 = 12;
+    const minStep = 5;
+    const minItems = []; for (let m = 0; m < 60; m += minStep) minItems.push({ v: m, label: String(m).padStart(2, '0') });
+    let mSel = Math.round(M / minStep); if (mSel >= minItems.length) mSel = 0;
+    const hourItems = []; for (let i = 1; i <= 12; i++) hourItems.push({ label: String(i) });
+    const ampmItems = [{ label: 'AM' }, { label: 'PM' }];
 
-    let opts = '';
-    for (let h = 0; h <= 23; h++) {
-      opts += '<option value="' + h + '"' + (h === curHour ? ' selected' : '') + '>' + hourLabel12(h) + '</option>';
-    }
-    ed.innerHTML =
-      '<div class="timeoff-editor-row">' +
-        '<label class="timeoff-editor-cap">TYPE (24H)</label>' +
-        '<input type="text" inputmode="numeric" class="timeoff-editor-input" placeholder="HH:MM" ' +
-          'value="' + (current ? current : '') + '" />' +
+    pop.innerHTML = '<div class="tp-title">' + (field === 'from' ? 'Off From' : 'Until') + '</div>' +
+      '<div class="tp-cols"><div class="tp-band"></div>' +
+        tpColHtml('hour', hourItems, h12 - 1, 'tp-col-hour') +
+        '<div class="tp-colon">:</div>' +
+        tpColHtml('min', minItems, mSel, 'tp-col-min') +
+        tpColHtml('ampm', ampmItems, isPM ? 1 : 0, 'tp-col-ampm') +
       '</div>' +
-      '<div class="timeoff-editor-row">' +
-        '<label class="timeoff-editor-cap">HOUR</label>' +
-        '<select class="timeoff-editor-hour">' + opts + '</select>' +
-      '</div>';
+      '<button type="button" class="tp-done">Done</button>';
+    document.body.appendChild(pop);
+    openTimeEditorEl = pop;
+    tpPlace(pop, tile);
 
-    document.body.appendChild(ed);
-    openTimeEditorEl = ed;
-    const r = tile.getBoundingClientRect();
-    ed.style.position = 'fixed';
-    ed.style.left = Math.round(r.left) + 'px';
-    ed.style.top  = Math.round(r.bottom + 6) + 'px';
-    ed.style.minWidth = Math.round(r.width) + 'px';
-
-    const input = ed.querySelector('.timeoff-editor-input');
-    const sel   = ed.querySelector('.timeoff-editor-hour');
-
-    function commitInput() {
-      const t = parseTypedTime(input.value);
-      if (t != null) setTimeoffFieldExact(field, t);
+    const hourCol = pop.querySelector('.tp-col[data-kind="hour"]');
+    const minCol  = pop.querySelector('.tp-col[data-kind="min"]');
+    const ampmCol = pop.querySelector('.tp-col[data-kind="ampm"]');
+    function commit() {
+      const hi = tpColIndex(hourCol);            // 0..11 -> 1..12
+      const mi = tpColIndex(minCol);
+      const ai = tpColIndex(ampmCol);            // 0 AM, 1 PM
+      let hh = (hi + 1) % 12;                     // 12 -> 0
+      if (ai === 1) hh += 12;                     // PM
+      const mm = minItems[Math.max(0, Math.min(minItems.length - 1, mi))].v;
+      setTimeoffFieldExact(field, hh * 60 + mm);
     }
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') { commitInput(); closeTimeEditor(); }
-      else if (e.key === 'Escape') { closeTimeEditor(); }
-    });
-    sel.addEventListener('change', function() {
-      const h = parseInt(sel.value, 10);
-      const typed = parseTypedTime(input.value);
-      const mm = (typed != null) ? typed % 60 : curMm;
-      input.value = minutesToHHMM(Math.min(h * 60 + mm, SELECT_MAX_MIN));
-      setTimeoffFieldExact(field, h * 60 + mm);
-    });
-
-    setTimeout(function() {
-      input.focus();
-      input.select();
-      document.addEventListener('pointerdown', onEditorOutside, true);
-    }, 0);
+    tpInitCol(hourCol, h12 - 1, commit);
+    tpInitCol(minCol, mSel, commit);
+    tpInitCol(ampmCol, isPM ? 1 : 0, commit);
+    tpWireDone(pop);
   }
 
   // Current local time as "HH:MM" (24h).
@@ -7999,6 +8200,14 @@
       state.reasons = []; // tapping the selected reason again clears it
     } else {
       state.reasons = [val]; // single primary reason
+      // Auto-fit the duration to this reason's soft cap: e.g. Coffee break -> 15m, Family -> 1h,
+      // but only trim DOWN (never extend), and only for reasons that have a cap. Always-review
+      // reasons (Bathroom, Religious, Work Meeting, ...) have no cap, so they never adjust.
+      const meta = REASON_META[val];
+      if (meta && meta.capMin != null && state.timeOff.from && state.timeOff.to &&
+          computeTimeoffWorkMinutes() > meta.capMin) {
+        setTimeoffDurationExact(meta.capMin);
+      }
     }
     timeoffConfirmed = false; // selection changed; re-confirm if still risky
     if (state.reasons.indexOf('Other') < 0) state.otherReason = '';
@@ -8188,11 +8397,11 @@
 
     // If days are picked and a range is set but the range is ENTIRELY inside the break, refuse:
     // show a clear warning + leave the card not-done so submit stays blocked.
-    if (state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() < 15) {
+    if (state.timeOff.from && state.timeOff.to && computeTimeoffWorkMinutes() < 5) {
       body.innerHTML =
         '<div class="timeoff-empty" style="color:#FF6B9D;border-color:rgba(255,107,157,0.5);">' +
           '<i class="ti ti-alert-triangle"></i>' +
-          '<span>Your selection is only the break time. Pick at least 15 minutes of actual work hours.</span>' +
+          '<span>Your selection lands on the break. Pick at least 5 minutes of actual work hours.</span>' +
         '</div>';
       return;
     }
@@ -8509,7 +8718,7 @@
     const input = card.querySelector('.task-edit');
     if (input) {
       input.addEventListener('input', function() {
-        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        const idx = liveIndex(this.closest('.task-card'));
         if (idx >= 0) {
           state.completed[idx].text = this.textContent;
           adjustTaskText(this);
@@ -8531,8 +8740,7 @@
     if (rm) {
       rm.addEventListener('click', function(e) {
         e.stopPropagation();
-        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
-        if (idx >= 0) removeCompleted(idx);
+        removeCompleted(this.closest('.task-card'));
       });
     }
     card.querySelectorAll('.wheel-selector').forEach(function(sel) {
@@ -8542,27 +8750,35 @@
         const now = Date.now();
         if (now - wheelLockTime < WHEEL_LOCK_MS) return;
         wheelLockTime = now;
-        const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+        const idx = liveIndex(this.closest('.task-card'));
         if (idx < 0) return;
         cycleMeta(idx, type, e.deltaY > 0 ? 'next' : 'prev');
       }, { passive: false });
       sel.querySelectorAll('.wheel-arrow').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
-          const idx = Array.from(list.children).indexOf(this.closest('.task-card'));
+          const idx = liveIndex(this.closest('.task-card'));
           if (idx < 0) return;
           cycleMeta(idx, type, this.dataset.dir);
         });
       });
     });
   }
+  // Position among "live" (not-being-removed) cards, so state indices stay correct even while one
+  // or more cards are mid-removal.
+  function liveIndex(card) {
+    const list = document.getElementById('completed-list');
+    if (!list || !card) return -1;
+    return Array.from(list.children).filter(function(c) { return !c.classList.contains('task-removing'); }).indexOf(card);
+  }
   // Renumber cards in place (newest on top = highest number). Only updates the number text, so no
-  // teardown/rebuild flash.
+  // teardown/rebuild flash. Ignores cards that are animating out.
   function renumberTasks() {
     const list = document.getElementById('completed-list');
     if (!list) return;
-    const total = list.children.length;
-    Array.from(list.children).forEach(function(card, i) {
+    const live = Array.from(list.children).filter(function(c) { return !c.classList.contains('task-removing'); });
+    const total = live.length;
+    live.forEach(function(card, i) {
       const numEl = card.querySelector('.task-num');
       if (numEl) numEl.textContent = total - i;
     });
@@ -8609,20 +8825,16 @@
     msg.style.animation = '';
   }
 
-  function removeCompleted(i) {
+  function removeCompleted(card) {
     const list = document.getElementById('completed-list');
-    state.completed.splice(i, 1);
-    if (list && list.children[i]) {
-      const card = list.children[i];
-      card.style.pointerEvents = 'none';
-      card.classList.add('task-removing');
-      setTimeout(function() {
-        if (card.parentNode) card.parentNode.removeChild(card);
-        renumberTasks();
-      }, 180);
-    } else {
-      renderCompletedList();
-    }
+    if (!list || !card) return;
+    const idx = liveIndex(card);
+    if (idx < 0) return;                       // already being removed (ignore repeat clicks)
+    state.completed.splice(idx, 1);
+    card.classList.add('task-removing');       // collapses height + fades; rows below flow up NOW
+    card.style.pointerEvents = 'none';
+    renumberTasks();                           // renumber the remaining cards immediately
+    setTimeout(function() { if (card.parentNode) card.parentNode.removeChild(card); }, 150);
     refreshCombo();
     updateCard('completed', allTasksComplete());
     updateTotalHoursDisplay();
