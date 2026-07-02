@@ -1255,6 +1255,23 @@
     box-shadow: inset 0 0 0 1px #FF5572;
     animation: btnShake 0.4s ease;
   }
+  /* White "no new data" feedback: paste matched what's already there. */
+  .icon-sq-btn.flash-white,
+  .q-act.flash-white {
+    background: #0F0F0F !important;
+    border-color: #FFFFFF !important;
+    color: #FFFFFF !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.85);
+  }
+  .question-card.q-nochange {
+    animation: qNoChange 0.72s ease;
+  }
+  @keyframes qNoChange {
+    0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    28%  { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.9), 0 0 16px 2px rgba(255,255,255,0.5); }
+    60%  { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.5), 0 0 8px 1px rgba(255,255,255,0.25); }
+    100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  }
   @keyframes btnShake {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-3px); }
@@ -4896,14 +4913,13 @@
     if (!state.completed || state.completed.length === 0) return '-';
     let lines = [];
     state.completed.forEach(function(t, i) {
-      const text = (t.text || '').trim() || '(no description)';
-      const hrs  = summaryTaskHours(t.hoursSpentMinutes);
-      const proj = summaryProject(t.projectCostCenter);
-      let meta = (i + 1) + '.';
-      if (hrs)  meta += ' [' + hrs + ']';
-      if (proj) meta += ' [' + proj + ']';
+      // Preserve the EXACT state so a copy round-trips: empty text -> "(empty)", and a missing
+      // where/time -> "-" (not defaulted), so paste-in restores unfinished cards precisely.
+      const text = (t.text || '').trim() || '(empty)';
+      const hrs  = summaryTaskHours(t.hoursSpentMinutes) || '-';
+      const proj = summaryProject(t.projectCostCenter) || '-';
       lines.push(text);
-      lines.push(meta);
+      lines.push((i + 1) + '. [' + hrs + '] [' + proj + ']');
     });
     return lines.join('\n');
   }
@@ -5159,11 +5175,15 @@
       const tasks = []; let pending = null;
       block.forEach(function(l) {
         const lt = l.trim();
-        if (/^\d+\.(\s|\[)/.test(lt)) {
-          const brs = lt.match(/\[([^\]]+)\]/g) || [];
-          const minutes = brs.length >= 1 ? pasteHoursToMin(brs[0].slice(1, -1)) : 0;
-          const project = brs.length >= 2 ? pasteProjTag(brs[1].slice(1, -1)) : 'STUDIO';
-          tasks.push({ text: pending != null ? pending : '', hoursSpentMinutes: minutes, projectCostCenter: project });
+        if (/^\d+\.\s*(\[|$)/.test(lt)) {              // meta line: "N. [time] [proj]" (or bare "N.")
+          const brs = lt.match(/\[([^\]]*)\]/g) || [];
+          const timeTag = brs.length >= 1 ? brs[0].slice(1, -1).trim() : '';
+          const projTag = brs.length >= 2 ? brs[1].slice(1, -1).trim() : '';
+          const minutes = (timeTag && timeTag !== '-') ? pasteHoursToMin(timeTag) : null;  // null = unfinished
+          const project = (projTag && projTag !== '-') ? pasteProjTag(projTag) : null;     // null = unfinished
+          let txt = pending != null ? pending : '';
+          if (txt === '(empty)' || txt === '(no description)') txt = '';                    // empty markers -> ''
+          tasks.push({ text: txt, hoursSpentMinutes: minutes, projectCostCenter: project });
           pending = null;
         } else {
           pending = lt;
@@ -5265,25 +5285,146 @@
       onFail();
     }
   }
+  // ---- Targeted single-question update (no full-form re-render, so no page-wide flash) ----
+  // Done/active classes exactly as the templates set them, per question.
+  const QID_STATE = {
+    goal:         function(){ return { done: !!state.goal.trim(), active: true }; },
+    blocker:      function(){ return { done: state.blocker.has !== null, active: state.blocker.has !== null }; },
+    energyIn:     function(){ return { done: state.energyIn > 0, active: state.energyIn > 0 }; },
+    expectedDiff: function(){ return { done: !!state.expectedDiff, active: !!state.expectedDiff }; },
+    completion:   function(){ return { done: !!state.completion, active: true }; },
+    completed:    function(){ return { done: allTasksComplete(), active: state.completed.length > 0 }; },
+    actualDiff:   function(){ return { done: state.actualDiff > 0, active: state.actualDiff > 0 }; },
+    energyOut:    function(){ return { done: state.energyOut > 0, active: state.energyOut > 0 }; }
+  };
+  function setQuestionClasses(qid) {
+    const st = QID_STATE[qid] ? QID_STATE[qid]() : { done: false, active: true };
+    const cardId = QID_CARD[qid];
+    const card = document.getElementById(cardId);
+    const content = document.getElementById(cardId.replace('card-', 'content-'));
+    if (card) { card.classList.toggle('done', st.done); if (st.done) card.classList.remove('missing'); }
+    if (content) { content.classList.toggle('active', st.active); content.classList.toggle('done', st.done); }
+  }
+  function setLinearRow(suffix, val) {
+    const content = document.getElementById('content-' + suffix);
+    if (!content) return;
+    content.querySelectorAll('.linear-btn').forEach(function(b) {
+      const vcls = Array.from(b.classList).find(function(c) { return c !== 'linear-btn' && c !== 'active'; });
+      b.classList.toggle('active', !!val && vcls === val);
+    });
+  }
+  // Rewrite just this question's inputs from state, in place.
+  const QID_REFRESH = {
+    goal: function() { const i = document.getElementById('goal-input'); if (i) i.value = state.goal; },
+    blocker: function() {
+      const no = document.getElementById('blocker-no'), yes = document.getElementById('blocker-yes'),
+            d = document.getElementById('blocker-detail'), w = document.getElementById('blocker-what'), u = document.getElementById('blocker-unblocker');
+      if (no) no.classList.toggle('no-active', state.blocker.has === false);
+      if (yes) yes.classList.toggle('yes-active', state.blocker.has === true);
+      if (d) d.classList.toggle('show', state.blocker.has === true);
+      if (w) w.value = state.blocker.what || '';
+      if (u) u.value = state.blocker.unblocker || '';
+    },
+    energyIn: function() { renderPixelSlider('energy-in', state.energyIn, ENERGY_IN_LABELS, '#39D98A', 'energyIn'); },
+    expectedDiff: function() { setLinearRow('difficulty', state.expectedDiff); },
+    completion: function() {
+      setLinearRow('completion', state.completion);
+      const r = document.getElementById('completion-reason'); if (r) r.classList.toggle('show', !!state.completion && state.completion !== 'fully');
+      const ri = document.getElementById('reason-input'); if (ri) ri.value = state.completionReason || '';
+    },
+    completed: function() { renderCompletedList(); },
+    actualDiff: function() { renderPixelSlider('actual-diff', state.actualDiff, DIFF_LABELS, '#A78BFA', 'actualDiff'); },
+    energyOut: function() { renderPixelSlider('energy-out', state.energyOut, ENERGY_OUT_LABELS, '#FF6B9D', 'energyOut'); }
+  };
+  function refreshQuestionUI(qid) {
+    if (QID_REFRESH[qid]) QID_REFRESH[qid]();
+    setQuestionClasses(qid);
+    if (typeof updateSubmitState === 'function') updateSubmitState();
+  }
+  // Is a question already at its blank page-load state? (used to block a pointless reset)
+  const QID_EMPTY = {
+    goal:         function(){ return !state.goal.trim(); },
+    blocker:      function(){ return state.blocker.has === null && !(state.blocker.what || '').trim() && !(state.blocker.unblocker || '').trim(); },
+    energyIn:     function(){ return !state.energyIn; },
+    expectedDiff: function(){ return !state.expectedDiff; },
+    completion:   function(){ return !state.completion && !(state.completionReason || '').trim(); },
+    actualDiff:   function(){ return !state.actualDiff; },
+    energyOut:    function(){ return !state.energyOut; },
+    completed:    function(){ return !state.completed || state.completed.length === 0; }
+  };
+  function isQuestionEmpty(qid) { return QID_EMPTY[qid] ? QID_EMPTY[qid]() : false; }
+  // Snapshot of a question's state, to tell whether a paste-in actually changed anything.
+  function snapshotQid(qid) {
+    switch (qid) {
+      case 'goal': return state.goal;
+      case 'blocker': return state.blocker;
+      case 'energyIn': return state.energyIn;
+      case 'expectedDiff': return state.expectedDiff;
+      case 'completion': return { c: state.completion, r: state.completionReason };
+      case 'actualDiff': return state.actualDiff;
+      case 'energyOut': return state.energyOut;
+      case 'completed': return state.completed;
+      default: return null;
+    }
+  }
+  function snapshotWhole() {
+    return JSON.stringify({
+      goal: state.goal, blocker: state.blocker, energyIn: state.energyIn, expectedDiff: state.expectedDiff,
+      completion: state.completion, completionReason: state.completionReason, completed: state.completed,
+      actualDiff: state.actualDiff, energyOut: state.energyOut
+    });
+  }
+  // White "no new data" pulse (no scan sweep) shown when a paste matched what's already there.
+  function runNoChangeFlash(card) {
+    if (!card) return;
+    card.classList.remove('q-nochange');
+    void card.offsetWidth;
+    card.classList.add('q-nochange');
+    setTimeout(function() { card.classList.remove('q-nochange'); }, 720);
+  }
+  function pasteOkNeutral(btn) {
+    if (!btn) return;
+    const i = btn.querySelector('i');
+    if (i && !btn._origIcon) btn._origIcon = i.className;
+    if (i) i.className = 'ti ti-check';
+    btn.classList.add('flash-white');
+    clearTimeout(btn._fbT);
+    btn._fbT = setTimeout(function() {
+      btn.classList.remove('flash-white');
+      if (i && btn._origIcon) { i.className = btn._origIcon; btn._origIcon = null; }
+    }, 1100);
+  }
   function doPasteQuestion(btn, qid) {
     readClipboardText(function(text) {
       const parsed = parseLogText(text);
       if (!parsed[qid]) { pasteFail(btn); return; }
+      const before = JSON.stringify(snapshotQid(qid));
       applyParsedToState(parsed, qid);
-      renderForm();
-      if (typeof updateSubmitState === 'function') updateSubmitState();
-      setTimeout(function() { const c = document.getElementById(QID_CARD[qid]); if (c) runScanEffect(c, '#FFB800'); }, 40);
+      const after = JSON.stringify(snapshotQid(qid));
+      const card = document.getElementById(QID_CARD[qid]);
+      if (before === after) {
+        // Clipboard held the exact same data: white flag, no scan, no re-render.
+        if (card) runNoChangeFlash(card);
+      } else {
+        refreshQuestionUI(qid);                                  // only this question updates
+        setTimeout(function() { if (card) runScanEffect(card, '#FFB800'); }, 40);
+      }
     }, function() { pasteFail(btn); });
   }
   function doPasteWhole(btn) {
     readClipboardText(function(text) {
       const parsed = parseLogText(text);
       if (Object.keys(parsed).length === 0) { pasteFail(btn); return; }
+      const before = snapshotWhole();
       applyParsedToState(parsed, null);
-      renderForm();
-      if (typeof updateSubmitState === 'function') updateSubmitState();
-      pasteOk(btn);
-      runPageScan('#FFB800');
+      const after = snapshotWhole();
+      if (before === after) {
+        pasteOkNeutral(btn);                                     // nothing new on the clipboard
+      } else {
+        renderForm();
+        pasteOk(btn);
+        runPageScan('#FFB800');
+      }
     }, function() { pasteFail(btn); });
   }
   // Reset a single question back to its page-load state (clears option, text, pasted data, and any
@@ -5300,13 +5441,16 @@
   };
   function doResetQuestion(qid) {
     if (QID_RESET[qid]) QID_RESET[qid]();
-    renderForm();
-    if (typeof updateSubmitState === 'function') updateSubmitState();
-    setTimeout(function() { const c = document.getElementById(QID_CARD[qid]); if (c) runScanEffect(c, '#FF5572'); }, 40);
+    refreshQuestionUI(qid);                                      // only this question updates
+    const card = document.getElementById(QID_CARD[qid]);
+    setTimeout(function() { if (card) runScanEffect(card, '#FF5572'); }, 40);
   }
   function pasteQuestion(btn, qid) { armConfirm(btn, function() { doPasteQuestion(btn, qid); }, 'armed-paste'); }
   function pasteWholePage(btn)     { armConfirm(btn, function() { doPasteWhole(btn); }, 'armed-paste'); }
-  function resetQuestion(btn, qid) { armConfirm(btn, function() { doResetQuestion(qid); }, 'armed-reset'); }
+  function resetQuestion(btn, qid) {
+    if (isQuestionEmpty(qid)) { pasteFail(btn); return; }        // nothing to reset -> negative flash, no arm
+    armConfirm(btn, function() { doResetQuestion(qid); }, 'armed-reset');
+  }
   // ====================== end DAILY LOG SUMMARY ======================
 
   // 4-tier color system communicates task weight
