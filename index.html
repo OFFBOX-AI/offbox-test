@@ -1432,7 +1432,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 14px;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
   }
 
   @media (max-width: 640px) {
@@ -2209,7 +2209,7 @@
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(230,230,230,0.08);
     padding: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     animation: fadeInUp 0.4s ease both;
   }
 
@@ -2218,10 +2218,41 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 0;
-    cursor: pointer;
     user-select: none;
   }
   .notes-section.expanded .notes-label { margin-bottom: 12px; }
+
+  /* Collapsed: a short, clearly-clickable bar that invites expanding (hover glow + a nudging
+     chevron + a "Tap to add" hint), and takes very little vertical space. */
+  .notes-section:not(.expanded) {
+    padding: 9px 14px;
+    background: rgba(167,139,250,0.06);
+    border-color: rgba(167,139,250,0.22);
+    transition: background 0.18s ease, border-color 0.18s ease;
+  }
+  .notes-section:not(.expanded):hover {
+    background: rgba(167,139,250,0.13);
+    border-color: rgba(167,139,250,0.5);
+  }
+  .notes-section:not(.expanded) .notes-icon { width: 24px; height: 24px; font-size: 14px; }
+  .notes-hint {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #A78BFA;
+    opacity: 0.85;
+    font-weight: 700;
+  }
+  .notes-section.expanded .notes-hint { display: none; }
+  .notes-section:not(.expanded) .notes-sub { display: none; }
+  .notes-section:not(.expanded) .notes-chevron { animation: notesNudge 1.8s ease-in-out infinite; margin-left: 8px; }
+  @keyframes notesNudge {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(3px); }
+  }
+  .notes-section.notes-mode-off .notes-hint { color: #FFFFFF; }
   .notes-chevron {
     font-size: 16px;
     color: #A78BFA;
@@ -2263,6 +2294,7 @@
 
   /* Collapsed by default: the textarea takes no vertical space until the header is clicked. */
   .notes-section textarea {
+    display: block;
     background: rgba(0,0,0,0.3);
     border-color: rgba(167,139,250,0.2);
     min-height: 100px;
@@ -4079,8 +4111,67 @@
     .reason-tile-icon i { font-size: 15px; }
   }
 
+  /* Bottom row mirrors the questions grid exactly: two equal columns, 14px gap. Notes on the LEFT,
+     the two submit buttons stacked on the RIGHT. The buttons each fill half the notes height, so
+     Submit and Forgot are equal height and together match the notes box (notes 2 : each button 1). */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+    align-items: stretch;
+  }
+  .submit-col {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 14px;
+  }
+  .submit-col > .submit-btn,
+  .submit-col > .submit-btn-late {
+    min-height: 0;
+    margin: 0;
+    width: 100%;
+  }
+  .late-short { display: none; }
+  @media (max-width: 640px) {
+    .bottom-row { grid-template-columns: 1fr; }   /* stack: notes, then the submit row */
+    /* Submit row on mobile: Forgot Yesterday on the LEFT, main Submit on the RIGHT. */
+    .submit-col {
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto;
+      align-items: stretch;
+    }
+    .submit-col > .submit-btn-late { order: 1; }  /* left */
+    .submit-col > .submit-btn { order: 2; }        /* right */
+    .submit-btn-late .late-full { display: none; }
+    .submit-btn-late .late-short { display: inline; }
+    /* Let both labels shrink and wrap to two lines so nothing gets cut or cramped. */
+    .submit-btn-late {
+      padding: 10px 12px;
+      font-size: 9px;
+      letter-spacing: 0.6px;
+      line-height: 1.25;
+      white-space: normal;
+      text-align: center;
+      gap: 6px;
+    }
+    .submit-btn {
+      padding: 14px 12px;
+      font-size: 11px;
+      letter-spacing: 0.6px;
+      line-height: 1.25;
+      white-space: normal;
+      text-align: center;
+    }
+    .submit-btn > span, .submit-btn-late .late-short { white-space: normal; }
+  }
+
   .submit-btn {
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(230,230,230,0.1);
     color: rgba(230,230,230,0.35);
@@ -4089,10 +4180,11 @@
     font-weight: 700;
     padding: 18px;
     cursor: pointer;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     transition: all 0.3s;
   }
+  .submit-btn > i { font-size: 17px; flex: 0 0 auto; }
 
   .submit-btn.ready {
     cursor: pointer;
@@ -4154,13 +4246,45 @@
 
   .progress-hint {
     text-align: center;
-    margin-top: 12px;
+    margin-top: 0;
+    margin-bottom: 0;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
     color: rgba(230,230,230,0.35);
     letter-spacing: 1.5px;
     text-transform: uppercase;
     font-weight: 600;
+  }
+
+  /* Thin progress bar that fills as questions are completed (cyan, turns green when all done). */
+  .progress-bar {
+    height: 5px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: #43D9FF;
+    transition: width 0.35s cubic-bezier(0.2,0.7,0.2,1), background 0.3s ease;
+  }
+  .progress-fill.done { background: #39D98A; }
+
+  /* Respect users who ask the OS to reduce motion: near-instant animations/transitions. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* On phones, keep the submit block reachable at the bottom while scrolling the form. */
+  @media (max-width: 640px) {
+    .submit-col { position: sticky; bottom: 8px; z-index: 30; }
   }
 
   .progress-hint .done-count { color: #43D9FF; }
@@ -4175,14 +4299,14 @@
     font-weight: 600;
     padding: 12px;
     cursor: pointer;
-    letter-spacing: 1.5px;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
-    margin-top: 10px;
     transition: all 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    white-space: nowrap;
   }
   .submit-btn-late:hover {
     border-color: #FFB800;
@@ -4526,7 +4650,7 @@
   <div class="name-strip" id="name-strip">
     <span class="name-strip-label">You</span>
     <div class="name-prefix" id="name-prefix" tabindex="0" aria-label="Optional title, scroll or click to change">&ndash;&ndash;</div>
-    <input type="text" id="name-input" placeholder="e.g. Abdullah Yousef" autocomplete="off">
+    <input type="text" id="name-input" placeholder="e.g. Abdullah Yousef" autocomplete="off" autocapitalize="words" enterkeyhint="done" spellcheck="false">
     <span class="name-saved-tag" id="name-saved-tag">Saved</span>
     <div class="name-export-btns">
       <button type="button" class="icon-sq-btn reset-btn name-act-btn" id="btn-reset-log" onclick="resetPage(this)" title="Reset this page (double-click)" aria-label="Reset this page"><i class="ti ti-refresh"></i></button>
@@ -4556,21 +4680,28 @@
     </div>
   </div>
 
-  <div class="notes-section" id="notes-section">
-    <div class="notes-label" id="notes-label" onclick="toggleNotes()" role="button" tabindex="0" aria-expanded="false">
-      <div class="notes-icon"><i class="ti ti-message" aria-hidden="true"></i></div>
-      <div class="notes-title" id="notes-title">Optional Log In Notes</div>
-      <div class="notes-sub">Literally anything</div>
-      <i class="ti ti-chevron-down notes-chevron" aria-hidden="true"></i>
+  <div class="bottom-row">
+    <div class="notes-section expanded" id="notes-section">
+      <div class="notes-label" id="notes-label">
+        <div class="notes-icon"><i class="ti ti-message" aria-hidden="true"></i></div>
+        <div class="notes-title" id="notes-title">Optional Log In Notes</div>
+        <div class="notes-sub">Literally anything</div>
+      </div>
+      <textarea id="notes-input" enterkeyhint="enter" autocapitalize="sentences" placeholder="Tell us anything. Wins, frustrations, what you ate for breakfast, your favorite game right now, what TV show you binged, whether cats are better than dogs (they are), or just rant. We read every single one." oninput="state.notes=this.value"></textarea>
     </div>
-    <textarea id="notes-input" placeholder="Tell us anything. Wins, frustrations, what you ate for breakfast, your favorite game right now, what TV show you binged, whether cats are better than dogs (they are), or just rant. We read every single one." oninput="state.notes=this.value"></textarea>
-  </div>
 
-  <button class="submit-btn" id="submit-btn" onclick="submit()">Submit (answer 4 questions)</button>
+    <div class="submit-col">
+      <button class="submit-btn" id="submit-btn" onclick="submit()">
+        <i class="ti ti-send" id="submit-icon" aria-hidden="true"></i><span id="submit-label">Submit (answer 4 questions)</span>
+      </button>
+      <button class="submit-btn-late" id="submit-btn-late" onclick="submit(true)" title="Forgot yesterday? Submit as yesterday">
+        <i class="ti ti-clock-back" aria-hidden="true"></i><span class="late-full">Forgot Yesterday? Submit as Yesterday</span><span class="late-short">Forgot Yesterday</span>
+      </button>
+    </div>
+  </div>
+  <div class="progress-bar" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
   <div class="progress-hint" id="progress-hint"><span class="done-count">0</span> of 4 done</div>
-  <button class="submit-btn-late" id="submit-btn-late" onclick="submit(true)">
-    <i class="ti ti-clock-back"></i> Forgot yesterday? Submit as yesterday
-  </button>
+  <datalist id="task-suggestions"></datalist>
 
   <div class="success-screen" id="success-screen">
     <div class="success-icon-big">
@@ -5034,7 +5165,14 @@
     out.push('\uD83D\uDD25 DIFFICULTY TODAY');       out.push(qActualDiff());  out.push('');
     out.push('\uD83C\uDF19 DAY\u2019S END ENERGY');  out.push(qEnergyOut());   out.push('');
     out.push('\uD83D\uDCCB WHAT GOT DONE');          out.push(qWhatGotDone());
+    out.push('');
+    out.push(SUMMARY_SEP);
+    out.push('\uD83D\uDCDD NOTES');                   out.push(qNotes());
     return out.join('\n');
+  }
+  function qNotes() {
+    const n = (state.notes || '').trim();
+    return n ? n : '-';
   }
 
   function summaryFlashBtn(btn, label) {
@@ -5090,6 +5228,7 @@
   // Icon-button feedback: swap the icon to a check and flash green briefly.
   function copyFeedback(btn) {
     if (!btn) return;
+    btn.classList.remove('flash-white', 'flash-fail', 'flash-amber');
     const i = btn.querySelector('i');
     // Capture the true original icon ONCE. On a rapid second press the icon is already ti-check,
     // so re-capturing would make it revert to the check and get stuck.
@@ -5102,21 +5241,31 @@
       if (i && btn._origIcon) { i.className = btn._origIcon; btn._origIcon = null; }
     }, 1200);
   }
+  // Remembers the exact text last copied from each source (per-question qid, or 'whole'), so a copy
+  // that produces nothing new gives an "already copied" white signal instead of the cyan one.
+  const lastCopied = {};
   function copyTextRaw(text, cb) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).then(function(){ if (cb) cb(); })
         .catch(function(){ summaryFallbackCopy(text); if (cb) cb(); });
     } else { summaryFallbackCopy(text); if (cb) cb(); }
   }
-  // Copy a single question's answer + scan its card.
+  // Copy a single question's answer. New data -> cyan check + scan. Same as the last copy of this
+  // question -> white "already copied" flag, no scan.
   function copyQuestion(btn, qid) {
     const q = QUESTION_BLOCKS[qid];
     if (!q) return;
     const txt = q.head + '\n' + q.fn();
+    const card = btn.closest('.question-card');
     copyTextRaw(txt, function() {
-      copyFeedback(btn);
-      const card = btn.closest('.question-card');
-      if (card) runScanEffect(card, getComputedStyle(card).getPropertyValue('--q-color') || '#43D9FF');
+      if (lastCopied[qid] === txt) {
+        pasteOkNeutral(btn);
+        if (card) runNoChangeFlash(card);
+      } else {
+        lastCopied[qid] = txt;
+        copyFeedback(btn);
+        if (card) runScanEffect(card, getComputedStyle(card).getPropertyValue('--q-color') || '#43D9FF');
+      }
     });
   }
   // Full-viewport scan sweep (used by the whole-log Copy / TXT, so it reads as scanning the page).
@@ -5130,8 +5279,13 @@
   function copyLogToClipboard(btn) {
     const txt = buildLogSummary();
     copyTextRaw(txt, function() {
-      copyFeedback(btn);
-      runPageScan('#43D9FF');
+      if (lastCopied.whole === txt) {
+        pasteOkNeutral(btn);          // white check, no page scan: nothing new since last copy
+      } else {
+        lastCopied.whole = txt;
+        copyFeedback(btn);
+        runPageScan('#43D9FF');
+      }
     });
   }
   function exportLogTxt(btn) {
@@ -5207,7 +5361,8 @@
     "GOAL CHECK": 'completion',
     "DIFFICULTY TODAY": 'actualDiff',
     "DAY'S END ENERGY": 'energyOut',
-    "WHAT GOT DONE": 'completed'
+    "WHAT GOT DONE": 'completed',
+    "NOTES": 'notes'
   };
   function pasteLineTitle(line) {
     return line.replace(/^[^\p{L}]+/u, '').trim().toUpperCase().replace(/\u2019/g, "'");
@@ -5296,7 +5451,16 @@
              l.indexOf('\uD83D\uDC64') >= 0 || /^(DAILY )?LOG STAMP/.test(l.trim());
     }
     for (let h = 0; h < heads.length; h++) {
+      const qid = heads[h].qid;
       const start = heads[h].idx + 1;
+      if (qid === 'notes') {
+        // Notes is free multi-line text and always the LAST section, so take everything after its
+        // header to the end of the paste verbatim (a lone "-" means empty).
+        let raw = lines.slice(start).join('\n').trim();
+        if (raw === '-') raw = '';
+        out.notes = { notes: raw };
+        break;
+      }
       const end = (h + 1 < heads.length) ? heads[h + 1].idx : lines.length;
       const block = [];
       for (let i = start; i < end; i++) {
@@ -5304,7 +5468,7 @@
         if (l.trim() === '' || isSep(l) || isMeta(l)) continue;
         block.push(l.replace(/\s+$/, ''));
       }
-      out[heads[h].qid] = parseQuestionBlock(heads[h].qid, block);
+      out[qid] = parseQuestionBlock(qid, block);
     }
     return out;
   }
@@ -5471,6 +5635,7 @@
   }
   function pasteOkNeutral(btn) {
     if (!btn) return;
+    btn.classList.remove('flash', 'flash-fail', 'flash-amber');
     const i = btn.querySelector('i');
     if (i && !btn._origIcon) btn._origIcon = i.className;
     if (i) i.className = 'ti ti-check';
@@ -5509,6 +5674,8 @@
         pasteOkNeutral(btn);                                     // nothing new on the clipboard
       } else {
         renderForm();
+        const ni = document.getElementById('notes-input');
+        if (ni) ni.value = state.notes || '';
         pasteOk(btn);
         runPageScan('#FFB800');
       }
@@ -5765,12 +5932,9 @@
     // Restore the notes value in case we are switching back into this mode and have a saved draft
     const notesInput = document.getElementById('notes-input');
     if (notesInput) notesInput.value = state.notes || '';
-    // Keep collapsed unless there is already content, so it does not eat vertical space by default.
+    // Notes are always expanded now (no collapse), so the textarea is always available.
     if (notesSection) {
-      const hasNotes = !!(state.notes && state.notes.trim());
-      notesSection.classList.toggle('expanded', hasNotes);
-      const nl = document.getElementById('notes-label');
-      if (nl) nl.setAttribute('aria-expanded', hasNotes ? 'true' : 'false');
+      notesSection.classList.add('expanded');
     }
 
     renderForm();
@@ -5847,7 +6011,7 @@
         </div>
         <div class="q-content active${state.goal.trim() ? ' done' : ''}" id="content-goal">
           <div class="q-prompt">What is your ONE main goal today?</div>
-          <input type="text" id="goal-input" value="${escapeHtml(state.goal)}" placeholder="One clear sentence about what you're aiming for today" oninput="state.goal=this.value; updateCard('goal', !!this.value.trim()); updateSubmitState();">
+          <input type="text" id="goal-input" value="${escapeHtml(state.goal)}" placeholder="One clear sentence about what you're aiming for today" enterkeyhint="done" autocapitalize="sentences" oninput="state.goal=this.value; updateCard('goal', !!this.value.trim()); updateSubmitState();">
         </div>
       </div>
 
@@ -5870,9 +6034,9 @@
           </div>
           <div class="blocker-detail${state.blocker.has === true ? ' show' : ''}" id="blocker-detail">
             <div class="blocker-detail-label">What's blocking you?</div>
-            <input type="text" id="blocker-what" value="${escapeHtml(state.blocker.what || '')}" placeholder="One specific line" oninput="updateBlockerWhat(this.value)">
+            <input type="text" id="blocker-what" value="${escapeHtml(state.blocker.what || '')}" placeholder="One specific line" enterkeyhint="done" autocapitalize="sentences" oninput="updateBlockerWhat(this.value)">
             <div class="blocker-detail-label" style="margin-top:10px">Who or what can unblock you?</div>
-            <input type="text" id="blocker-unblocker" value="${escapeHtml(state.blocker.unblocker || '')}" placeholder="A name, a decision, a tool, a meeting..." oninput="updateBlockerUnblocker(this.value)">
+            <input type="text" id="blocker-unblocker" value="${escapeHtml(state.blocker.unblocker || '')}" placeholder="A name, a decision, a tool, a meeting..." enterkeyhint="done" autocapitalize="sentences" oninput="updateBlockerUnblocker(this.value)">
           </div>
         </div>
       </div>
@@ -5946,7 +6110,7 @@
           </div>
           <div class="completion-reason${(state.completion && state.completion !== 'fully') ? ' show' : ''}" id="completion-reason">
             <div class="blocker-detail-label">What happened?</div>
-            <textarea id="reason-input" placeholder="Quick honest reason. Took longer, got pulled into something else, blocked, life happened, energy was off..." oninput="updateCompletionReason(this.value)">${escapeHtml(state.completionReason || '')}</textarea>
+            <textarea id="reason-input" placeholder="Quick honest reason. Took longer, got pulled into something else, blocked, life happened, energy was off..." enterkeyhint="enter" autocapitalize="sentences" oninput="updateCompletionReason(this.value)">${escapeHtml(state.completionReason || '')}</textarea>
           </div>
         </div>
       </div>
@@ -5961,7 +6125,7 @@
         <div class="q-content${state.completed.length > 0 ? ' active' : ''}${allTasksComplete() ? ' done' : ''}" id="content-completed">
           <div class="q-prompt">What did you actually complete today?</div>
           <div class="card-input-wrap">
-            <input type="text" id="completed-input" placeholder="Type a task and hit Enter or tab away to add">
+            <input type="text" id="completed-input" placeholder="Type a task and hit Enter or tab away to add" list="task-suggestions" autocomplete="off" enterkeyhint="done" autocapitalize="sentences">
             <button class="card-add-btn" onmousedown="event.preventDefault()" onclick="addCompleted()" aria-label="add">
               <i class="ti ti-plus"></i>
             </button>
@@ -8785,6 +8949,8 @@
   function addCompleted() {
     const input = document.getElementById('completed-input');
     const val = input ? input.value.trim() : '';
+    if (typeof haptic === 'function') haptic(8);
+    if (typeof pushRecentTask === 'function') pushRecentTask(val);
     // Empty is allowed: this drops in a blank card to fill in later (like adding a bullet first).
     state.completed.unshift({ text: val, projectCostCenter: null, hoursSpentMinutes: null });
     const list = document.getElementById('completed-list');
@@ -9100,6 +9266,12 @@
   }
 
   let wasAllDone = false;
+  function setSubmitLabel(text, icon) {
+    const lbl = document.getElementById('submit-label');
+    if (lbl) lbl.textContent = text;
+    const ic = document.getElementById('submit-icon');
+    if (ic && icon) ic.className = 'ti ' + icon;
+  }
   function updateSubmitState() {
     const done = getDoneCount();
     const total = getTotalQuestions();
@@ -9111,12 +9283,12 @@
     const allDone = done >= total;
     if (allDone) {
       btn.className = 'submit-btn ready ' + readyClass;
-      btn.textContent = readyLabel;
+      setSubmitLabel(readyLabel, 'ti-rocket');
       hint.innerHTML = '<span class="done-count" style="color:#39D98A">All ' + total + ' done</span>';
       if (lateBtn) lateBtn.className = 'submit-btn-late ready ' + readyClass;
     } else {
       btn.className = 'submit-btn';
-      btn.textContent = 'Submit (answer ' + (total - done) + ' more)';
+      setSubmitLabel('Submit (answer ' + (total - done) + ' more)', 'ti-send');
       hint.innerHTML = '<span class="done-count">' + done + '</span> of ' + total + ' done';
       if (lateBtn) lateBtn.className = 'submit-btn-late';
     }
@@ -9125,6 +9297,14 @@
     wasAllDone = allDone;
     // Hide the "submit as yesterday" button for LOG OFF since it's forward-looking, not a missed daily check-in
     if (lateBtn) lateBtn.style.display = (mode === 'off') ? 'none' : '';
+    // Progress bar fill.
+    const fill = document.getElementById('progress-fill');
+    if (fill) {
+      fill.style.width = (total ? Math.round((done / total) * 100) : 0) + '%';
+      fill.classList.toggle('done', allDone);
+    }
+    // Autosave the draft on every state change.
+    if (typeof saveDraft === 'function') saveDraft();
   }
 
   // Full-screen bottom-to-top scan when the form first becomes fully complete.
@@ -9201,6 +9381,9 @@
 
     if (firstMissing) {
       firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      haptic(30);
+      const focusable = firstMissing.querySelector('input, textarea, [contenteditable="true"]');
+      if (focusable) setTimeout(function() { try { focusable.focus({ preventScroll: true }); } catch (e) { try { focusable.focus(); } catch (e2) {} } }, 360);
     }
   }
 
@@ -9232,6 +9415,82 @@
     p.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  // ---------- Draft autosave + restore ----------
+  const DRAFT_KEY = 'offbox_draft_v1';
+  let _submitted = false;
+  let _draftT = null;
+  function saveDraft() {
+    clearTimeout(_draftT);
+    _draftT = setTimeout(function() {
+      try {
+        const nameEl = document.getElementById('name-input');
+        const snap = JSON.parse(JSON.stringify(state));
+        if (snap.attachment && snap.attachment.data) snap.attachment.data = null;  // don't persist file bytes
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          state: snap, mode: mode, name: nameEl ? nameEl.value : '', ts: Date.now()
+        }));
+      } catch (e) {}
+    }, 400);
+  }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+  function restoreDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !data.state) return false;
+      Object.assign(state, data.state);
+      if (!state.submissionId) state.submissionId = genSubmissionId();
+      const n = document.getElementById('name-input');
+      if (n && data.name) n.value = data.name;
+      if (data.mode === 'in' || data.mode === 'out' || data.mode === 'off') mode = data.mode;
+      return true;
+    } catch (e) { return false; }
+  }
+  function draftHasContent() {
+    return !!(state.goal || (state.blocker && state.blocker.has !== null) || state.energyIn ||
+      state.expectedDiff || state.completion || (state.completed && state.completed.length) ||
+      state.actualDiff || state.energyOut || (state.notes && state.notes.trim()) ||
+      (state.timeOff && (state.timeOff.days.length || state.timeOff.from)) ||
+      (state.reasons && state.reasons.length));
+  }
+  // Warn before leaving with unsaved (unsubmitted) answers.
+  window.addEventListener('beforeunload', function(e) {
+    if (!_submitted && draftHasContent()) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  // ---------- Light haptic tap on key actions (mobile; no-op elsewhere) ----------
+  function haptic(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (e) {} }
+
+  // ---------- Keyboard shortcuts: Ctrl/Cmd+Enter submits, Escape closes pickers / disarms ----------
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.key === 'NumpadEnter')) {
+      const b = document.getElementById('submit-btn');
+      if (b && b.style.display !== 'none' && !b.disabled) { e.preventDefault(); submit(); }
+    } else if (e.key === 'Escape') {
+      if (typeof openTimeEditorEl !== 'undefined' && openTimeEditorEl && typeof closeTimeEditor === 'function') closeTimeEditor();
+      if (typeof disarmAction === 'function') disarmAction();
+    }
+  });
+
+  // ---------- Recent-task suggestions (native datalist on the "add task" field) ----------
+  const RECENT_TASKS_KEY = 'offbox_recent_tasks';
+  function getRecentTasks() { try { return JSON.parse(localStorage.getItem(RECENT_TASKS_KEY)) || []; } catch (e) { return []; } }
+  function pushRecentTask(text) {
+    text = (text || '').trim();
+    if (!text) return;
+    let arr = getRecentTasks().filter(function(t) { return t.toLowerCase() !== text.toLowerCase(); });
+    arr.unshift(text);
+    arr = arr.slice(0, 20);
+    try { localStorage.setItem(RECENT_TASKS_KEY, JSON.stringify(arr)); } catch (e) {}
+    renderTaskSuggestions();
+  }
+  function renderTaskSuggestions() {
+    const dl = document.getElementById('task-suggestions');
+    if (!dl) return;
+    dl.innerHTML = getRecentTasks().map(function(t) { return '<option value="' + escapeHtml(t) + '"></option>'; }).join('');
+  }
+
   function submit(forYesterday) {
     // Hard guard: if a submission is already in flight, ignore further taps. JS is single-threaded
     // so this is set synchronously before any await/network, making rapid double-taps a no-op.
@@ -9259,6 +9518,10 @@
     // can't fire another request.
     isSubmitting = true;
     lockSubmitButtons();
+    haptic(20);
+    if (mode === 'out' && Array.isArray(state.completed)) {
+      state.completed.forEach(function(t) { pushRecentTask(t.text); });
+    }
     if (forYesterday) {
       // submit silently as yesterday
     }
@@ -9387,7 +9650,7 @@
     if (btn) {
       btn.disabled = true;
       btn.classList.add('is-submitting');
-      btn.textContent = 'Submitting...';
+      setSubmitLabel('Submitting...', 'ti-loader-2');
     }
     if (lateBtn) {
       lateBtn.disabled = true;
@@ -9453,10 +9716,18 @@
   }
 
   function showSuccess() {
+    _submitted = true;
+    clearDraft();
+    haptic(24);
+    const brow = document.querySelector('.bottom-row');
+    if (brow) brow.style.display = 'none';
     document.getElementById('questions-grid').style.display = 'none';
-    document.querySelector('.notes-section').style.display = 'none';
+    const nsec = document.querySelector('.notes-section');
+    if (nsec) nsec.style.display = 'none';
     document.getElementById('submit-btn').style.display = 'none';
     document.getElementById('progress-hint').style.display = 'none';
+    const pbar = document.querySelector('.progress-bar');
+    if (pbar) pbar.style.display = 'none';
     const lateBtn = document.getElementById('submit-btn-late');
     if (lateBtn) lateBtn.style.display = 'none';
     document.querySelector('.welcome').style.display = 'none';
@@ -10005,7 +10276,14 @@
       }
     });
     document.getElementById('greeting-text').textContent = getGreeting();
-    autoDetectMode();
+    // Restore an unsubmitted draft if there is one, otherwise pick the mode by time of day.
+    if (restoreDraft()) {
+      setMode(mode);
+    } else {
+      autoDetectMode();
+    }
+    renderTaskSuggestions();
+    updateSubmitState();
     // Restore saved display mode preference (default = simple)
     const savedDM = localStorage.getItem('offbox_display_mode') || 'simple';
     setDisplayMode(savedDM, /* skipPersist */ true);
