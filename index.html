@@ -4132,6 +4132,8 @@
     margin: 0;
     width: 100%;
   }
+  /* Time Off has no yesterday button: submit fills the whole cell, no empty half. */
+  .submit-col.solo { grid-template-rows: 1fr; }
   .late-short { display: none; }
   @media (max-width: 640px) {
     .bottom-row { grid-template-columns: 1fr; }   /* stack: notes, then the submit row */
@@ -4141,6 +4143,7 @@
       grid-template-rows: auto;
       align-items: stretch;
     }
+    .submit-col.solo { grid-template-columns: 1fr; }   /* no yesterday button -> submit full width */
     .submit-col > .submit-btn-late { order: 1; }  /* left */
     .submit-col > .submit-btn { order: 2; }        /* right */
     .submit-btn-late .late-full { display: none; }
@@ -4282,12 +4285,29 @@
     }
   }
 
-  /* On phones, keep the submit block reachable at the bottom while scrolling the form. */
-  @media (max-width: 640px) {
-    .submit-col { position: sticky; bottom: 8px; z-index: 30; }
-  }
-
   .progress-hint .done-count { color: #43D9FF; }
+
+  /* "Submit anyway?" state: the submit button turns amber in place; the status line explains + Cancel. */
+  .submit-btn.confirm-anyway {
+    background: rgba(255,184,0,0.14) !important;
+    border-color: #FFB800 !important;
+    color: #FFB800 !important;
+  }
+  .submit-btn.confirm-anyway:hover { background: rgba(255,184,0,0.22) !important; }
+  .progress-hint.warn { color: #FFB800; }
+  .tc-cancel-inline {
+    background: none;
+    border: none;
+    color: #FF5572;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: inherit;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0 2px;
+    text-decoration: underline;
+  }
 
   .submit-btn-late {
     width: 100%;
@@ -9273,6 +9293,8 @@
     if (ic && icon) ic.className = 'ti ' + icon;
   }
   function updateSubmitState() {
+    // A change while the "submit anyway" confirm is armed cancels it and re-evaluates cleanly.
+    if (_toArmed) { cancelTimeoffConfirm(); return; }
     const done = getDoneCount();
     const total = getTotalQuestions();
     const btn = document.getElementById('submit-btn');
@@ -9297,6 +9319,9 @@
     wasAllDone = allDone;
     // Hide the "submit as yesterday" button for LOG OFF since it's forward-looking, not a missed daily check-in
     if (lateBtn) lateBtn.style.display = (mode === 'off') ? 'none' : '';
+    // With no yesterday button, let the submit button fill the whole space instead of half.
+    const scol = document.querySelector('.submit-col');
+    if (scol) scol.classList.toggle('solo', mode === 'off');
     // Progress bar fill.
     const fill = document.getElementById('progress-fill');
     if (fill) {
@@ -9395,24 +9420,38 @@
   let isSubmitting = false;
 
   let timeoffConfirmed = false;
-  // Small inline confirmation shown above the submit button for risky / over-cap Time Off entries.
-  function showTimeoffConfirm(forYesterday) {
-    const existing = document.getElementById('timeoff-confirm');
-    if (existing) existing.remove();
-    const p = document.createElement('div');
-    p.id = 'timeoff-confirm';
-    p.className = 'timeoff-confirm';
-    p.innerHTML =
-      '<div class="tc-msg"><i class="ti ti-alert-triangle" aria-hidden="true"></i> This reason is logged and flagged for the team to review. Submit anyway?</div>' +
-      '<div class="tc-actions">' +
-        '<button type="button" class="tc-cancel">Cancel</button>' +
-        '<button type="button" class="tc-go">Submit anyway</button>' +
-      '</div>';
+  let _toArmed = false;
+  // Morph the submit button itself into a "submit anyway" state (amber), using the existing status
+  // line under it to explain and offer Cancel. No element is inserted, so the page never grows.
+  function armSubmitConfirm() {
+    _toArmed = true;
     const btn = document.getElementById('submit-btn');
-    btn.parentNode.insertBefore(p, btn);
-    p.querySelector('.tc-cancel').onclick = function() { p.remove(); };
-    p.querySelector('.tc-go').onclick = function() { timeoffConfirmed = true; p.remove(); submit(forYesterday); };
-    p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const icon = document.getElementById('submit-icon');
+    const lbl = document.getElementById('submit-label');
+    const hint = document.getElementById('progress-hint');
+    if (btn) btn.classList.add('confirm-anyway');
+    if (icon) icon.className = 'ti ti-alert-triangle';
+    if (lbl) lbl.textContent = 'Submit anyway?';
+    if (hint) {
+      if (hint._orig == null) hint._orig = hint.innerHTML;
+      hint.classList.add('warn');
+      hint.innerHTML = 'Flagged for team review. <button type="button" class="tc-cancel-inline" onclick="cancelTimeoffConfirm()">Cancel</button>';
+    }
+    if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function clearSubmitConfirmMorph() {
+    const btn = document.getElementById('submit-btn');
+    const hint = document.getElementById('progress-hint');
+    if (btn) btn.classList.remove('confirm-anyway');
+    if (hint) {
+      hint.classList.remove('warn');
+      if (hint._orig != null) { hint.innerHTML = hint._orig; hint._orig = null; }
+    }
+  }
+  function cancelTimeoffConfirm() {
+    _toArmed = false;
+    clearSubmitConfirmMorph();
+    updateSubmitState();   // restores the real label + icon (safe: _toArmed is now false)
   }
 
   // ---------- Draft autosave + restore ----------
@@ -9508,11 +9547,18 @@
       document.getElementById('name-strip').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    // Time Off: if a risky reason or an over-cap duration is selected, ask for a small inline
-    // confirmation first (not a browser alert). The form still submits; this is just a heads-up.
+    // Time Off: a risky reason or over-cap duration morphs the submit button into a "submit anyway"
+    // state in place (no new element, no extra page height). A second press confirms.
     if (mode === 'off' && timeoffNeedsConfirm() && !timeoffConfirmed) {
-      showTimeoffConfirm(forYesterday);
-      return;
+      if (_toArmed) {
+        _toArmed = false;
+        timeoffConfirmed = true;
+        clearSubmitConfirmMorph();
+        // fall through and submit
+      } else {
+        armSubmitConfirm();
+        return;
+      }
     }
     // Validation passed -> lock immediately so a second tap during the 2.5s pre-success window
     // can't fire another request.
@@ -9820,8 +9866,12 @@
     document.getElementById('success-screen').style.display = 'none';
     document.getElementById('reward-banner').classList.remove('show');
     document.getElementById('questions-grid').style.display = 'grid';
+    const browRestore = document.querySelector('.bottom-row');
+    if (browRestore) browRestore.style.display = '';       // un-hide the row that holds notes + submit
+    const pbarRestore = document.querySelector('.progress-bar');
+    if (pbarRestore) pbarRestore.style.display = '';
     document.querySelector('.notes-section').style.display = 'block';
-    document.getElementById('submit-btn').style.display = 'block';
+    document.getElementById('submit-btn').style.display = 'flex';
     document.getElementById('progress-hint').style.display = 'block';
     const lateBtnRestore = document.getElementById('submit-btn-late');
     if (lateBtnRestore) lateBtnRestore.style.display = 'flex';
