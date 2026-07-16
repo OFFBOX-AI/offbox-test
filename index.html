@@ -5923,6 +5923,10 @@
 
   function setMode(m) {
     mode = m;
+    // Safety net: switching mode to start a new log clears any stale in-flight guard, but never while a
+    // real submission is mid-flight (the submit button carries .is-submitting during its 2.5s window).
+    const _sb = document.getElementById('submit-btn');
+    if (isSubmitting && !(_sb && _sb.classList.contains('is-submitting'))) isSubmitting = false;
     // Use classList (not className=) so the display-simple/display-advanced class set elsewhere
     // is preserved when switching modes. Overwriting className was wiping the simple/advanced mode.
     document.body.classList.remove('mode-in', 'mode-out', 'mode-off');
@@ -7462,7 +7466,7 @@
     let durMin;
     if (state.timeOff.from && state.timeOff.to) {
       durMin = computeTimeoffWorkMinutes();
-      if (durMin < SLOT_MIN) durMin = 60;
+      if (durMin < 5) durMin = 60;   // only fall back to 1h if there is no real duration (was < 15, which wrongly reset 10m)
     } else {
       durMin = 60;
     }
@@ -7490,7 +7494,7 @@
     state.timeOff.from = minutesToHHMM(nowMin);
     state.timeOff.to   = minutesToHHMM(toMin);
     state.timeOff._previousRange = null;
-    if (timeoffWorkMinutesBetween(nowMin, toMin) < 15) { deactivateCurrentTimeLock(); return; }
+    if (timeoffWorkMinutesBetween(nowMin, toMin) < 5) { deactivateCurrentTimeLock(); return; }
 
     updateShiftBarSelection();
     updateTimeOffSummary();
@@ -7836,7 +7840,13 @@
 
   let openTimeEditorEl = null;
   function closeTimeEditor() {
-    if (openTimeEditorEl) { openTimeEditorEl.remove(); openTimeEditorEl = null; }
+    if (openTimeEditorEl) {
+      // Commit each column's final position first, so hitting Done before the settle debounce fires
+      // (or flicking fast) never loses the change.
+      openTimeEditorEl.querySelectorAll('.tp-col').forEach(function(col) { clearTimeout(col._tpTimer); if (col._tpCommit) col._tpCommit(); });
+      openTimeEditorEl.remove();
+      openTimeEditorEl = null;
+    }
     document.removeEventListener('pointerdown', onEditorOutside, true);
   }
   function onEditorOutside(e) {
@@ -7866,21 +7876,25 @@
     col.querySelectorAll('.tp-item').forEach(function(it, i) { it.classList.toggle('is-active', i === idx); });
   }
   function tpInitCol(col, selIdx, onSettle) {
-    col.scrollTop = selIdx * TP_ITEM;
+    const initialTop = selIdx * TP_ITEM;
+    let skipInitial = Math.abs(col.scrollTop - initialTop) > 0.5;  // the programmatic scroll fires one event
+    col.scrollTop = initialTop;
     tpMarkActive(col);
-    let ready = false, t = null;
-    setTimeout(function() { ready = true; }, 80);       // ignore the initial programmatic scroll
+    // Commit the column's current value. Reused on settle AND when the picker closes, so a fast
+    // flick or an immediate Done never loses the change.
+    col._tpCommit = function() {
+      if (!col.isConnected) return;                                       // ignore a stray post-close timer
+      const idx = tpColIndex(col);
+      const target = idx * TP_ITEM;
+      if (Math.abs(col.scrollTop - target) > 1) col.scrollTop = target;   // hard-snap
+      tpMarkActive(col);
+      onSettle(idx);
+    };
     col.addEventListener('scroll', function() {
       tpMarkActive(col);
-      if (!ready) return;
-      clearTimeout(t);
-      t = setTimeout(function() {
-        const idx = tpColIndex(col);
-        const target = idx * TP_ITEM;
-        if (Math.abs(col.scrollTop - target) > 1) col.scrollTop = target;   // hard-snap
-        tpMarkActive(col);
-        onSettle(idx);
-      }, 90);
+      if (skipInitial) { skipInitial = false; return; }   // ignore ONLY the initial programmatic scroll
+      clearTimeout(col._tpTimer);
+      col._tpTimer = setTimeout(col._tpCommit, 90);
     });
     col.addEventListener('wheel', function(e) {          // one item per notch on desktop
       e.preventDefault();
@@ -9563,6 +9577,10 @@
     // Validation passed -> lock immediately so a second tap during the 2.5s pre-success window
     // can't fire another request.
     isSubmitting = true;
+    // Fresh id for THIS submission. Each distinct log (a second log-out, a time-off, or "log another")
+    // must have its own id, or the server dedupe drops it as a repeat of the first. All the staggered
+    // send methods below still share this one id (built into params once), so they still collapse to one row.
+    state.submissionId = genSubmissionId();
     lockSubmitButtons();
     haptic(20);
     if (mode === 'out' && Array.isArray(state.completed)) {
@@ -9599,8 +9617,8 @@
       name: name,
       notes: state.notes || '',
       ts: String(submissionTs),
-      // STABLE per form session (not per call): every send-method AND any accidental repeat
-      // carry the same id, so the server dedupe collapses them all to one row.
+      // Unique per submission (set at the top of submit()). All staggered send methods below share this
+      // one id, so the server dedupe collapses THOSE into one row, while distinct logs stay distinct.
       submission_id: state.submissionId,
       for_day: forDayValue
     };
@@ -9763,6 +9781,16 @@
 
   function showSuccess() {
     _submitted = true;
+    // Submission finished: clear the in-flight guard and re-enable the buttons so the NEXT submission
+    // (a second log-out, time-off, or "log another") is never blocked, regardless of how the user returns.
+    isSubmitting = false;
+    const sbDone = document.getElementById('submit-btn');
+    if (sbDone) { sbDone.disabled = false; sbDone.classList.remove('is-submitting'); }
+    const lbDone = document.getElementById('submit-btn-late');
+    if (lbDone) { lbDone.disabled = false; lbDone.classList.remove('is-submitting'); }
+    timeoffConfirmed = false;
+    _toArmed = false;
+    if (typeof clearSubmitConfirmMorph === 'function') clearSubmitConfirmMorph();
     clearDraft();
     haptic(24);
     const brow = document.querySelector('.bottom-row');
