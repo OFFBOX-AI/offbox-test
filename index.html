@@ -6628,7 +6628,7 @@
     const tp = state.timeOff.to.split(':');
     const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
     const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
-    const dur = (tMin - fMin) - breakOverlapMinutes(fMin, tMin);
+    const dur = (tMin - fMin);   // wall-clock duration; break is NOT subtracted here (that is "off work", computed at the end)
     if (dur <= 0) return '';
     const h = Math.floor(dur / 60);
     const m = dur % 60;
@@ -6645,7 +6645,9 @@
     const tp = state.timeOff.to.split(':');
     const fMin = parseInt(fp[0], 10) * 60 + parseInt(fp[1], 10);
     const tMin = parseInt(tp[0], 10) * 60 + parseInt(tp[1], 10);
-    return Math.max(0, (tMin - fMin) - breakOverlapMinutes(fMin, tMin));
+    // Time off is measured in real elapsed (wall-clock) time: 1 hour off = you return exactly 1 hour
+    // later. The company break is NOT subtracted (that pushed a 1:30 break to a 3pm return).
+    return Math.max(0, tMin - fMin);
   }
   function isBreakCell(i) {
     const startMin = WORK_SCHEDULE.workStart * 60;
@@ -6967,22 +6969,13 @@
   // Work minutes between two arbitrary clock minutes, break excluded. (computeTimeoffWorkMinutes
   // does the same but only for the current state.timeOff range.)
   function timeoffWorkMinutesBetween(fromMin, toMin) {
-    return Math.max(0, (toMin - fromMin) - breakOverlapMinutes(fromMin, toMin));
+    return Math.max(0, toMin - fromMin);   // wall-clock elapsed time (break no longer subtracted)
   }
 
-  // Inverse of the above: given a start and a target WORK duration (break excluded), return the END
-  // minute that yields exactly that much work, stepping cleanly over the 1-2pm break.
+  // Given a start and a duration, the return time is simply start + duration (wall clock). The break
+  // is no longer skipped, so a 1-hour break at 1:30 returns at 2:30, not 3:00.
   function timeoffEndForWorkDuration(fromMin, workDur) {
-    let bs = null, be = null;
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name === 'BREAK') { bs = seg.start * 60; be = seg.end * 60; }
-    });
-    if (bs == null) return fromMin + workDur;
-    if (fromMin >= be) return fromMin + workDur;   // after the break: no break ahead
-    if (fromMin >= bs) return be + workDur;         // inside the break: work counts from break end
-    const workBeforeBreak = bs - fromMin;           // before the break
-    if (workDur <= workBeforeBreak) return fromMin + workDur;
-    return be + (workDur - workBeforeBreak);         // crosses the break: skip it
+    return fromMin + workDur;
   }
 
   // Draw the selection OUTLINE as absolute overlay segment(s) positioned by exact minutes, so the
@@ -7812,15 +7805,7 @@
     let fromMin;
     if (state.timeOff.from) { const p = state.timeOff.from.split(':'); fromMin = +p[0] * 60 + +p[1]; }
     else { fromMin = WORK_SCHEDULE.workStart * 60; }
-    let toMin = fromMin + durMin;
-    // Extend past the break so the requested duration is all WORK time (only for in-work-day blocks).
-    WORK_SCHEDULE.segments.forEach(function(seg) {
-      if (seg.name !== 'BREAK') return;
-      const bs = seg.start * 60, be = seg.end * 60;
-      if (fromMin < bs && toMin > bs && fromMin >= WORK_SCHEDULE.workStart * 60 && fromMin < WORK_SCHEDULE.workEnd * 60) {
-        toMin += (be - bs);
-      }
-    });
+    let toMin = fromMin + durMin;   // wall-clock: UNTIL is exactly FROM + duration (break not skipped)
     if (toMin > SELECT_MAX_MIN) toMin = SELECT_MAX_MIN;
     if (toMin <= fromMin) toMin = fromMin + 5;
     state.timeOff.from = minutesToHHMM(fromMin);
